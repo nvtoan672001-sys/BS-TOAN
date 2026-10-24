@@ -320,15 +320,17 @@ function drugChecks(d, ctx){
 
 // ---- Quy tắc phòng khám của BS. Toàn cho SSRI/SNRI (bác sĩ đặt 2026-10-24) ----
 // KHÔNG cho kê SSRI/SNRI khi: (1) khám tâm thần có rối loạn chức năng tình dục (hoặc chẩn đoán F52.x);
-// (2) bệnh sử / lý do khám có buồn nôn, tiêu chảy; (3) thuốc dài hạn có NSAID, kháng đông, cường giao cảm.
+// (2) bệnh sử / lý do khám có buồn nôn, tiêu chảy; (3) thuốc dài hạn có NSAID, kháng đông, chống kết tập tiểu cầu
+// (kể cả aspirin), cường giao cảm (kể cả salbutamol).
 // Có tiền sử rối loạn lưỡng cực → chỉ CẢNH BÁO (Stahl: thận trọng nếu không kèm thuốc chỉnh khí sắc).
 const isSsriSnri = d => !!d && (expandTags(d.tags).has('ssri') || expandTags(d.tags).has('snri') || ['SSRI', 'SNRI'].includes(d.cls));
 const LONG_KW = {
   nsaid: ['ibuprofen', 'diclofenac', 'meloxicam', 'celecoxib', 'etoricoxib', 'naproxen', 'piroxicam', 'ketoprofen', 'indomethacin', 'aceclofenac', 'nimesulid'],
   anticoag: ['warfarin', 'acenocoumarol', 'sintrom', 'rivaroxaban', 'apixaban', 'dabigatran', 'edoxaban', 'heparin', 'enoxaparin', 'fondaparinux'],
-  sympathomimetic: ['pseudoephedrin', 'phenylephrin', 'ephedrin', 'epinephrin', 'adrenalin', 'noradrenalin', 'norepinephrin', 'methylphenidat', 'amphetamin', 'midodrin'],
+  antiplatelet: ['aspirin', 'acetylsalicylic', 'clopidogrel', 'ticagrelor', 'prasugrel', 'cilostazol', 'dipyridamol'],
+  sympathomimetic: ['pseudoephedrin', 'phenylephrin', 'ephedrin', 'epinephrin', 'adrenalin', 'noradrenalin', 'norepinephrin', 'methylphenidat', 'amphetamin', 'midodrin', 'salbutamol'],
 };
-const LONG_KW_LABEL = {nsaid: 'NSAID', anticoag: 'thuốc kháng đông', sympathomimetic: 'thuốc cường giao cảm'};
+const LONG_KW_LABEL = {nsaid: 'NSAID', anticoag: 'thuốc kháng đông', antiplatelet: 'thuốc chống kết tập tiểu cầu (kể cả aspirin)', sympathomimetic: 'thuốc cường giao cảm'};
 // Có nhắc tới triệu chứng nhưng KHÔNG đứng sau từ phủ định gần đó ("không buồn nôn", "chưa tiêu chảy")
 function mentionsSymptom(text, kw){
   const t = ' ' + norm(text || '').replace(/[^a-z0-9]+/g, ' ') + ' ';

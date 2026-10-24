@@ -208,6 +208,12 @@ def main():
             assert any('NSAID' in r for r in pg.evaluate(R))
             pg.evaluate("() => { curP().meds = [{id: 'm_t2', text: 'Pseudoephedrin 60 mg', dose: ''}]; }")
             assert any('cường giao cảm' in r for r in pg.evaluate(R))
+            pg.evaluate("() => { curP().meds = [{id: 'm_t3', text: 'Salbutamol xịt', dose: ''}]; }")
+            assert any('cường giao cảm' in r for r in pg.evaluate(R)), 'salbutamol phải bị tính là cường giao cảm'
+            pg.evaluate("() => { curP().meds = [{id: 'm_t4', drugId: 'asp81', dose: ''}]; }")
+            assert any('kết tập' in r for r in pg.evaluate(R)), 'aspirin phải bị chặn'
+            pg.evaluate("() => { curP().meds = [{id: 'm_t5', drugId: 'clopi75', dose: ''}]; }")
+            assert any('kết tập' in r for r in pg.evaluate(R)), 'clopidogrel phải bị chặn'
             # bấm thêm SSRI khi bị chặn -> không vào đơn; thuốc khác vẫn thêm được
             pg.evaluate("addRx('sert50')"); pg.wait_for_timeout(200)
             assert pg.evaluate("curV().rx.length") == 0, 'SSRI bị chặn không được vào đơn'
