@@ -16,3 +16,8 @@ Mỗi lần làm xong, thêm một mục ở **cuối file**: ngày · agent · 
 - Tài liệu: `TAI-LIEU.md` (nguồn y khoa: `Desktop\Tâm thần`, notebook "Tâm thần"), AGENTS.md cập nhật.
 - **Cần bác sĩ duyệt:** ngưỡng điểm trắc nghiệm, quy tắc `psyDx` (F30.0, trầm cảm nặng, F41.1 ≥ 26 tuần), nội dung cảnh báo 44 thuốc tâm thần, tên tiếng Việt các mã ICD mới. Diazepam, amitriptylin (thuốc cũ) chưa được cập nhật vào danh mục bác sĩ đang dùng.
 - **Việc có thể giao Gemini:** đợt 2 gợi ý chẩn đoán cần Claude; Gemini có thể làm bảng duyệt (Excel/Markdown) 44 thuốc tâm thần và các mã ICD mới để bác sĩ đánh dấu.
+
+## 2026-10-24 · Claude
+- Cài git, khởi tạo kho `ma-nguon` (nhánh `main`). Cài Gemini CLI (bác sĩ tự cài, xác thực bằng `GEMINI_API_KEY` — đăng nhập Google cá nhân không còn được hỗ trợ). Gọi không tương tác: `gemini.cmd --approval-mode auto_edit -p "<việc>"` (PowerShell chặn `.ps1`, dùng `.cmd`).
+- Đã giao Gemini lập bảng duyệt nhưng thất bại (máy chủ 503, "fetch failed"), Gemini không sửa file nào. Claude tự xuất bảng bằng script: `BS-TOAN\bang-duyet\thuoc-tam-than.csv` (44 thuốc), `icd-tam-than-moi.csv` (66 mã nhóm "Tâm thần bổ sung"). Bảng nằm ngoài kho git.
+- Sửa số liệu: đợt mã ICD tâm thần bổ sung là **66 mã** (trước đó báo nhầm 72).
