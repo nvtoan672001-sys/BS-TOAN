@@ -205,6 +205,12 @@ def main():
             assert pg.evaluate(DX, {'sx': dep, 'weeks': 3, 'hist': ['hypomania']})['codes'] == ['F31.3']
             sev = ['dep_mood', 'dep_anhed', 'dep_energy', 'dep_conc', 'dep_guilt', 'dep_sleep', 'dep_appetite', 'psy_delus']
             assert pg.evaluate(DX, {'sx': sev, 'weeks': 4, 'hist': ['dep']})['codes'] == ['F33.3']
+            # trầm cảm đủ số lượng nặng (3/3 + 4/7): chưa xác nhận "đặc biệt nặng" -> vừa; xác nhận -> nặng
+            sev4 = ['dep_mood', 'dep_anhed', 'dep_energy', 'dep_conc', 'dep_guilt', 'dep_pessim', 'dep_sleep']
+            r = pg.evaluate("(o) => { const v = curV(); v.mental = Object.assign({sx: [], hist: [], excl: []}, o); const s = psyDx(curP(), v).sugs.find(x => x.ok); return s && [s.code, s.note]; }", {'sx': sev4, 'weeks': 3, 'hist': ['hypomania']})
+            assert r[0] == 'F31.3' and 'chưa xác nhận' in r[1], r
+            assert pg.evaluate(DX, {'sx': sev4, 'weeks': 3, 'hist': ['hypomania'], 'severe': True})['codes'] == ['F31.4']
+            assert pg.evaluate(DX, {'sx': sev4, 'weeks': 3, 'severe': True})['codes'] == ['F32.2']
             man = ['man_mood', 'man_talk', 'man_sleep', 'man_grand']
             assert pg.evaluate(DX, {'sx': man, 'weeks': 1, 'impair': 'marked'})['codes'] == ['F30.1']
             assert pg.evaluate(DX, {'sx': man, 'weeks': 1, 'impair': 'none'})['codes'] == ['F30.0']

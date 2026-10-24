@@ -441,12 +441,17 @@ function psyDx(p, v){
   const add = (code, src, met, miss, note) => out.push({code, name: icdName(code), src, met, miss: miss.concat(exclMiss), note});
   const durTxt = wk == null ? 'Chưa nhập thời gian kéo dài' : `Thời gian kéo dài ${fmtN(wk)} tuần`;
   // --- Giai đoạn trầm cảm hiện tại (Bài 20) ---
-  const depLv = c.core >= 3 && c.common >= 4 ? 'severe' : c.core >= 2 && c.common >= 3 ? 'mod' : c.core >= 2 && c.common >= 2 ? 'mild' : '';
+  // Trầm cảm nặng (F32.2): 3/3 chính + ≥ 4 phổ biến VÀ "một số phải đặc biệt nặng" — bác sĩ xác nhận bằng ô m.severe
+  // (có loạn thần thì đã là nặng – F32.3). Đủ số lượng mà chưa xác nhận → xếp mức vừa, kèm nhắc.
+  const sevCount = c.core >= 3 && c.common >= 4, sevOk = sevCount && (!!m.severe || c.psy);
+  const depLv = sevOk ? 'severe' : c.core >= 2 && c.common >= 3 ? 'mod' : c.core >= 2 && c.common >= 2 ? 'mild' : '';
   const depOk = depLv && wk != null && wk >= 2;
   const depCode = {mild: '0', mod: '1', severe: c.psy ? '3' : '2'}[depLv];
-  const depMet = [`${c.core}/3 triệu chứng chính`, `${c.common}/7 triệu chứng phổ biến`].concat(wk != null && wk >= 2 ? [durTxt + ' (≥ 2 tuần)'] : []).concat(c.psy && depLv === 'severe' ? ['Có triệu chứng loạn thần'] : []);
+  const depMet = [`${c.core}/3 triệu chứng chính`, `${c.common}/7 triệu chứng phổ biến`].concat(wk != null && wk >= 2 ? [durTxt + ' (≥ 2 tuần)'] : []).concat(c.psy && depLv === 'severe' ? ['Có triệu chứng loạn thần'] : []).concat(m.severe && depLv === 'severe' ? ['Bác sĩ xác nhận một số triệu chứng đặc biệt nặng'] : []);
   const depMiss = (wk == null || wk < 2 ? [durTxt + ' — cần ≥ 2 tuần'] : []).concat(c.psy && depLv && depLv !== 'severe' ? ['Có loạn thần nhưng chưa đủ trầm cảm nặng (3/3 chính + ≥ 4 phổ biến): đánh giá lại'] : []);
   const somNote = c.som >= 4 ? `Có hội chứng cơ thể (${c.som}/8 triệu chứng cơ thể)` : '';
+  const sevNote = sevCount && !sevOk ? 'Đủ số lượng triệu chứng của trầm cảm NẶNG (3/3 chính + ≥ 4 phổ biến) nhưng đang xếp mức VỪA vì chưa xác nhận "một số triệu chứng đặc biệt nặng" (BYT 2020 Bài 20). Nếu đúng, đánh dấu ô này ở mục Khám tâm thần (bước 1).' : '';
+  const depNote = [somNote, sevNote].filter(Boolean).join(' ');
   // --- Giai đoạn hưng cảm hiện tại (Bài 18) ---
   const manSx = c.manA && c.manB >= 3;
   const manFull = manSx && wk != null && wk >= 1 && (imp === 'marked' || imp === 'hosp');
@@ -468,11 +473,11 @@ function psyDx(p, v){
   if(depLv && !manSx && !c.mix){
     if(pastMan){
       const code = depLv === 'severe' ? (c.psy ? 'F31.5' : 'F31.4') : 'F31.3';
-      add(code, 'Bài 19', depMet.concat(['Tiền sử có giai đoạn hưng cảm / hưng cảm nhẹ']), depMiss, somNote);
+      add(code, 'Bài 19', depMet.concat(['Tiền sử có giai đoạn hưng cảm / hưng cảm nhẹ']), depMiss, depNote);
     } else if(hist.has('dep') || hist.has('dep2')){
-      add('F33.' + depCode, 'Bài 21', depMet.concat(['Tiền sử có giai đoạn trầm cảm, cách nhiều tháng ổn định']), depMiss, [somNote, 'Không có tiền sử giai đoạn hưng cảm / hưng cảm nhẹ độc lập.'].filter(Boolean).join(' '));
+      add('F33.' + depCode, 'Bài 21', depMet.concat(['Tiền sử có giai đoạn trầm cảm, cách nhiều tháng ổn định']), depMiss, [depNote, 'Không có tiền sử giai đoạn hưng cảm / hưng cảm nhẹ độc lập.'].filter(Boolean).join(' '));
     } else {
-      add('F32.' + depCode, 'Bài 20', depMet, depMiss, [somNote, depLv === 'severe' ? 'Trầm cảm nặng: một số triệu chứng phải đặc biệt nặng.' : ''].filter(Boolean).join(' '));
+      add('F32.' + depCode, 'Bài 20', depMet, depMiss, depNote);
     }
   } else if(!depLv && c.core >= 1 && !c.manA){
     add('F32.0', 'Bài 20', [`${c.core}/3 triệu chứng chính`, `${c.common}/7 triệu chứng phổ biến`], [`Chưa đủ: trầm cảm nhẹ cần ≥ 2/3 triệu chứng chính và ≥ 2/7 phổ biến`].concat(wk == null || wk < 2 ? [durTxt + ' — cần ≥ 2 tuần'] : []), '');

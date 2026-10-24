@@ -366,7 +366,7 @@ function mentalCard(p, v){
   if(!open) return `<div class="card">${head}<div class="small muted">Bảng kiểm triệu chứng trầm cảm, hưng cảm, lo âu theo BYT 2020 — dùng để gợi ý chẩn đoán ở bước 3.</div></div>`;
   const grp = (t, src, body) => `<div class="mgrp"><span class="lbl">${esc(t)} <span class="tiny muted">BYT 2020, ${esc(src)}</span></span><div class="checks">${body}</div></div>`;
   return `<div class="card">${head}<div data-live="mentalSum"></div>
-    ${MENTAL_SX.map(g => grp(g.t, g.src, g.items.map(([k, l]) => CL('v.mental.sx', m.sx, k, l)).join(''))).join('')}
+    ${MENTAL_SX.map(g => grp(g.t, g.src, g.items.map(([k, l]) => CL('v.mental.sx', m.sx, k, l)).join('')) + (g.g === 'dep_som' ? `<div class="mgrp">${CB('v.mental.severe', m.severe, '<b>Một số triệu chứng đặc biệt nặng</b> <span class="tiny muted">— điều kiện của trầm cảm nặng (BYT 2020, Bài 20); bác sĩ đánh giá</span>')}</div>` : '')).join('')}
     <div class="g3 mgrp">${F('Thời gian kéo dài giai đoạn hiện tại', U('v.mental.weeks', m.weeks, 'tuần'))}<div class="field spanall"><label>Mức ảnh hưởng chức năng</label><div class="row">${MENTAL_IMPAIR.map(([k, l]) => RAD('v.mental.impair', m.impair, k, l)).join('')}</div></div></div>
     ${grp('Tiền sử giai đoạn khí sắc', 'Bài 19, 21', MENTAL_HIST.map(([k, l]) => CL('v.mental.hist', m.hist, k, l)).join(''))}
     ${grp('Yếu tố cần loại trừ', 'Bài 18–23', MENTAL_EXCL.map(([k, l]) => CL('v.mental.excl', m.excl, k, l)).join(''))}
