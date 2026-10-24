@@ -6,3 +6,4 @@ du-lieu-*.json
 # File build
 Ho-so-benh-nhan.html
 __pycache__/
+dist/

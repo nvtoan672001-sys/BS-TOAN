@@ -10,6 +10,7 @@ Luồng một lượt khám có 6 bước: (1) lý do khám và thăm khám → 
 
 ### Ràng buộc bắt buộc (không được phá)
 - **Một file HTML tự chứa**, chạy bằng cách mở file trực tiếp (`file://`) trong Chrome/Edge. Không có server, không có bước cài đặt.
+- **Bản web** (GitHub Pages, https://nvtoan672001-sys.github.io/BS-TOAN/): workflow `.github/workflows/pages.yml` build → chạy smoke test → deploy mỗi khi push `main`. Bản web chỉ là giao diện tĩnh — dữ liệu vẫn ở máy người dùng; vẫn cấm mọi gọi API / analytics / tài nguyên từ xa. Origin web khác `file://` nên bộ nhớ trình duyệt và quyền thư mục là riêng cho từng nơi.
 - **Không phụ thuộc bên ngoài**: không framework, không npm, không CDN, không font/ảnh từ mạng. App phải chạy **offline** hoàn toàn.
 - **Không gửi dữ liệu đi đâu.** Đây là dữ liệu sức khoẻ cá nhân (dữ liệu nhạy cảm theo Nghị định 13/2023/NĐ-CP). Không thêm analytics, telemetry, gọi API, hay tải tài nguyên từ xa.
 - **Nội dung y khoa** (quy tắc tương tác, ngưỡng eGFR, sàng lọc, liều) là công cụ **hỗ trợ**. Mọi thay đổi phải có nguồn (tờ HDSD, Dược thư QG, KDIGO, Beers, USPSTF, ADA…) và cần bác sĩ duyệt. Không tự bịa số liệu lâm sàng. Nếu không chắc, hỏi lại thay vì đoán.
