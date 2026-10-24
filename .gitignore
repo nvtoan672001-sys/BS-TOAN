@@ -1,0 +1,8 @@
+# Dữ liệu bệnh nhân thật — tuyệt đối không commit
+du-lieu/
+../du-lieu/
+sao-luu*.json
+du-lieu-*.json
+# File build
+Ho-so-benh-nhan.html
+__pycache__/
