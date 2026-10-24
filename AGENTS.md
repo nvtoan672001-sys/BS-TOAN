@@ -187,7 +187,7 @@ Bác sĩ dùng cả Claude (Claude Code) và Gemini (Gemini CLI) trên cùng th�
 - Việc nằm giữa hai nhóm: agent nào nhận thì làm, nhưng ghi rõ vào `NHAT-KY.md`.
 
 **Quy tắc bắt buộc khi phối hợp**
-1. **Một agent sửa code tại một thời điểm.** Không chạy hai agent cùng lúc trên cùng file — dự án chưa có git, sửa chồng là mất code (đã từng mất Gaviscon và `addNewSeedDrugs` khi gộp thư mục).
+1. **Một agent sửa code tại một thời điểm.** Không chạy hai agent cùng lúc trên cùng file (đã từng mất Gaviscon và `addNewSeedDrugs` khi gộp thư mục). `ma-nguon/` là kho **git** (nhánh `main`): bắt đầu việc với cây làm việc sạch (`git status`), xong việc và test đạt thì **commit** với lời nhắn tiếng Việt ghi tên agent, vd. `[Gemini] Thêm mã ICD F43.x`. Không `push` lên đâu cả (không có remote; dữ liệu nhạy cảm). Hỏng thì xem `git diff`/`git log` để quay lại.
 2. **Trước khi bắt đầu:** đọc 20 dòng cuối `NHAT-KY.md` để biết agent kia vừa làm gì; kiểm tra tính năng mình định sửa còn đúng như mô tả ở đây.
 3. **Sau khi xong:** `python build.py` + `python kiem-thu/smoke_test.py` phải đạt; thêm một mục vào `NHAT-KY.md` (ngày, agent, việc đã làm, file đã sửa, việc còn dở); cập nhật AGENTS.md nếu đổi kiến trúc/quy ước/mô hình dữ liệu.
 4. **Nội dung y khoa:** ghi nguồn ngay trong lời cảnh báo; khi các nguồn mâu thuẫn, **ưu tiên khuyến cáo mới hơn** (bác sĩ đã chốt); luôn để bác sĩ duyệt. Câu trả lời tóm tắt của NotebookLM/Gemini Notebook không phải nguồn trích.
