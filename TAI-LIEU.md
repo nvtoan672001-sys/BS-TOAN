@@ -24,6 +24,8 @@ Thuốc tâm thần: **hoạt chất và liều** lấy từ BYT 2020; **tương
 
 Câu trả lời trò chuyện của notebook là tóm tắt AI, **không dùng làm nguồn trích** cho quy tắc lâm sàng; đối chiếu nguyên văn trong file gốc.
 
+**Vai trò (bác sĩ chốt 2026-10-24):** NotebookLM chỉ cung cấp **dữ kiện** — không giao ca để nó chẩn đoán. Claude lập luận chẩn đoán và hỏi NotebookLM câu hẹp ("nguyên văn tiêu chuẩn …", "liều … theo nguồn nào"); số liệu không nằm trong `cited_text` coi như chưa có nguồn. Đã kết nối qua MCP `notebooklm` (`BS-TOAN\.mcp.json`).
+
 ### Mã ICD tâm thần (2026-10-24)
 72 mã bổ sung trong `ICD` (`data.js`, mục "Tâm thần bổ sung"). Mã có ghi sẵn trong tài liệu: F04–F07 (BYT Bài 5–6), F41.0, F43.x, F44, F45.x (LEC4, CBA3), F50.x (LEC9), F51.x, G47 (LEC2), F52.x (LEC6), F70–F73, F98.x (BYT Bài 28–33). Bài học có nhưng **không ghi mã**, dùng mã chuẩn ICD-10 tương ứng: sa sút trí tuệ F00–F03 (Bài 1–3), sảng F05 (Bài 4), rượu F10.x (Bài 7), thuốc lá F17.x và cờ bạc/nghiện hành vi F63.x (LEC8), F40.x, F42 (LEC4), tự kỷ F84.0 (Bài 29), ADHD F90.0 (Bài 30), nói lắp F98.5 (Bài 34), rối loạn cư xử, thách thức chống đối, rối loạn bùng nổ từng cơn, nhân cách chống đối xã hội (LEC11). ICD-10 không có mã riêng cho nghiện trò chơi điện tử (chỉ có ở ICD-11: 6C51) nên dùng F63.8.
 
