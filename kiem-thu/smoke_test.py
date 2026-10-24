@@ -192,6 +192,34 @@ def main():
             assert 'không kê đơn thuốc' in pg.evaluate("sheetHTML(curP(), curV())")
             pg.evaluate("(s) => { const v = curV(), o = JSON.parse(s); v.rx = o.rx; v.noRx = o.noRx || {}; savePatient(curP()); }", saved)
 
+            # 6h. Quy tắc phòng khám: chặn SSRI/SNRI; cảnh báo khi có tiền sử lưỡng cực
+            pg.evaluate("go({name: 'visit', pid: 'p_demoA', vid: 'v_demo_now', step: 3})"); pg.wait_for_timeout(200)
+            st = pg.evaluate("() => { const p = curP(), v = curV(); return JSON.stringify({meds: p.meds, conds: p.conds, hpi: v.hpi, reason: v.reason, mental: v.mental || null, rx: v.rx}); }")
+            R = "() => ssriBlockReasons(curP(), curV())"
+            # ca mẫu đang dùng Sintrom dài hạn -> bị chặn vì kháng đông
+            assert any('kháng đông' in r for r in pg.evaluate(R)), pg.evaluate(R)
+            pg.evaluate("() => { const p = curP(), v = curV(); p.meds = []; v.hpi = 'Đau thượng vị, không buồn nôn, không tiêu chảy'; v.reason = ''; v.mental = {sx: [], hist: [], excl: []}; v.rx = []; }")
+            assert pg.evaluate(R) == [], 'phủ định "không buồn nôn" không được tính là có triệu chứng'
+            pg.evaluate("() => { curV().hpi = 'Buồn nôn và tiêu chảy 3 ngày'; }")
+            assert any('buồn nôn' in r and 'tiêu chảy' in r for r in pg.evaluate(R))
+            pg.evaluate("() => { const v = curV(); v.hpi = ''; v.mental.sx = ['sex_ed']; }")
+            assert any('cương dương' in r for r in pg.evaluate(R))
+            pg.evaluate("() => { const v = curV(); v.mental.sx = []; curP().meds = [{id: 'm_t1', drugId: 'ibu400', dose: ''}]; }")
+            assert any('NSAID' in r for r in pg.evaluate(R))
+            pg.evaluate("() => { curP().meds = [{id: 'm_t2', text: 'Pseudoephedrin 60 mg', dose: ''}]; }")
+            assert any('cường giao cảm' in r for r in pg.evaluate(R))
+            # bấm thêm SSRI khi bị chặn -> không vào đơn; thuốc khác vẫn thêm được
+            pg.evaluate("addRx('sert50')"); pg.wait_for_timeout(200)
+            assert pg.evaluate("curV().rx.length") == 0, 'SSRI bị chặn không được vào đơn'
+            pg.evaluate("addRx('mirta30n')"); pg.wait_for_timeout(200)
+            assert pg.evaluate("curV().rx.map(l => l.drugId)") == ['mirta30n'], 'thuốc ngoài SSRI/SNRI vẫn kê được'
+            # hết lý do chặn -> kê được; tiền sử hưng cảm nhẹ -> cảnh báo lưỡng cực
+            pg.evaluate("() => { const p = curP(), v = curV(); p.meds = []; v.rx = []; v.mental.hist = ['hypomania']; }")
+            pg.evaluate("addRx('escit10')"); pg.wait_for_timeout(200)
+            assert pg.evaluate("curV().rx.length") == 1
+            assert pg.evaluate("checkAll(curP(), curV()).items.some(w => /lưỡng cực/.test(w.title) && w.lv === 2)"), 'phải cảnh báo lưỡng cực'
+            pg.evaluate("(s) => { const p = curP(), v = curV(), o = JSON.parse(s); p.meds = o.meds; p.conds = o.conds; v.hpi = o.hpi; v.reason = o.reason; v.mental = o.mental || {sx: [], hist: [], excl: []}; v.rx = o.rx; savePatient(p); }", st)
+
             # 6c. Khám tâm thần + gợi ý chẩn đoán (BYT 2020, Bài 18–23)
             DX = """(o) => { const v = curV(); v.mental = Object.assign({sx: [], hist: [], excl: []}, o);
                        const r = psyDx(curP(), v); return {codes: r.sugs.filter(s => s.ok).map(s => s.code), all: r.sugs.map(s => s.code),

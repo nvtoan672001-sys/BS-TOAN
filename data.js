@@ -57,7 +57,7 @@ const TAGS = {
   snri:'SNRI (venlafaxin, duloxetin)', cns_dep:'Ức chế thần kinh trung ương (an thần)', antipsychotic:'Thuốc chống loạn thần',
   cyp2d6_inh:'Ức chế mạnh CYP2D6 (fluoxetin, paroxetin)', cyp2d6_sub:'Chuyển hoá chủ yếu qua CYP2D6', sens_3a4:'Nồng độ tăng khi ức chế CYP3A4',
   inducer:'Cảm ứng enzym gan mạnh (carbamazepin)', carbamazepine:'Carbamazepin', valproate:'Valproat', lamotrigine:'Lamotrigin',
-  hyponat:'Gây hạ natri máu', ache_inh:'Ức chế cholinesterase (donepezil, rivastigmin, galantamin)'
+  hyponat:'Gây hạ natri máu', sympathomimetic:'Cường giao cảm (pseudoephedrin, phenylephrin, ephedrin…)', ache_inh:'Ức chế cholinesterase (donepezil, rivastigmin, galantamin)'
 };
 
 const RULES = [
@@ -932,6 +932,11 @@ const MENTAL_SX = [
     ['psy_delus','Hoang tưởng'],
     ['psy_halluc','Ảo giác'],
     ['psy_stupor','Sững sờ']]},
+  {g:'sex', t:'Rối loạn chức năng tình dục', src:'LEC6; F52', items:[
+    ['sex_libido','Giảm / mất ham muốn tình dục (lãnh cảm)'],
+    ['sex_pain','Đau khi giao hợp'],
+    ['sex_pe','Xuất tinh sớm'],
+    ['sex_ed','Rối loạn cương dương']]},
   {g:'anx', t:'Lo âu', src:'Bài 22, 23', items:[
     ['anx_fear','Sợ hãi: lo lắng về bất hạnh tương lai, dễ cáu, khó tập trung'],
     ['anx_motor','Căng thẳng vận động: bồn chồn, đứng ngồi không yên, đau căng đầu, run, không thư giãn được'],

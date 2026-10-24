@@ -318,6 +318,45 @@ function drugChecks(d, ctx){
   return out;
 }
 
+// ---- Quy tắc phòng khám của BS. Toàn cho SSRI/SNRI (bác sĩ đặt 2026-10-24) ----
+// KHÔNG cho kê SSRI/SNRI khi: (1) khám tâm thần có rối loạn chức năng tình dục (hoặc chẩn đoán F52.x);
+// (2) bệnh sử / lý do khám có buồn nôn, tiêu chảy; (3) thuốc dài hạn có NSAID, kháng đông, cường giao cảm.
+// Có tiền sử rối loạn lưỡng cực → chỉ CẢNH BÁO (Stahl: thận trọng nếu không kèm thuốc chỉnh khí sắc).
+const isSsriSnri = d => !!d && (expandTags(d.tags).has('ssri') || expandTags(d.tags).has('snri') || ['SSRI', 'SNRI'].includes(d.cls));
+const LONG_KW = {
+  nsaid: ['ibuprofen', 'diclofenac', 'meloxicam', 'celecoxib', 'etoricoxib', 'naproxen', 'piroxicam', 'ketoprofen', 'indomethacin', 'aceclofenac', 'nimesulid'],
+  anticoag: ['warfarin', 'acenocoumarol', 'sintrom', 'rivaroxaban', 'apixaban', 'dabigatran', 'edoxaban', 'heparin', 'enoxaparin', 'fondaparinux'],
+  sympathomimetic: ['pseudoephedrin', 'phenylephrin', 'ephedrin', 'epinephrin', 'adrenalin', 'noradrenalin', 'norepinephrin', 'methylphenidat', 'amphetamin', 'midodrin'],
+};
+const LONG_KW_LABEL = {nsaid: 'NSAID', anticoag: 'thuốc kháng đông', sympathomimetic: 'thuốc cường giao cảm'};
+// Có nhắc tới triệu chứng nhưng KHÔNG đứng sau từ phủ định gần đó ("không buồn nôn", "chưa tiêu chảy")
+function mentionsSymptom(text, kw){
+  const t = ' ' + norm(text || '').replace(/[^a-z0-9]+/g, ' ') + ' ';
+  let i = t.indexOf(' ' + kw + ' ');
+  while(i >= 0){ const before = t.slice(Math.max(0, i - 20), i); if(!/\b(khong|ko|chua|het)\b(\s+\w+){0,2}\s*$/.test(before)) return true; i = t.indexOf(' ' + kw + ' ', i + 1); }
+  return false;
+}
+function ssriBlockReasons(p, v, ctx){
+  ctx = ctx || ctxOf(p, v);
+  const out = [], m = (v && v.mental) || {}, sx = m.sx || [];
+  const sexItems = (MENTAL_SX.find(g => g.g === 'sex') || {items: []}).items.filter(([k]) => sx.includes(k)).map(([, l]) => l.toLowerCase());
+  const icd = String((v && v.dx && v.dx.icd) || '').trim();
+  if(sexItems.length) out.push('khám tâm thần có rối loạn chức năng tình dục (' + sexItems.join(', ') + ')');
+  else if(/^F52/.test(icd)) out.push('chẩn đoán rối loạn chức năng tình dục (' + icd.split(' ')[0] + ')');
+  const gi = ['buon non', 'tieu chay', 'phan long'].filter(k => mentionsSymptom(((v && v.hpi) || '') + ' . ' + ((v && v.reason) || ''), k));
+  if(gi.length) out.push('bệnh sử có ' + gi.map(k => ({'buon non': 'buồn nôn', 'tieu chay': 'tiêu chảy', 'phan long': 'phân lỏng'})[k]).join(', '));
+  for(const [tag, kws] of Object.entries(LONG_KW)){
+    const hit = ctx.longMeds.filter(lm => lm.tags.has(tag) || kws.some(k => norm(lm.name).includes(k))).map(lm => lm.short);
+    if(hit.length) out.push(`đang dùng dài hạn ${LONG_KW_LABEL[tag]} (${[...new Set(hit)].join(', ')})`);
+  }
+  return out;
+}
+function bipolarHistory(p, v, ctx){
+  ctx = ctx || ctxOf(p, v);
+  const h = ((v && v.mental && v.mental.hist) || []);
+  return ctx.conds.has('bipolar') || h.includes('mania') || h.includes('hypomania') || h.includes('mixed');
+}
+
 // entries: [{line:{id}, drug}] — mặc định lấy đơn thuốc của lượt khám
 function checkAll(p, v, entries){
   const ctx = ctxOf(p, v);
@@ -326,6 +365,13 @@ function checkAll(p, v, entries){
     .concat(ctx.longMeds.map((m, i) => ({src: 'long', id: 'L' + i, name: m.short + ' (đang dùng)', tags: m.tags, drug: m.drug, cls: m.cls})));
   const items = [];
   for(const e of ents) if(e.src === 'rx') drugChecks(e.drug, ctx).forEach(w => items.push({...w, lines: [e.id]}));
+  if(v){
+    const block = ssriBlockReasons(p, v, ctx), bip = bipolarHistory(p, v, ctx);
+    for(const e of ents) if(e.src === 'rx' && isSsriSnri(e.drug)){
+      if(block.length) items.push({lv: 3, kind: 'Quy tắc phòng khám', title: e.name, m: 'Không kê SSRI/SNRI vì ' + block.join('; ') + '. Chọn nhóm thuốc khác.', lines: [e.id]});
+      if(bip && !(e.drug.cond && e.drug.cond.bipolar && ctx.conds.has('bipolar'))) items.push({lv: 2, kind: 'Bệnh kèm', title: `${e.name} — Rối loạn cảm xúc lưỡng cực`, m: 'Tiền sử rối loạn lưỡng cực / hưng cảm: SSRI/SNRI có thể gây chuyển pha hưng cảm — chỉ dùng kèm thuốc chỉnh khí sắc, theo dõi sát (Stahl).', lines: [e.id]});
+    }
+  }
   for(let i = 0; i < ents.length; i++) for(let j = i + 1; j < ents.length; j++){
     const A = ents[i], B = ents[j]; if(A.src === 'long' && B.src === 'long') continue;
     const lines = [A, B].filter(x => x.src === 'rx').map(x => x.id);

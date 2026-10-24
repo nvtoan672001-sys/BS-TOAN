@@ -676,7 +676,8 @@ function renderDres(){
   const l = drugSearch(q, false, S.rxG); if(!l.length){ box.innerHTML = S.rxG && q.trim() ? `<div class="muted small" style="padding:8px 10px">Không có thuốc "${esc(q)}" trong nhóm ${esc(GROUPS[S.rxG])}</div>` : ''; box.hidden = !box.innerHTML; return; }
   const p = curP(), v = curV(), others = v.rx.map(x => ({line: x, drug: drugById(x.drugId)}));
   box.innerHTML = l.map((d, i) => { const ws = checkAll(p, v, [...others, {line: {id: 'cand'}, drug: d}]).items.filter(w => w.lines.includes('cand')); const mx = ws.reduce((m, w) => Math.max(m, w.lv), 0);
-    return `<div class="it ${i === 0 ? 'hl' : ''}" data-act="rxAdd" data-id="${d.id}"><div class="l"><span><b>${esc(d.n)}</b> ${originBadge(d)}</span><small>${esc(d.hc)} · ${esc(d.cls)} · ${money(d.p)}/${esc(d.u)}</small></div>${mx ? chip(`${ws.length} cảnh báo · ${LV_LABEL[mx].toLowerCase()}`, 'r' + mx) : chip('Không cảnh báo', 'ok')}</div>`; }).join('');
+    const blk = isSsriSnri(d) && ws.some(w => w.kind === 'Quy tắc phòng khám');
+    return `<div class="it ${i === 0 ? 'hl' : ''}" data-act="rxAdd" data-id="${d.id}"${blk ? ' style="opacity:.55"' : ''}><div class="l"><span><b>${esc(d.n)}</b> ${originBadge(d)}</span><small>${esc(d.hc)} · ${esc(d.cls)} · ${money(d.p)}/${esc(d.u)}</small></div>${blk ? `<span title="${esc((ws.find(w => w.kind === 'Quy tắc phòng khám') || {}).m || '')}">${chip('Không kê được', 'r3')}</span>` : mx ? chip(`${ws.length} cảnh báo · ${LV_LABEL[mx].toLowerCase()}`, 'r' + mx) : chip('Không cảnh báo', 'ok')}</div>`; }).join('');
   box.hidden = false;
 }
 function renderMres(){
@@ -723,7 +724,7 @@ const ACT = {
   rxAdd: a => addRx(a.dataset.id),
   rxDel: a => { const v = curV(); v.rx = v.rx.filter(l => l.id !== a.dataset.id); savePatient(curP()); renderMain(true); },
   cmpOpen: a => { const v = curV(), line = a.dataset.line && v.rx.find(l => l.id === a.dataset.line); const ld = line && drugById(line.drugId); S.cmp = {g: ld ? ld.g : ($('#cmpG') ? $('#cmpG').value : 'acid'), cls: ld ? ld.cls : '', line: line ? line.id : null, days: line ? (num(line.days) || 7) : (num(v.plan.followDays) || 7)}; S.modal = 'cmp'; renderModal(); },
-  cmpPick: a => { const v = curV(), d = drugById(a.dataset.id);
+  cmpPick: a => { const v = curV(), d = drugById(a.dataset.id); if(rxBlocked(d)) return;
     if(S.cmp.line){ const l = v.rx.find(x => x.id === S.cmp.line); Object.assign(l, {drugId: d.id, s: d.dose[0], tr: d.dose[1], c: d.dose[2], t: d.dose[3], how: d.how}); toast('Đã thay bằng ' + d.n); }
     else { v.rx.push(rxLine(d, v)); toast('Đã thêm ' + d.n); }
     savePatient(curP()); closeModal(); renderMain(true); },
@@ -772,7 +773,10 @@ const ACT = {
   wipeAll: async () => { if(!confirm('XOÁ TOÀN BỘ bệnh nhân, danh mục, mẫu?' + (Store.mode === 'dir' ? ' (Các file sẽ được chuyển vào du-lieu\\da-xoa)' : ''))) return; if(!confirm('Anh đã sao lưu chưa? Thao tác không hoàn tác được.')) return; for(const s of ['patients', 'drugs', 'templates', 'files', 'kv']) await Store.clear(s); await seedAll(false); S.view = {name: 'home'}; render(); toast('Đã xoá toàn bộ dữ liệu'); },
 };
 function rxLine(d, v){ return {id: uid('r'), drugId: d.id, s: d.dose[0], tr: d.dose[1], c: d.dose[2], t: d.dose[3], days: num(v.plan.followDays) || 7, how: d.how || '', note: ''}; }
-function addRx(id){ const v = curV(), d = drugById(id); if(!d) return; v.rx.push(rxLine(d, v)); savePatient(curP()); S.dq = ''; renderMain(true); setTimeout(() => { const el = $('#dq'); if(el) el.focus(); }, 20); }
+// Quy tắc phòng khám: không cho thêm SSRI/SNRI khi có lý do chặn (ssriBlockReasons); trả về true nếu bị chặn
+function rxBlocked(d){ if(!isSsriSnri(d)) return false; const r = ssriBlockReasons(curP(), curV()); if(!r.length) return false;
+  alert(`Không kê được ${d.n} (nhóm SSRI/SNRI) vì ${r.join('; ')}.\n\nQuy tắc phòng khám — anh chọn nhóm thuốc khác.`); return true; }
+function addRx(id){ const v = curV(), d = drugById(id); if(!d || rxBlocked(d)) return; v.rx.push(rxLine(d, v)); savePatient(curP()); S.dq = ''; renderMain(true); setTimeout(() => { const el = $('#dq'); if(el) el.focus(); }, 20); }
 function insertTpl(id, path){
   const t = S.tpls.find(x => x.id === id); if(!t) return;
   const cur = getVal(path) || '';
