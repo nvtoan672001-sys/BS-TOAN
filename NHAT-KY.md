@@ -22,3 +22,4 @@ Mỗi lần làm xong, thêm một mục ở **cuối file**: ngày · agent · 
 - Đã giao Gemini lập bảng duyệt nhưng thất bại (máy chủ 503, "fetch failed"), Gemini không sửa file nào. Claude tự xuất bảng bằng script: `BS-TOAN\bang-duyet\thuoc-tam-than.csv` (44 thuốc), `icd-tam-than-moi.csv` (66 mã nhóm "Tâm thần bổ sung"). Bảng nằm ngoài kho git.
 - Sửa số liệu: đợt mã ICD tâm thần bổ sung là **66 mã** (trước đó báo nhầm 72).
 - Chuyển việc tổng hợp thông tin sang **Antigravity**, cách ly khỏi codebase: thư mục `Desktop\Giao-viec-Antigravity\` (AGENTS.md quy tắc, `phieu/`, `ket-qua/`, `tai-lieu-dau-vao/`, HUONG-DAN-BAC-SI.md). Chưa có phiếu nào; phiếu đầu tiên sẽ là PGV-001.
+- PGV-001 (2026-10-24): tóm tắt record ĐTĐ ver 2 (`dtd ver 2.mp4`, `đtđ ver 2.mp4` trong thư mục iTop Screen Recorder\Videos). Trạng thái: CHỜ LÀM.
