@@ -179,7 +179,9 @@ Các phần khác:
 
 ## 10. Phối hợp nhiều AI agent (Claude + Gemini)
 
-Bác sĩ dùng cả Claude (Claude Code) và Gemini (Gemini CLI) trên cùng thư mục này. `CLAUDE.md` và `GEMINI.md` đều chỉ trỏ về file này — **mọi quy ước chung đặt ở AGENTS.md**, không viết riêng vào hai file kia.
+**Antigravity (từ 2026-10-24, thay Gemini CLI cho việc tổng hợp thông tin):** không được động vào thư mục này. Claude viết phiếu giao việc trong `C:\Users\admin\Desktop\Giao-viec-Antigravity\phieu\` (theo `_MAU-PHIEU.md`), bác sĩ giao cho Antigravity, Antigravity ghi kết quả vào `...\ket-qua\`, Claude đối chiếu nguồn (mốc thời gian video, số trang) trước khi đưa bất cứ gì vào app; bác sĩ duyệt. Quy tắc cho Antigravity nằm ở `Giao-viec-Antigravity\AGENTS.md`. Đánh số phiếu PGV-001, 002… và ghi vào NHAT-KY.md.
+
+Gemini CLI (cũ) dùng chung thư mục này với Claude: `CLAUDE.md` và `GEMINI.md` đều chỉ trỏ về file này — **mọi quy ước chung đặt ở AGENTS.md**, không viết riêng vào hai file kia.
 
 **Phân công mặc định**
 - **Gemini – tác vụ cơ bản, theo công thức mục 6:** thêm/sửa thuốc trong `DRUGS_SEED` (kèm `SEED_ADDED`/`SEED_UPDATES`), thêm mã ICD, xét nghiệm (`LABS`), mẫu tư vấn; sửa chữ, nhãn, câu thông báo trên giao diện; chỉnh CSS nhỏ; chạy build + smoke test; trích nội dung từ tài liệu nguồn (`TAI-LIEU.md`) ra bảng cho bác sĩ duyệt.
