@@ -312,6 +312,12 @@ def main():
             pg.evaluate("() => { const p = curP(); p.birthYear = Number(curV().date.slice(0, 4)) - 30; }")
             assert pg.evaluate(CB, 'amitri25') == 0 and pg.evaluate(AB, 'amitri25') == 0
             pg.evaluate("(s) => { const p = curP(), o = JSON.parse(s); p.dob = o.dob || ''; p.birthYear = o.by; }", dob0)
+            # venlafaxin: bệnh nền tăng huyết áp -> chặn (ca mẫu có THA)
+            VH = "(id) => drugBlockReasons(curP(), curV(), drugById(id)).filter(r => /tăng huyết áp/.test(r)).length"
+            assert pg.evaluate("curP().conds.includes('htn')") and pg.evaluate(VH, 'venla75n') == 1 and pg.evaluate(VH, 'dulox30n') == 0
+            pg.evaluate("() => { curP().conds = curP().conds.filter(k => k !== 'htn'); }")
+            assert pg.evaluate(VH, 'venla75f') == 0
+            pg.evaluate("() => { curP().conds.push('htn'); }")
             # carbamazepin: điện tim có block nhĩ thất -> chặn
             A = "(t) => avBlockText(t)"
             for txt in ['Block nhĩ thất độ I', 'Blốc nhĩ thất cấp II', 'BAV độ III', 'AV block 1st degree', 'Nhịp xoang, block AV độ I']:
