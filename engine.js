@@ -419,12 +419,27 @@ function breastfeeding(p, v, ctx){
   const t = (p.condNote || '') + ' . ' + ((v && v.hpi) || '');
   return ['cho con bu', 'dang cho bu', 'nuoi con bang sua me'].some(k => mentionsSymptom(t, k));
 }
+// Đang mang thai: β-hCG mới nhất dương tính (> 5) trong 280 ngày gần đây, ô bệnh nền "Đang mang thai",
+// hoặc tiền sử / bệnh sử ghi "mang thai", "có thai" (bỏ câu phủ định). Trả về mô tả lý do hoặc ''.
+function pregnancyReason(p, v, ctx){
+  if((ctx || ctxOf(p, v)).conds.has('pregnant')) return 'tiền sử ghi đang mang thai';
+  // bỏ "đã / từng mang thai (… lần)" — tiền sử sản khoa, không phải đang mang thai
+  const t = norm((p.condNote || '') + ' . ' + ((v && v.hpi) || '') + ' . ' + ((v && v.reason) || '')).replace(/\b(da|tung)\s+(mang thai|co thai|co bau)\b/g, ' ');
+  if(['mang thai', 'co thai', 'dang co bau', 'co bau'].some(k => mentionsSymptom(t, k))) return 'tiền sử / bệnh sử ghi mang thai';
+  const r = bhcgLatest(p, v);
+  if(r && r.pos === true && (r.current || (v && v.date && r.date && daysBetween(r.date, v.date) <= 280))) return `β-hCG ${r.text}${r.current ? '' : ' (ngày ' + fmtDate(r.date) + ')'} > 5 mIU/mL`;
+  return '';
+}
 // Mọi lý do chặn kê một thuốc theo quy tắc phòng khám
 function drugBlockReasons(p, v, d, ctx){
   if(!d || !v) return [];
   const out = [];
   // Valproat: bệnh nhân NỮ chưa có kết quả β-hCG (trong 7 ngày gần nhất) hoặc β-hCG > 5 mIU/mL → không kê (bác sĩ đặt 2026-10-25)
-  if(norm(d.hc || '').includes('valpro') && p.sex === 'Nữ'){
+  // Mang thai → không kê valproat, carbamazepin, paroxetin (bác sĩ đặt 2026-10-25; nguy cơ dị tật thai)
+  const hc = norm(d.hc || ''), teratogen = ['valpro', 'carbamazepin', 'paroxetin'].find(k => hc.includes(k));
+  const preg = teratogen ? pregnancyReason(p, v, ctx) : '';
+  if(preg) out.push(`đang mang thai: ${preg} (${{valpro: 'valproat gây dị tật ống thần kinh, chậm phát triển', carbamazepin: 'carbamazepin gây dị tật ống thần kinh', paroxetin: 'paroxetin tăng nguy cơ dị tật tim thai'}[teratogen]})`);
+  if(norm(d.hc || '').includes('valpro') && p.sex === 'Nữ' && !preg){
     const r = bhcgLatest(p, v), recent = r && (r.current || (v.date && r.date && daysBetween(r.date, v.date) <= 7));
     if(!recent) out.push('bệnh nhân nữ chưa có kết quả β-hCG' + (r ? ` gần đây (lần cuối ${fmtDate(r.date)})` : '') + ' — làm β-hCG trước khi kê valproat');
     else if(r.pos === true) out.push(`β-hCG ${r.text} (> 5 mIU/mL) — có thể đang mang thai, valproat gây dị tật thai`);

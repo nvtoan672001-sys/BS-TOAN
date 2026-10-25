@@ -286,6 +286,19 @@ def main():
             pg.evaluate("() => { const p = curP(); p.condNote = ''; p.conds = p.conds.concat(['breastfeeding']); }")
             assert pg.evaluate(FB, 'fluox20f') == 1, 'ô "Đang cho con bú" phải chặn fluoxetin'
             pg.evaluate("([s, sx]) => { const p = curP(), o = JSON.parse(s); p.conds = o.conds; p.condNote = o.note; p.sex = sx; }", [nb, sex0])
+            # mang thai (β-hCG > 5 hoặc tiền sử ghi mang thai) -> chặn valproat, carbamazepin, paroxetin; sertralin không bị chặn
+            PB = "(id) => drugBlockReasons(curP(), curV(), drugById(id)).filter(r => /mang thai/.test(r)).length"
+            pg.evaluate("() => { const p = curP(), v = curV(); p.sex = 'Nữ'; p.conds = (p.conds || []).filter(k => k !== 'pregnant'); p.condNote = 'Không mang thai'; v.hpi = ''; v.reason = ''; v.orders = v.orders.filter(o => o.key !== 'bhcg'); }")
+            assert [pg.evaluate(PB, i) for i in ['valp500n', 'carba200n', 'parox20n']] == [0, 0, 0], 'phủ định "không mang thai" không được chặn'
+            pg.evaluate("() => { curP().condNote = 'PARA 2002, đã mang thai 2 lần, sinh thường'; }")
+            assert pg.evaluate(PB, 'parox20n') == 0, 'tiền sử "đã mang thai" không phải đang mang thai'
+            pg.evaluate("() => { curP().condNote = 'Đang mang thai 10 tuần'; }")
+            assert [pg.evaluate(PB, i) for i in ['valp500n', 'carba200n', 'parox20n', 'sert50']] == [1, 1, 1, 0]
+            pg.evaluate("() => { const v = curV(); curP().condNote = ''; v.orders = v.orders.concat([{id: 'o_hcg2', key: 'bhcg', name: 'β-hCG', unit: 'mIU/mL', ref: '< 5', type: 'n', value: 1200, flag: '', note: ''}]); }")
+            assert [pg.evaluate(PB, i) for i in ['valp500f', 'carba200f', 'parox20f']] == [1, 1, 1], 'β-hCG > 5 phải chặn'
+            pg.evaluate("addRx('carba200n')"); pg.wait_for_timeout(200)
+            assert pg.evaluate("curV().rx.filter(l => l.drugId === 'carba200n').length") == 0
+            pg.evaluate("([s, sx]) => { const p = curP(), v = curV(), o = JSON.parse(s); p.conds = o.conds; p.condNote = o.note; p.sex = sx; v.orders = v.orders.filter(x => x.id !== 'o_hcg2'); }", [nb, sex0])
             # carbamazepin: điện tim có block nhĩ thất -> chặn
             A = "(t) => avBlockText(t)"
             for txt in ['Block nhĩ thất độ I', 'Blốc nhĩ thất cấp II', 'BAV độ III', 'AV block 1st degree', 'Nhịp xoang, block AV độ I']:
