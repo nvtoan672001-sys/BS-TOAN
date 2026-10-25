@@ -299,6 +299,19 @@ def main():
             pg.evaluate("addRx('carba200n')"); pg.wait_for_timeout(200)
             assert pg.evaluate("curV().rx.filter(l => l.drugId === 'carba200n').length") == 0
             pg.evaluate("([s, sx]) => { const p = curP(), v = curV(), o = JSON.parse(s); p.conds = o.conds; p.condNote = o.note; p.sex = sx; v.orders = v.orders.filter(x => x.id !== 'o_hcg2'); }", [nb, sex0])
+            # tuổi > 65 -> chặn TCA (amitriptylin) và paroxetin; 65 tuổi chưa chặn; sertralin không bị chặn vì tuổi
+            AB = "(id) => drugBlockReasons(curP(), curV(), drugById(id)).filter(r => /> 65/.test(r)).length"
+            dob0 = pg.evaluate("() => JSON.stringify({dob: curP().dob || null, by: curP().birthYear || null})")
+            pg.evaluate("() => { const p = curP(); p.dob = ''; p.birthYear = Number(curV().date.slice(0, 4)) - 70; }")
+            assert [pg.evaluate(AB, i) for i in ['amitri25', 'parox20n', 'parox20f', 'sert50']] == [1, 1, 1, 0]
+            pg.evaluate("() => { const p = curP(); p.birthYear = null; const d = curV().date; p.dob = (Number(d.slice(0, 4)) - 65) + d.slice(4); }")
+            assert pg.evaluate(AB, 'amitri25') == 0, 'đúng 65 tuổi chưa chặn (quy tắc > 65)'
+            CB = "(id) => drugBlockReasons(curP(), curV(), drugById(id)).filter(r => /< 18/.test(r)).length"
+            pg.evaluate("() => { const p = curP(); p.dob = ''; p.birthYear = Number(curV().date.slice(0, 4)) - 15; }")
+            assert [pg.evaluate(CB, i) for i in ['amitri25', 'parox20n', 'sert50']] == [1, 1, 0], 'trẻ < 18: chặn TCA, paroxetin'
+            pg.evaluate("() => { const p = curP(); p.birthYear = Number(curV().date.slice(0, 4)) - 30; }")
+            assert pg.evaluate(CB, 'amitri25') == 0 and pg.evaluate(AB, 'amitri25') == 0
+            pg.evaluate("(s) => { const p = curP(), o = JSON.parse(s); p.dob = o.dob || ''; p.birthYear = o.by; }", dob0)
             # carbamazepin: điện tim có block nhĩ thất -> chặn
             A = "(t) => avBlockText(t)"
             for txt in ['Block nhĩ thất độ I', 'Blốc nhĩ thất cấp II', 'BAV độ III', 'AV block 1st degree', 'Nhịp xoang, block AV độ I']:

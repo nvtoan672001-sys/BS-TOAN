@@ -435,6 +435,15 @@ function drugBlockReasons(p, v, d, ctx){
   if(!d || !v) return [];
   const out = [];
   // Valproat: bệnh nhân NỮ chưa có kết quả β-hCG (trong 7 ngày gần nhất) hoặc β-hCG > 5 mIU/mL → không kê (bác sĩ đặt 2026-10-25)
+  // Tuổi > 65 hoặc < 18 → không kê thuốc chống trầm cảm 3 vòng (TCA) và paroxetin (bác sĩ đặt 2026-10-25)
+  //  > 65: kháng cholinergic mạnh — tiêu chí Beers; < 18: TCA độc tim, nguy hiểm khi quá liều; paroxetin tăng ý tưởng tự sát ở vị thành niên
+  const ageNow = (ctx || ctxOf(p, v)).age;
+  if(ageNow != null && (ageNow > 65 || ageNow < 18)){
+    const tca = /3 vong|ba vong|tca/.test(norm(d.cls || '')) || ['amitriptylin', 'clomipramin', 'imipramin', 'nortriptylin', 'doxepin'].some(k => norm(d.hc || '').includes(k));
+    const old = ageNow > 65, who = `bệnh nhân ${ageNow} tuổi (${old ? '> 65' : '< 18'})`;
+    if(tca) out.push(old ? `${who}: thuốc chống trầm cảm 3 vòng kháng cholinergic mạnh — lú lẫn, bí tiểu, té ngã, loạn nhịp (Beers)` : `${who}: thuốc chống trầm cảm 3 vòng độc tim, rất nguy hiểm khi quá liều ở trẻ em`);
+    else if(norm(d.hc || '').includes('paroxetin')) out.push(old ? `${who}: paroxetin kháng cholinergic, an thần, hạ huyết áp tư thế (Beers)` : `${who}: paroxetin không khuyến cáo ở trẻ em / vị thành niên (tăng ý tưởng tự sát, hiệu quả chưa chứng minh)`);
+  }
   // Mang thai → không kê valproat, carbamazepin, paroxetin (bác sĩ đặt 2026-10-25; nguy cơ dị tật thai)
   const hc = norm(d.hc || ''), teratogen = ['valpro', 'carbamazepin', 'paroxetin'].find(k => hc.includes(k));
   const preg = teratogen ? pregnancyReason(p, v, ctx) : '';
