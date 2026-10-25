@@ -294,6 +294,7 @@ function ctxOf(p, v){
   const alc = p.risk && p.risk.alcohol; if(alc === 'some' || alc === 'heavy') conds.add('alcohol'); if(alc === 'heavy') conds.add('alcohol_heavy');
   const bmi = bmiOf(p.weight, p.height); if(bmi != null && bmi >= 23) conds.add('obese');
   if((p.activity || 'sedentary') === 'sedentary') conds.add('sedentary');
+  if(v && qtcLong(p, v)) conds.add('qt_long');   // điện tim mô tả QTc dài → cảnh báo mọi thuốc kéo dài QT
   const renal = renalOf(p);
   const longMeds = (p.meds || []).map(resolveMed).filter(Boolean);
   const longTags = new Set(); longMeds.forEach(m => m.tags.forEach(t => longTags.add(t)));
@@ -353,6 +354,30 @@ function ssriBlockReasons(p, v, ctx){
   }
   return out;
 }
+// ---- QTc dài trên điện tim → không kê citalopram / escitalopram (bác sĩ đặt 2026-10-25) ----
+const isCitalopram = d => !!d && norm(d.hc || '').includes('citalopram');   // gồm cả escitalopram
+// Mô tả điện tim có "QT(c) dài / kéo dài" hoặc "kéo dài (khoảng) QT(c)", trừ câu phủ định "QTc không dài", "không kéo dài QT"
+function qtcLongText(text){
+  const t = ' ' + norm(text || '').replace(/[^a-z0-9]+/g, ' ') + ' ';
+  const pos = /\bqtc?\s+(keo\s+)?dai\b|\bkeo\s+dai\s+(khoang\s+)?qtc?\b/;
+  const neg = /\bqtc?\s+(khong|ko|chua)\s+(keo\s+)?dai\b|\b(khong|ko|chua)\s+(co\s+)?keo\s+dai\s+(khoang\s+)?qtc?\b/g;
+  return pos.test(t.replace(neg, ' '));
+}
+// Kết quả điện tim mới nhất (lượt khám hiện tại trước, rồi các lượt cũ theo ngày gần nhất)
+function latestEcg(p, v){
+  const visits = [v].concat((p.visits || []).filter(x => x !== v).sort((a, b) => String(b.date).localeCompare(String(a.date)))).filter(Boolean);
+  for(const x of visits){ const o = (x.orders || []).find(o => o.key === 'ecg' && String(o.value || '').trim()); if(o) return {text: String(o.value) + ' ' + (o.note || ''), date: x.date, current: x === v}; }
+  return null;
+}
+function qtcLong(p, v){ const e = latestEcg(p, v); return e && qtcLongText(e.text) ? e : null; }
+// Mọi lý do chặn kê một thuốc theo quy tắc phòng khám
+function drugBlockReasons(p, v, d, ctx){
+  if(!d || !v) return [];
+  const out = [];
+  if(isSsriSnri(d)){ const r = ssriBlockReasons(p, v, ctx); if(r.length) out.push('nhóm SSRI/SNRI: ' + r.join('; ')); }
+  if(isCitalopram(d)){ const e = qtcLong(p, v); if(e) out.push(`điện tim ${e.current ? 'lần khám này' : 'ngày ' + fmtDate(e.date)} mô tả QTc dài (citalopram/escitalopram kéo dài QT)`); }
+  return out;
+}
 function bipolarHistory(p, v, ctx){
   ctx = ctx || ctxOf(p, v);
   const h = ((v && v.mental && v.mental.hist) || []);
@@ -368,9 +393,11 @@ function checkAll(p, v, entries){
   const items = [];
   for(const e of ents) if(e.src === 'rx') drugChecks(e.drug, ctx).forEach(w => items.push({...w, lines: [e.id]}));
   if(v){
-    const block = ssriBlockReasons(p, v, ctx), bip = bipolarHistory(p, v, ctx);
-    for(const e of ents) if(e.src === 'rx' && isSsriSnri(e.drug)){
-      if(block.length) items.push({lv: 3, kind: 'Quy tắc phòng khám', title: e.name, m: 'Không kê SSRI/SNRI vì ' + block.join('; ') + '. Chọn nhóm thuốc khác.', lines: [e.id]});
+    const bip = bipolarHistory(p, v, ctx);
+    for(const e of ents) if(e.src === 'rx'){
+      const block = drugBlockReasons(p, v, e.drug, ctx);
+      if(block.length) items.push({lv: 3, kind: 'Quy tắc phòng khám', title: e.name, m: 'Không kê thuốc này vì ' + block.join('; ') + '. Chọn thuốc khác.', lines: [e.id]});
+      if(!isSsriSnri(e.drug)) continue;
       if(bip && !(e.drug.cond && e.drug.cond.bipolar && ctx.conds.has('bipolar'))) items.push({lv: 2, kind: 'Bệnh kèm', title: `${e.name} — Rối loạn cảm xúc lưỡng cực`, m: 'Tiền sử rối loạn lưỡng cực / hưng cảm: SSRI/SNRI có thể gây chuyển pha hưng cảm — chỉ dùng kèm thuốc chỉnh khí sắc, theo dõi sát (Stahl).', lines: [e.id]});
     }
   }

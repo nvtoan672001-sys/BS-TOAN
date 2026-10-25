@@ -676,7 +676,7 @@ function renderDres(){
   const l = drugSearch(q, false, S.rxG); if(!l.length){ box.innerHTML = S.rxG && q.trim() ? `<div class="muted small" style="padding:8px 10px">Không có thuốc "${esc(q)}" trong nhóm ${esc(GROUPS[S.rxG])}</div>` : ''; box.hidden = !box.innerHTML; return; }
   const p = curP(), v = curV(), others = v.rx.map(x => ({line: x, drug: drugById(x.drugId)}));
   box.innerHTML = l.map((d, i) => { const ws = checkAll(p, v, [...others, {line: {id: 'cand'}, drug: d}]).items.filter(w => w.lines.includes('cand')); const mx = ws.reduce((m, w) => Math.max(m, w.lv), 0);
-    const blk = isSsriSnri(d) && ws.some(w => w.kind === 'Quy tắc phòng khám');
+    const blk = ws.some(w => w.kind === 'Quy tắc phòng khám');
     return `<div class="it ${i === 0 ? 'hl' : ''}" data-act="rxAdd" data-id="${d.id}"${blk ? ' style="opacity:.55"' : ''}><div class="l"><span><b>${esc(d.n)}</b> ${originBadge(d)}</span><small>${esc(d.hc)} · ${esc(d.cls)} · ${money(d.p)}/${esc(d.u)}</small></div>${blk ? `<span title="${esc((ws.find(w => w.kind === 'Quy tắc phòng khám') || {}).m || '')}">${chip('Không kê được', 'r3')}</span>` : mx ? chip(`${ws.length} cảnh báo · ${LV_LABEL[mx].toLowerCase()}`, 'r' + mx) : chip('Không cảnh báo', 'ok')}</div>`; }).join('');
   box.hidden = false;
 }
@@ -774,8 +774,8 @@ const ACT = {
 };
 function rxLine(d, v){ return {id: uid('r'), drugId: d.id, s: d.dose[0], tr: d.dose[1], c: d.dose[2], t: d.dose[3], days: num(v.plan.followDays) || 7, how: d.how || '', note: ''}; }
 // Quy tắc phòng khám: không cho thêm SSRI/SNRI khi có lý do chặn (ssriBlockReasons); trả về true nếu bị chặn
-function rxBlocked(d){ if(!isSsriSnri(d)) return false; const r = ssriBlockReasons(curP(), curV()); if(!r.length) return false;
-  alert(`Không kê được ${d.n} (nhóm SSRI/SNRI) vì ${r.join('; ')}.\n\nQuy tắc phòng khám — anh chọn nhóm thuốc khác.`); return true; }
+function rxBlocked(d){ const r = drugBlockReasons(curP(), curV(), d); if(!r.length) return false;
+  alert(`Không kê được ${d.n} vì:\n- ${r.join('\n- ')}\n\nQuy tắc phòng khám — anh chọn thuốc khác.`); return true; }
 function addRx(id){ const v = curV(), d = drugById(id); if(!d || rxBlocked(d)) return; v.rx.push(rxLine(d, v)); savePatient(curP()); S.dq = ''; renderMain(true); setTimeout(() => { const el = $('#dq'); if(el) el.focus(); }, 20); }
 function insertTpl(id, path){
   const t = S.tpls.find(x => x.id === id); if(!t) return;

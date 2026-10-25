@@ -224,7 +224,18 @@ def main():
             pg.evaluate("addRx('escit10')"); pg.wait_for_timeout(200)
             assert pg.evaluate("curV().rx.length") == 1
             assert pg.evaluate("checkAll(curP(), curV()).items.some(w => /lưỡng cực/.test(w.title) && w.lv === 2)"), 'phải cảnh báo lưỡng cực'
-            pg.evaluate("(s) => { const p = curP(), v = curV(), o = JSON.parse(s); p.meds = o.meds; p.conds = o.conds; v.hpi = o.hpi; v.reason = o.reason; v.mental = o.mental || {sx: [], hist: [], excl: []}; v.rx = o.rx; savePatient(p); }", st)
+            # QTc dài trên điện tim -> không kê citalopram/escitalopram; sertralin vẫn kê được
+            Q = "(t) => qtcLongText(t)"
+            assert pg.evaluate(Q, 'Nhịp xoang 72 l/ph, QTc dài 490 ms') and pg.evaluate(Q, 'Kéo dài khoảng QT') and pg.evaluate(Q, 'QT kéo dài')
+            assert not pg.evaluate(Q, 'QTc không dài, nhịp xoang') and not pg.evaluate(Q, 'Không kéo dài QTc') and not pg.evaluate(Q, 'Nhịp xoang, trục trung gian')
+            pg.evaluate("() => { const v = curV(); v.rx = []; v.mental.hist = []; v.orders = (v.orders || []).filter(o => o.key !== 'ecg').concat([{id: 'o_ecg_t', key: 'ecg', name: 'Điện tim (ECG)', type: 't', value: 'Nhịp xoang, QTc dài 500 ms', note: ''}]); }")
+            pg.evaluate("addRx('escit10')"); pg.wait_for_timeout(200)
+            assert pg.evaluate("curV().rx.length") == 0, 'escitalopram phải bị chặn khi QTc dài'
+            assert any('QTc dài' in r for r in pg.evaluate("() => drugBlockReasons(curP(), curV(), drugById('escit10n'))"))
+            pg.evaluate("addRx('sert50')"); pg.wait_for_timeout(200)
+            assert pg.evaluate("curV().rx.map(l => l.drugId)") == ['sert50'], 'sertralin không bị chặn vì QTc'
+            assert pg.evaluate("checkAll(curP(), curV()).ctx.conds.has('qt_long')"), 'QTc dài phải được tính là bệnh kèm QT kéo dài'
+            pg.evaluate("(s) => { const p = curP(), v = curV(), o = JSON.parse(s); p.meds = o.meds; p.conds = o.conds; v.hpi = o.hpi; v.reason = o.reason; v.mental = o.mental || {sx: [], hist: [], excl: []}; v.rx = o.rx; v.orders = v.orders.filter(x => x.id !== 'o_ecg_t'); savePatient(p); }", st)
 
             # 6c. Khám tâm thần + gợi ý chẩn đoán (BYT 2020, Bài 18–23)
             DX = """(o) => { const v = curV(); v.mental = Object.assign({sx: [], hist: [], excl: []}, o);
