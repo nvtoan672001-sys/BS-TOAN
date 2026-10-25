@@ -29,6 +29,7 @@ const CONDS = [
   {k:'bipolar', t:'Rối loạn cảm xúc lưỡng cực'},
   {k:'dementia', t:'Sa sút trí tuệ'},
   {k:'parkinson', t:'Bệnh Parkinson'},
+  {k:'sexual_dysf', t:'Rối loạn / lo ngại chức năng tình dục'},
 ];
 const COND_EXTRA = {elderly:'Người cao tuổi (≥ 65)', alcohol:'Có uống rượu bia', alcohol_heavy:'Uống rượu nhiều', obese:'Thừa cân / béo phì', sedentary:'Ít vận động', child:'Dưới 18 tuổi', 'tag:anticoag':'Đang dùng thuốc chống đông'};
 
@@ -816,14 +817,14 @@ const ICD = [
   ['F51.5','Ác mộng',[]],
   ['G47.3','Ngưng thở khi ngủ',[]],
   // Loạn chức năng tình dục không thực tổn (LEC6)
-  ['F52.0','Thiếu hoặc mất ham muốn tình dục',[]],
-  ['F52.1','Ghét sợ và thiếu thích thú tình dục',[]],
-  ['F52.2','Thất bại trong đáp ứng sinh dục (rối loạn cương)',[]],
-  ['F52.3','Loạn chức năng khoái cảm',[]],
-  ['F52.4','Phóng tinh sớm',[]],
-  ['F52.5','Co thắt âm đạo không thực tổn',[]],
-  ['F52.6','Đau khi giao hợp không thực tổn',[]],
-  ['F52.7','Xu hướng tình dục quá mức',[]],
+  ['F52.0','Thiếu hoặc mất ham muốn tình dục',['sexual_dysf']],
+  ['F52.1','Ghét sợ và thiếu thích thú tình dục',['sexual_dysf']],
+  ['F52.2','Thất bại trong đáp ứng sinh dục (rối loạn cương)',['sexual_dysf']],
+  ['F52.3','Loạn chức năng khoái cảm',['sexual_dysf']],
+  ['F52.4','Phóng tinh sớm',['sexual_dysf']],
+  ['F52.5','Co thắt âm đạo không thực tổn',['sexual_dysf']],
+  ['F52.6','Đau khi giao hợp không thực tổn',['sexual_dysf']],
+  ['F52.7','Xu hướng tình dục quá mức',['sexual_dysf']],
   // Rối loạn ăn uống (LEC9, BYT Bài 26)
   ['F50.0','Chán ăn tâm thần',[]],
   ['F50.1','Chán ăn tâm thần không điển hình',[]],

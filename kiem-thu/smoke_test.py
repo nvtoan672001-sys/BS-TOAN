@@ -217,8 +217,8 @@ def main():
             # bấm thêm SSRI khi bị chặn -> không vào đơn; thuốc khác vẫn thêm được
             pg.evaluate("addRx('sert50')"); pg.wait_for_timeout(200)
             assert pg.evaluate("curV().rx.length") == 0, 'SSRI bị chặn không được vào đơn'
-            pg.evaluate("addRx('mirta30n')"); pg.wait_for_timeout(200)
-            assert pg.evaluate("curV().rx.map(l => l.drugId)") == ['mirta30n'], 'thuốc ngoài SSRI/SNRI vẫn kê được'
+            pg.evaluate("addRx('tiane12')"); pg.wait_for_timeout(200)
+            assert pg.evaluate("curV().rx.map(l => l.drugId)") == ['tiane12'], 'thuốc ngoài SSRI/SNRI vẫn kê được'
             # hết lý do chặn -> kê được; tiền sử hưng cảm nhẹ -> cảnh báo lưỡng cực
             pg.evaluate("() => { const p = curP(), v = curV(); p.meds = []; v.rx = []; v.mental.hist = ['hypomania']; }")
             pg.evaluate("addRx('escit10')"); pg.wait_for_timeout(200)
@@ -325,6 +325,26 @@ def main():
             ami = "(n) => checkAll(curP(), curV(), [{line: {id: 'L', s: 0, tr: 0, c: 0, t: n}, drug: drugById('amitri25')}]).items.some(w => w.kind === 'Quy tắc phòng khám' && /liều cao/.test(w.m))"
             assert not pg.evaluate(ami, 2) and pg.evaluate(ami, 8), 'amitriptylin 50 mg/ngày được; 200 mg/ngày phải bị chặn ở động kinh'
             pg.evaluate("() => { curP().conds = curP().conds.filter(k => k !== 'epilepsy'); }")
+            # hút thuốc lá hoặc béo phì (BMI ≥ 25) -> chặn mirtazapin, paroxetin, olanzapin
+            SB = "(id) => drugBlockReasons(curP(), curV(), drugById(id)).filter(r => /tăng cân/.test(r)).length"
+            so0 = pg.evaluate("() => JSON.stringify({risk: curP().risk || {}, note: curP().condNote, w: curP().weight, h: curP().height, vt: curV().vitals, dx: curV().dx})")
+            pg.evaluate("() => { const p = curP(), v = curV(); p.risk = {...(p.risk || {}), smoke: 'former'}; p.condNote = 'Đã bỏ thuốc lá 5 năm'; p.weight = 60; p.height = 170; v.vitals = {...v.vitals, weight: 60, height: 170}; v.dx = {...v.dx, main: 'Viêm dạ dày', secondary: '', icd: ''}; }")
+            assert [pg.evaluate(SB, i) for i in ['mirta30n', 'parox20n', 'olan10n']] == [0, 0, 0], 'đã bỏ thuốc, BMI 20,8 -> không chặn'
+            pg.evaluate("() => { curP().risk.smoke = 'current'; }")
+            assert [pg.evaluate(SB, i) for i in ['mirta30n', 'parox20n', 'olan10n', 'sert50']] == [1, 1, 1, 0], 'đang hút thuốc -> chặn'
+            pg.evaluate("() => { const p = curP(), v = curV(); p.risk.smoke = 'never'; p.weight = 80; v.vitals.weight = 80; }")   # BMI 27,7
+            assert [pg.evaluate(SB, i) for i in ['mirta30f', 'olan10f']] == [1, 1], 'BMI ≥ 25 -> chặn'
+            pg.evaluate("(s) => { const p = curP(), v = curV(), o = JSON.parse(s); p.risk = o.risk; p.condNote = o.note; p.weight = o.w; p.height = o.h; v.vitals = o.vt; v.dx = o.dx; }", so0)
+            # rối loạn / lo ngại tình dục (ô hồ sơ hoặc ghi chữ) -> chặn paroxetin
+            XB = "(id) => drugBlockReasons(curP(), curV(), drugById(id)).filter(r => /paroxetin gây rối loạn chức năng tình dục/.test(r)).length"
+            sx0 = pg.evaluate("() => JSON.stringify({conds: curP().conds, note: curP().condNote})")
+            pg.evaluate("() => { const p = curP(); p.conds = p.conds.filter(k => k !== 'sexual_dysf'); p.condNote = 'Không rối loạn cương'; curV().mental = {sx: [], hist: [], excl: []}; }")
+            assert pg.evaluate(XB, 'parox20n') == 0
+            pg.evaluate("() => { curP().condNote = 'Lo ngại rối loạn cương dương'; }")
+            assert pg.evaluate(XB, 'parox20n') == 1 and pg.evaluate(XB, 'escit10') == 0
+            pg.evaluate("() => { const p = curP(); p.condNote = ''; p.conds = p.conds.concat(['sexual_dysf']); }")
+            assert pg.evaluate(XB, 'parox20f') == 1, 'ô hồ sơ "Rối loạn / lo ngại chức năng tình dục" phải chặn paroxetin'
+            pg.evaluate("(s) => { const p = curP(), o = JSON.parse(s); p.conds = o.conds; p.condNote = o.note; }", sx0)
             # venlafaxin: bệnh nền tăng huyết áp -> chặn (ca mẫu có THA)
             VH = "(id) => drugBlockReasons(curP(), curV(), drugById(id)).filter(r => /tăng huyết áp/.test(r)).length"
             assert pg.evaluate("curP().conds.includes('htn')") and pg.evaluate(VH, 'venla75n') == 1 and pg.evaluate(VH, 'dulox30n') == 0

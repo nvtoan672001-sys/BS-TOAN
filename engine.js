@@ -430,6 +430,26 @@ function pregnancyReason(p, v, ctx){
   if(r && r.pos === true && (r.current || (v && v.date && r.date && daysBetween(r.date, v.date) <= 280))) return `β-hCG ${r.text}${r.current ? '' : ' (ngày ' + fmtDate(r.date) + ')'} > 5 mIU/mL`;
   return '';
 }
+// Rối loạn / lo ngại rối loạn tình dục: bệnh nền `sexual_dysf` (ô hồ sơ hoặc ICD F52.x), khám tâm thần nhóm `sex_*`,
+// hoặc tiền sử / bệnh sử ghi các từ khoá (bỏ câu phủ định). Trả về mô tả lý do hoặc ''.
+function sexualConcern(p, v, ctx){
+  if((ctx || ctxOf(p, v)).conds.has('sexual_dysf')) return 'hồ sơ ghi rối loạn / lo ngại chức năng tình dục';
+  const sx = ((v && v.mental && v.mental.sx) || []).filter(k => k.startsWith('sex_'));
+  if(sx.length) return 'khám tâm thần có rối loạn chức năng tình dục';
+  const t = (p.condNote || '') + ' . ' + ((v && v.hpi) || '') + ' . ' + ((v && v.reason) || '');
+  const kw = ['roi loan tinh duc', 'roi loan chuc nang tinh duc', 'lo ngai tinh duc', 'roi loan cuong', 'xuat tinh som', 'giam ham muon', 'lanh cam', 'dau khi giao hop'];
+  return kw.some(k => mentionsSymptom(t, k)) ? 'tiền sử / bệnh sử ghi rối loạn chức năng tình dục' : '';
+}
+// Đang hút thuốc lá (hồ sơ "Đang hút" hoặc tiền sử ghi "hút thuốc"; "đã bỏ" không tính) / béo phì (BMI ≥ 25, ICD E66, "béo phì")
+function smokeObeseReasons(p, v){
+  const out = [], r = p.risk || {}, note = norm((p.condNote || '') + ' . ' + (p.social || '')).replace(/\b(da|tung)\s+bo\s+(hut\s+)?thuoc(\s+la)?\b|\bbo\s+thuoc(\s+la)?\b/g, ' ');
+  if(r.smoke === 'current' || (r.smoke !== 'former' && ['hut thuoc'].some(k => mentionsSymptom(note, k)))) out.push('đang hút thuốc lá');
+  const vt = (v && v.vitals) || {}, b = bmiOf(num(vt.weight) || p.weight, num(vt.height) || p.height);
+  const dxT = norm(((v && v.dx && (v.dx.main + ' ' + v.dx.secondary + ' ' + v.dx.icd)) || '') + ' ' + (p.condNote || ''));
+  if(b != null && b >= 25) out.push(`béo phì (BMI ${fmtN(b, 1)})`);
+  else if(/\be66\b|beo phi/.test(dxT)) out.push('béo phì (ghi trong chẩn đoán / tiền sử)');
+  return out;
+}
 const isTca = d => !!d && (/3 vong|ba vong|tca/.test(norm(d.cls || '')) || ['amitriptylin', 'clomipramin', 'imipramin', 'nortriptylin', 'doxepin'].some(k => norm(d.hc || '').includes(k)));
 const TCA_EPI_MAX = 150;   // mg/ngày — ngưỡng "liều cao" của TCA ở bệnh nhân động kinh (bác sĩ có thể đổi)
 // Liều mg/ngày của một dòng đơn: (sáng + trưa + chiều + tối) × hàm lượng ghi trong tên thuốc ("… 25 mg")
@@ -448,6 +468,10 @@ function drugBlockReasons(p, v, d, ctx, line){
     else if(H.includes('clomipramin')) out.push('bệnh nền động kinh (clomipramin hạ ngưỡng co giật mạnh nhất nhóm 3 vòng)');
     else if(isTca(d) && line){ const mg = dailyMg(d, line); if(mg != null && mg > TCA_EPI_MAX) out.push(`bệnh nền động kinh: thuốc chống trầm cảm 3 vòng liều cao ${fmtN(mg)} mg/ngày (> ${TCA_EPI_MAX} mg/ngày) — hạ ngưỡng co giật`); }
   }
+  // Rối loạn / lo ngại rối loạn chức năng tình dục → không kê paroxetin (bác sĩ đặt 2026-10-25; paroxetin gây rối loạn tình dục nhiều nhất nhóm SSRI)
+  if(H.includes('paroxetin')){ const s = sexualConcern(p, v, ctx); if(s) out.push(s + ' (paroxetin gây rối loạn chức năng tình dục nhiều nhất nhóm SSRI)'); }
+  // Hút thuốc lá HOẶC béo phì (BMI ≥ 25) → không kê mirtazapin, paroxetin, olanzapin (bác sĩ đặt 2026-10-25; tăng cân, rối loạn chuyển hoá)
+  if(['mirtazapin', 'paroxetin', 'olanzapin'].some(x => H.includes(x))){ const r = smokeObeseReasons(p, v); if(r.length) out.push(r.join('; ') + ' (thuốc gây tăng cân, rối loạn chuyển hoá)'); }
   // Venlafaxin: bệnh nền tăng huyết áp → không kê (bác sĩ đặt 2026-10-25; venlafaxin làm tăng huyết áp phụ thuộc liều)
   if(norm(d.hc || '').includes('venlafaxin') && (ctx || ctxOf(p, v)).conds.has('htn')) out.push('bệnh nền tăng huyết áp (venlafaxin làm tăng huyết áp phụ thuộc liều)');
   // Tuổi > 65 hoặc < 18 → không kê thuốc chống trầm cảm 3 vòng (TCA) và paroxetin (bác sĩ đặt 2026-10-25)
