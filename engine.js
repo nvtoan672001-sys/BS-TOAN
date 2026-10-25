@@ -247,6 +247,7 @@ function bmiClass(b){ if(b == null) return ''; if(b < 18.5) return 'Thiếu cân
 // CKD-EPI 2021 (không dùng hệ số chủng tộc)
 function egfrCKDEPI(cr, age, sex){ const scr = cr / 88.4, f = sex === 'Nữ', k = f ? 0.7 : 0.9, a = f ? -0.241 : -0.302; return 142 * Math.pow(Math.min(scr/k, 1), a) * Math.pow(Math.max(scr/k, 1), -1.2) * Math.pow(0.9938, age) * (f ? 1.012 : 1); }
 function crclCG(cr, age, w, sex){ const scr = cr / 88.4; return (140 - age) * w / (72 * scr) * (sex === 'Nữ' ? 0.85 : 1); }
+const EGFR_LABEL = {G1: 'bình thường hoặc cao', G2: 'giảm nhẹ', G3a: 'giảm nhẹ – vừa', G3b: 'giảm vừa – nặng', G4: 'giảm nặng', G5: 'suy thận'};   // KDIGO
 function ckdStage(e){ if(e == null) return ''; if(e >= 90) return 'G1'; if(e >= 60) return 'G2'; if(e >= 45) return 'G3a'; if(e >= 30) return 'G3b'; if(e >= 15) return 'G4'; return 'G5'; }
 function bpClass(s, d){ s = num(s); d = num(d); if(!s || !d) return ''; if(s >= 180 || d >= 110) return 'Tăng huyết áp độ 3'; if(s >= 160 || d >= 100) return 'Tăng huyết áp độ 2'; if(s >= 140 || d >= 90) return 'Tăng huyết áp độ 1'; if(s >= 130 || d >= 85) return 'Bình thường cao'; return 'Bình thường'; }
 
@@ -370,10 +371,38 @@ function latestEcg(p, v){
   return null;
 }
 function qtcLong(p, v){ const e = latestEcg(p, v); return e && qtcLongText(e.text) ? e : null; }
+// ---- Agomelatin: không kê khi AST/ALT > 3 lần giới hạn trên, hoặc đơn có ciprofloxacin (bác sĩ đặt 2026-10-25; SmPC) ----
+const isAgomelatine = d => !!d && norm(d.hc || '').includes('agomelatin');
+const upperRef = (ref, fallback) => { const m = String(ref || '').match(/<\s*([\d.,]+)/); return m ? num(m[1]) : fallback; };
+// Kết quả số mới nhất của một xét nghiệm (lượt khám hiện tại trước, rồi các lượt cũ gần nhất)
+function latestOrder(p, v, key){
+  const visits = [v].concat((p.visits || []).filter(x => x !== v).sort((a, b) => String(b.date).localeCompare(String(a.date)))).filter(Boolean);
+  for(const x of visits){ const o = (x.orders || []).find(o => o.key === key && num(o.value) != null && String(o.value).trim() !== ''); if(o) return {o, date: x.date, current: x === v}; }
+  return null;
+}
+function transaminaseHigh(p, v){
+  const out = [];
+  for(const k of ['ast', 'alt']){
+    const r = latestOrder(p, v, k); if(!r) continue;
+    const lab = LABS.find(l => l[1] === k), uln = upperRef(r.o.ref, upperRef(lab && lab[4], 40)), val = num(r.o.value);
+    if(uln && val > 3 * uln) out.push(`${k.toUpperCase()} ${fmtN(val)} U/L (> 3 × ${fmtN(uln)}${r.current ? '' : ', ngày ' + fmtDate(r.date)})`);
+  }
+  return out;
+}
+function cyp1a2InhNames(p, v, ctx){
+  const kw = ['ciprofloxacin', 'fluvoxamin'], hit = d => d && kw.some(k => norm((d.hc || '') + ' ' + (d.n || '')).includes(k));
+  const rx = (v.rx || []).map(l => drugById(l.drugId)).filter(hit).map(d => d.n + ' (trong đơn)');
+  const lg = (ctx || ctxOf(p, v)).longMeds.filter(m => hit(m.drug) || kw.some(k => norm(m.name).includes(k))).map(m => m.short + ' (dài hạn)');
+  return [...new Set(rx.concat(lg))];
+}
 // Mọi lý do chặn kê một thuốc theo quy tắc phòng khám
 function drugBlockReasons(p, v, d, ctx){
   if(!d || !v) return [];
   const out = [];
+  if(isAgomelatine(d)){
+    const tx = transaminaseHigh(p, v); if(tx.length) out.push('men gan tăng > 3 lần: ' + tx.join(', '));
+    const ci = cyp1a2InhNames(p, v, ctx); if(ci.length) out.push('đang dùng thuốc ức chế mạnh CYP1A2: ' + ci.join(', '));
+  }
   if(isSsriSnri(d)){ const r = ssriBlockReasons(p, v, ctx); if(r.length) out.push('nhóm SSRI/SNRI: ' + r.join('; ')); }
   if(isCitalopram(d)){ const e = qtcLong(p, v); if(e) out.push(`điện tim ${e.current ? 'lần khám này' : 'ngày ' + fmtDate(e.date)} mô tả QTc dài (citalopram/escitalopram kéo dài QT)`); }
   return out;

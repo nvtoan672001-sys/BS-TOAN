@@ -237,6 +237,24 @@ def main():
             assert pg.evaluate("checkAll(curP(), curV()).ctx.conds.has('qt_long')"), 'QTc dài phải được tính là bệnh kèm QT kéo dài'
             pg.evaluate("(s) => { const p = curP(), v = curV(), o = JSON.parse(s); p.meds = o.meds; p.conds = o.conds; v.hpi = o.hpi; v.reason = o.reason; v.mental = o.mental || {sx: [], hist: [], excl: []}; v.rx = o.rx; v.orders = v.orders.filter(x => x.id !== 'o_ecg_t'); savePatient(p); }", st)
 
+            # 6i. Dòng eGFR (CKD-EPI 2021) ngay dưới creatinin; agomelatin bị chặn khi AST/ALT > 3 lần hoặc có ciprofloxacin
+            pg.evaluate("go({name: 'visit', pid: 'p_demoA', vid: 'v_demo_now', step: 2})"); pg.wait_for_timeout(300)
+            assert pg.evaluate("curV().orders.some(o => o.key === 'creat')"), 'ca mẫu phải có creatinin'
+            t = pg.inner_text('tr.egfr-row')
+            assert 'CKD-EPI 2021' in t and 'mL/phút/1,73m²' in t, t
+            pg.evaluate("go({name: 'visit', pid: 'p_demoA', vid: 'v_demo_now', step: 3})"); pg.wait_for_timeout(200)
+            st2 = pg.evaluate("() => JSON.stringify({rx: curV().rx, orders: curV().orders, meds: curP().meds})")
+            pg.evaluate("() => { const v = curV(); v.rx = []; curP().meds = []; v.orders = v.orders.filter(o => o.key !== 'ast' && o.key !== 'alt').concat([{id: 'o_ast_t', key: 'ast', name: 'AST', unit: 'U/L', ref: '< 40', type: 'n', value: 150, flag: 'Cao', note: ''}]); }")
+            assert any('men gan' in r for r in pg.evaluate("() => drugBlockReasons(curP(), curV(), drugById('agome25'))"))
+            pg.evaluate("addRx('agome25')"); pg.wait_for_timeout(200)
+            assert pg.evaluate("curV().rx.length") == 0, 'agomelatin phải bị chặn khi AST > 3 lần'
+            pg.evaluate("() => { const v = curV(); v.orders.find(o => o.id === 'o_ast_t').value = 100; }")   # 2,5 lần -> không chặn
+            assert pg.evaluate("() => drugBlockReasons(curP(), curV(), drugById('agome25'))") == []
+            pg.evaluate("addRx('cipro500')"); pg.wait_for_timeout(200)
+            pg.evaluate("addRx('agome25')"); pg.wait_for_timeout(200)
+            assert pg.evaluate("curV().rx.map(l => l.drugId)") == ['cipro500'], 'agomelatin phải bị chặn khi đơn có ciprofloxacin'
+            pg.evaluate("(s) => { const v = curV(), o = JSON.parse(s); v.rx = o.rx; v.orders = o.orders; curP().meds = o.meds; savePatient(curP()); }", st2)
+
             # 6c. Khám tâm thần + gợi ý chẩn đoán (BYT 2020, Bài 18–23)
             DX = """(o) => { const v = curV(); v.mental = Object.assign({sx: [], hist: [], excl: []}, o);
                        const r = psyDx(curP(), v); return {codes: r.sugs.filter(s => s.ok).map(s => s.code), all: r.sugs.map(s => s.code),

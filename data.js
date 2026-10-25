@@ -57,7 +57,7 @@ const TAGS = {
   snri:'SNRI (venlafaxin, duloxetin)', cns_dep:'Ức chế thần kinh trung ương (an thần)', antipsychotic:'Thuốc chống loạn thần',
   cyp2d6_inh:'Ức chế mạnh CYP2D6 (fluoxetin, paroxetin)', cyp2d6_sub:'Chuyển hoá chủ yếu qua CYP2D6', sens_3a4:'Nồng độ tăng khi ức chế CYP3A4',
   inducer:'Cảm ứng enzym gan mạnh (carbamazepin)', carbamazepine:'Carbamazepin', valproate:'Valproat', lamotrigine:'Lamotrigin',
-  hyponat:'Gây hạ natri máu', sympathomimetic:'Cường giao cảm (pseudoephedrin, phenylephrin, ephedrin…)', ache_inh:'Ức chế cholinesterase (donepezil, rivastigmin, galantamin)'
+  hyponat:'Gây hạ natri máu', cyp1a2_inh:'Ức chế mạnh CYP1A2 (ciprofloxacin, fluvoxamin)', cyp1a2_sub:'Chuyển hoá chủ yếu qua CYP1A2 (agomelatin)', sympathomimetic:'Cường giao cảm (pseudoephedrin, phenylephrin, ephedrin…)', ache_inh:'Ức chế cholinesterase (donepezil, rivastigmin, galantamin)'
 };
 
 const RULES = [
@@ -131,6 +131,7 @@ const RULES = [
   {a:'inducer', b:'statin_3a4', lv:1, m:'Carbamazepin làm giảm nồng độ statin chuyển hoá qua CYP3A4 → kiểm tra lại mỡ máu.'},
   {a:'carbamazepine', b:'strong_3a4_inh', lv:3, m:'Clarithromycin, erythromycin, fluconazol… làm tăng nồng độ carbamazepin → ngộ độc (chóng mặt, nhìn đôi, thất điều). Tránh hoặc giảm liều, theo dõi.'},
   {a:'sens_3a4', b:'strong_3a4_inh', lv:2, m:'Ức chế CYP3A4 làm tăng nồng độ (alprazolam, zopiclon, quetiapin, aripiprazol) → an thần quá mức, hạ huyết áp. Giảm liều trong đợt dùng kháng sinh/kháng nấm.'},
+  {a:'cyp1a2_inh', b:'cyp1a2_sub', lv:3, m:'Ức chế mạnh CYP1A2 (ciprofloxacin, fluvoxamin) làm tăng rất mạnh nồng độ agomelatin → chống chỉ định phối hợp (SmPC).'},
   {a:'valproate', b:'lamotrigine', lv:3, m:'Valproat tăng gấp đôi nồng độ lamotrigin → nguy cơ phát ban nặng (Stevens-Johnson). Lamotrigin khởi đầu và duy trì bằng ½ liều, tăng liều rất chậm.'},
   {a:'valproate', b:'aspirin', lv:1, m:'Aspirin làm tăng valproat tự do và cộng nguy cơ chảy máu (valproat giảm tiểu cầu).'},
   {a:'hyponat', b:'diuretic', lv:2, m:'Tăng nguy cơ hạ natri máu, nhất là người cao tuổi dùng thiazid. Kiểm tra natri máu sau 2–4 tuần.'},
@@ -259,7 +260,7 @@ const DRUGS_SEED = [
  renal:[{lt:50,lv:2,m:'CrCl 20–49: liều đầu 500 mg, sau đó 250 mg mỗi 24 giờ.'},{lt:20,lv:3,m:'CrCl 10–19: liều đầu 500 mg, sau đó 250 mg mỗi 48 giờ.'}],
  old:{lv:2,m:'Người cao tuổi tăng nguy cơ viêm/đứt gân, rối loạn thần kinh, rối loạn đường huyết, phình/bóc tách động mạch chủ.'},
  cond:{qt_long:{lv:3,m:'Tránh khi có QT kéo dài.'}, epilepsy:{lv:2,m:'Có thể hạ ngưỡng co giật.'}, diabetes:{lv:1,m:'Có thể gây rối loạn đường huyết.'}}, preg:{lv:3,m:'Tránh dùng khi mang thai.'}},
-{id:'cipro500', n:'Ciprofloxacin 500 mg', hc:'ciprofloxacin', o:'Nội', u:'viên', p:1500, cls:'Quinolon', g:'abx', tags:['quinolone','qt','chelate_sensitive'], dose:[1,0,1,0], how:'Uống cách thuốc dạ dày, sắt, calci ít nhất 2 giờ',
+{id:'cipro500', n:'Ciprofloxacin 500 mg', hc:'ciprofloxacin', o:'Nội', u:'viên', p:1500, cls:'Quinolon', g:'abx', tags:['quinolone','qt','chelate_sensitive','cyp1a2_inh'], dose:[1,0,1,0], how:'Uống cách thuốc dạ dày, sắt, calci ít nhất 2 giờ',
  ae:'Buồn nôn, tiêu chảy, chóng mặt.', warn:'Đau, sưng gân; tê bì tay chân; hồi hộp → ngừng thuốc, báo bác sĩ.',
  pro:'Rẻ; hiệu quả nhiễm khuẩn tiết niệu, tiêu hoá.', con:'Cảnh báo an toàn như nhóm quinolon; nhiều tương tác.',
  renal:[{lt:50,lv:2,m:'CrCl 30–50: 250–500 mg mỗi 12 giờ.'},{lt:30,lv:2,m:'CrCl < 30: 250–500 mg mỗi 18 giờ.'}],
@@ -527,6 +528,13 @@ const DRUGS_SEED = [
  lact:{lv:1,m:'Có thể cho con bú; theo dõi trẻ quấy khóc, ngủ li bì, bú kém (LactMed).'},
  renal:[{lt:40,lv:1,m:'Suy thận: thải trừ giảm, dùng liều thấp.'}], hep:{lv:1,m:'Suy gan: dùng liều thấp.'}, old:{lv:1,m:'Người cao tuổi: theo dõi natri máu, té ngã.'},
  cond:{diabetes:{lv:1,m:'Tăng cân, tăng thèm ăn: theo dõi đường huyết, cân nặng.'}, bipolar:{lv:2,m:'Rối loạn lưỡng cực: nguy cơ chuyển pha hưng cảm.'}}},
+// Agomelatin: không có trong BYT 2020 / Stahl 2004 — soạn theo tờ thông tin sản phẩm (SmPC Valdoxan, EMA). GIÁ MẪU. Bác sĩ duyệt.
+{id:'agome25', n:'Agomelatin 25 mg', hc:'agomelatin', o:'Ngoại', u:'viên', p:20000, cls:'Chống trầm cảm đồng vận melatonin', g:'neuro', tags:['cyp1a2_sub'], dose:[0,0,0,1], how:'Uống buổi tối trước khi ngủ; có thể tăng 50 mg sau 2 tuần (SmPC). Xét nghiệm men gan trước khi dùng và sau 3, 6, 12, 24 tuần',
+ ae:'Đau đầu, buồn nôn, chóng mặt, buồn ngủ hoặc mất ngủ, lo âu, tăng men gan.', warn:'Vàng da, nước tiểu sẫm màu, phân bạc màu, đau hạ sườn phải, mệt nhiều → ngừng thuốc, đi khám ngay.',
+ pro:'Ít ảnh hưởng tình dục, không tăng cân, không gây hội chứng ngừng thuốc; giúp điều hoà giấc ngủ.', con:'Độc gan: bắt buộc theo dõi men gan định kỳ; nhiều tương tác qua CYP1A2 (ciprofloxacin, fluvoxamin); giá cao.',
+ hep:{lv:3,m:'Suy gan / bệnh gan đang hoạt động hoặc AST, ALT > 3 lần giới hạn trên: chống chỉ định (SmPC).'}, old:{lv:2,m:'Người ≥ 75 tuổi: không khuyến cáo (chưa chứng minh hiệu quả — SmPC).'},
+ renal:[{lt:30,lv:1,m:'Suy thận nặng: dữ liệu hạn chế, thận trọng.'}], preg:{lv:2,m:'Tránh khi mang thai (dữ liệu hạn chế).'}, lact:{lv:2,m:'Không nên cho con bú khi dùng thuốc (SmPC).'},
+ cond:{alcohol_heavy:{lv:3,m:'Uống rượu nhiều: tránh (tăng nguy cơ tổn thương gan).'}, dementia:{lv:2,m:'Sa sút trí tuệ: không dùng cho người cao tuổi sa sút trí tuệ (SmPC).'}, bipolar:{lv:2,m:'Rối loạn lưỡng cực: nguy cơ chuyển pha hưng cảm — ngừng nếu xuất hiện hưng cảm.'}}},
 {id:'tiane12', n:'Tianeptin 12,5 mg', hc:'tianeptin', o:'Ngoại', u:'viên', p:4500, cls:'Chống trầm cảm khác', g:'neuro', tags:[], dose:[1,1,1,0], how:'Uống trước 3 bữa ăn. Liều BYT 2020: 12,5–50 mg/ngày',
  ae:'Đau bụng, khô miệng, chán ăn, mất ngủ, chóng mặt.', warn:'Không tự tăng liều (nguy cơ lạm dụng, lệ thuộc).',
  pro:'Ít an thần, ít ảnh hưởng tim mạch, tình dục.', con:'Có báo cáo lạm dụng, lệ thuộc ở liều cao; uống 3 lần/ngày.',
