@@ -371,6 +371,13 @@ function latestEcg(p, v){
   return null;
 }
 function qtcLong(p, v){ const e = latestEcg(p, v); return e && qtcLongText(e.text) ? e : null; }
+// "Block / blốc nhĩ thất", "block AV", "AV block", "BAV (độ I/II/III)" — bỏ câu phủ định "không block nhĩ thất"
+function avBlockText(text){
+  const t = ' ' + norm(text || '').replace(/[^a-z0-9]+/g, ' ') + ' ';
+  const neg = /\b(khong|ko|chua)\s+(co\s+)?(block|bloc|blok)\s+(nhi\s+that|av)\b/g;
+  return /\b(block|bloc|blok)\s+(nhi\s+that|av)\b|\bav\s+(block|bloc)\b|\bbav\b/.test(t.replace(neg, ' '));
+}
+function avBlock(p, v){ const e = latestEcg(p, v); return e && avBlockText(e.text) ? e : null; }
 // ---- Agomelatin: không kê khi AST/ALT > 3 lần giới hạn trên, hoặc đơn có ciprofloxacin (bác sĩ đặt 2026-10-25; SmPC) ----
 const isAgomelatine = d => !!d && norm(d.hc || '').includes('agomelatin');
 const upperRef = (ref, fallback) => { const m = String(ref || '').match(/<\s*([\d.,]+)/); return m ? num(m[1]) : fallback; };
@@ -378,6 +385,17 @@ const upperRef = (ref, fallback) => { const m = String(ref || '').match(/<\s*([\
 function latestOrder(p, v, key){
   const visits = [v].concat((p.visits || []).filter(x => x !== v).sort((a, b) => String(b.date).localeCompare(String(a.date)))).filter(Boolean);
   for(const x of visits){ const o = (x.orders || []).find(o => o.key === key && num(o.value) != null && String(o.value).trim() !== ''); if(o) return {o, date: x.date, current: x === v}; }
+  return null;
+}
+// β-hCG mới nhất: {text, date, current, pos} — pos true (> 5 hoặc "dương tính"), false (≤ 5, "< 5", "âm tính"), null (không đọc được)
+function bhcgLatest(p, v){
+  const visits = [v].concat((p.visits || []).filter(x => x !== v).sort((a, b) => String(b.date).localeCompare(String(a.date)))).filter(Boolean);
+  for(const x of visits){
+    const o = (x.orders || []).find(o => o.key === 'bhcg' && String(o.value ?? '').trim() !== ''); if(!o) continue;
+    const raw = String(o.value), t = norm(raw), n = num(raw);
+    const pos = /duong tinh|\(\+\)|^\+$/.test(t) ? true : /am tinh|\(-\)|^-$/.test(t) || /^\s*</.test(raw) ? false : n != null ? n > 5 : null;
+    return {text: typeof o.value === 'number' ? fmtN(o.value) + ' mIU/mL' : raw.trim(), date: x.date, current: x === v, pos};
+  }
   return null;
 }
 function transaminaseHigh(p, v){
@@ -399,6 +417,17 @@ function cyp1a2InhNames(p, v, ctx){
 function drugBlockReasons(p, v, d, ctx){
   if(!d || !v) return [];
   const out = [];
+  // Valproat: bệnh nhân NỮ chưa có kết quả β-hCG (trong 7 ngày gần nhất) hoặc β-hCG > 5 mIU/mL → không kê (bác sĩ đặt 2026-10-25)
+  if(norm(d.hc || '').includes('valpro') && p.sex === 'Nữ'){
+    const r = bhcgLatest(p, v), recent = r && (r.current || (v.date && r.date && daysBetween(r.date, v.date) <= 7));
+    if(!recent) out.push('bệnh nhân nữ chưa có kết quả β-hCG' + (r ? ` gần đây (lần cuối ${fmtDate(r.date)})` : '') + ' — làm β-hCG trước khi kê valproat');
+    else if(r.pos === true) out.push(`β-hCG ${r.text} (> 5 mIU/mL) — có thể đang mang thai, valproat gây dị tật thai`);
+    else if(r.pos == null) out.push(`chưa đọc được kết quả β-hCG "${r.text}" — ghi số (mIU/mL) hoặc "âm tính"`);
+  }
+  // Carbamazepin: điện tim có block nhĩ thất → không kê (bác sĩ đặt 2026-10-25; carbamazepin làm chậm dẫn truyền nhĩ thất)
+  if(norm(d.hc || '').includes('carbamazepin')){
+    const e = avBlock(p, v); if(e) out.push(`điện tim ${e.current ? 'lần khám này' : 'ngày ' + fmtDate(e.date)} có block nhĩ thất (carbamazepin làm chậm dẫn truyền nhĩ thất)`);
+  }
   // Duloxetin: không kê khi AST/ALT > 3 lần giới hạn trên hoặc CrCl < 30 mL/phút (bác sĩ đặt 2026-10-25).
   // Chưa có cân nặng để tính CrCl thì dùng eGFR < 30 thay thế (ghi rõ trong lý do).
   if(norm(d.hc || '').includes('duloxetin')){

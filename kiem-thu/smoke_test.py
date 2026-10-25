@@ -263,6 +263,29 @@ def main():
             assert 'CrCl' in pg.evaluate(DB), pg.evaluate(DB)
             pg.evaluate("addRx('dulox30n')"); pg.wait_for_timeout(200)
             assert pg.evaluate("curV().rx.length") == 0, 'duloxetin phải bị chặn khi CrCl < 30'
+            # valproat: nữ chưa có β-hCG hoặc β-hCG > 5 -> chặn; nam không bị chặn
+            VB = "() => drugBlockReasons(curP(), curV(), drugById('valp500n')).join(' | ')"
+            sex0 = pg.evaluate("curP().sex")
+            pg.evaluate("() => { const v = curV(); v.rx = []; v.orders = v.orders.filter(o => o.key !== 'bhcg'); }")
+            assert pg.evaluate(VB) == '', 'nam không bị chặn valproat'
+            pg.evaluate("() => { curP().sex = 'Nữ'; }")
+            assert 'chưa có kết quả β-hCG' in pg.evaluate(VB)
+            pg.evaluate("addRx('valp500n')"); pg.wait_for_timeout(200)
+            assert pg.evaluate("curV().rx.length") == 0, 'valproat phải bị chặn khi nữ chưa có β-hCG'
+            for val, blocked in [(12, True), (3, False), ('< 5', False), ('Âm tính', False), ('Dương tính', True)]:
+                pg.evaluate("(x) => { const v = curV(); v.orders = v.orders.filter(o => o.key !== 'bhcg').concat([{id: 'o_hcg', key: 'bhcg', name: 'β-hCG', unit: 'mIU/mL', ref: '< 5', type: 'n', value: x, flag: '', note: ''}]); }", val)
+                assert (pg.evaluate(VB) != '') == blocked, (val, pg.evaluate(VB))
+            pg.evaluate("(s) => { curP().sex = s; }", sex0)
+            # carbamazepin: điện tim có block nhĩ thất -> chặn
+            A = "(t) => avBlockText(t)"
+            for txt in ['Block nhĩ thất độ I', 'Blốc nhĩ thất cấp II', 'BAV độ III', 'AV block 1st degree', 'Nhịp xoang, block AV độ I']:
+                assert pg.evaluate(A, txt), txt
+            for txt in ['Không block nhĩ thất', 'Nhịp xoang, trục trung gian', 'Block nhánh phải hoàn toàn']:
+                assert not pg.evaluate(A, txt), txt
+            pg.evaluate("() => { const v = curV(); v.rx = []; v.orders = v.orders.filter(o => o.key !== 'ecg').concat([{id: 'o_ecg_av', key: 'ecg', name: 'Điện tim (ECG)', type: 't', value: 'Nhịp xoang 60 l/ph, block nhĩ thất độ I', note: ''}]); }")
+            pg.evaluate("addRx('carba200n')"); pg.wait_for_timeout(200)
+            assert pg.evaluate("curV().rx.length") == 0, 'carbamazepin phải bị chặn khi có block nhĩ thất'
+            assert 'block nhĩ thất' in pg.evaluate("() => drugBlockReasons(curP(), curV(), drugById('carba200f')).join(' ')")
             pg.evaluate("(s) => { const v = curV(), o = JSON.parse(s); v.rx = o.rx; v.orders = o.orders; curP().meds = o.meds; savePatient(curP()); }", st2)
 
             # 6c. Khám tâm thần + gợi ý chẩn đoán (BYT 2020, Bài 18–23)
