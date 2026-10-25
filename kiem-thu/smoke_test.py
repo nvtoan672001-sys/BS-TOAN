@@ -276,6 +276,16 @@ def main():
                 pg.evaluate("(x) => { const v = curV(); v.orders = v.orders.filter(o => o.key !== 'bhcg').concat([{id: 'o_hcg', key: 'bhcg', name: 'β-hCG', unit: 'mIU/mL', ref: '< 5', type: 'n', value: x, flag: '', note: ''}]); }", val)
                 assert (pg.evaluate(VB) != '') == blocked, (val, pg.evaluate(VB))
             pg.evaluate("(s) => { curP().sex = s; }", sex0)
+            # fluoxetin: tiền sử đang cho con bú -> chặn (ô bệnh nền hoặc ghi chữ); sertralin không bị chặn vì lý do này
+            FB = "(id) => drugBlockReasons(curP(), curV(), drugById(id)).filter(r => /cho con bú/.test(r)).length"
+            nb = pg.evaluate("() => JSON.stringify({conds: curP().conds, note: curP().condNote})")
+            pg.evaluate("() => { const p = curP(); p.sex = 'Nữ'; p.conds = (p.conds || []).filter(k => k !== 'breastfeeding'); p.condNote = 'Sinh con 3 tháng, không cho con bú'; }")
+            assert pg.evaluate(FB, 'fluox20n') == 0, 'câu phủ định không được tính'
+            pg.evaluate("() => { curP().condNote = 'Sinh con 3 tháng, đang cho con bú'; }")
+            assert pg.evaluate(FB, 'fluox20n') == 1 and pg.evaluate(FB, 'sert50') == 0
+            pg.evaluate("() => { const p = curP(); p.condNote = ''; p.conds = p.conds.concat(['breastfeeding']); }")
+            assert pg.evaluate(FB, 'fluox20f') == 1, 'ô "Đang cho con bú" phải chặn fluoxetin'
+            pg.evaluate("([s, sx]) => { const p = curP(), o = JSON.parse(s); p.conds = o.conds; p.condNote = o.note; p.sex = sx; }", [nb, sex0])
             # carbamazepin: điện tim có block nhĩ thất -> chặn
             A = "(t) => avBlockText(t)"
             for txt in ['Block nhĩ thất độ I', 'Blốc nhĩ thất cấp II', 'BAV độ III', 'AV block 1st degree', 'Nhịp xoang, block AV độ I']:

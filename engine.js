@@ -413,6 +413,12 @@ function cyp1a2InhNames(p, v, ctx){
   const lg = (ctx || ctxOf(p, v)).longMeds.filter(m => hit(m.drug) || kw.some(k => norm(m.name).includes(k))).map(m => m.short + ' (dài hạn)');
   return [...new Set(rx.concat(lg))];
 }
+// Đang cho con bú: ô bệnh nền "Đang cho con bú", hoặc phần tiền sử ghi "(đang) cho con bú", "nuôi con bằng sữa mẹ" (bỏ câu phủ định)
+function breastfeeding(p, v, ctx){
+  if((ctx || ctxOf(p, v)).conds.has('breastfeeding')) return true;
+  const t = (p.condNote || '') + ' . ' + ((v && v.hpi) || '');
+  return ['cho con bu', 'dang cho bu', 'nuoi con bang sua me'].some(k => mentionsSymptom(t, k));
+}
 // Mọi lý do chặn kê một thuốc theo quy tắc phòng khám
 function drugBlockReasons(p, v, d, ctx){
   if(!d || !v) return [];
@@ -424,6 +430,9 @@ function drugBlockReasons(p, v, d, ctx){
     else if(r.pos === true) out.push(`β-hCG ${r.text} (> 5 mIU/mL) — có thể đang mang thai, valproat gây dị tật thai`);
     else if(r.pos == null) out.push(`chưa đọc được kết quả β-hCG "${r.text}" — ghi số (mIU/mL) hoặc "âm tính"`);
   }
+  // Fluoxetin: tiền sử ghi đang cho con bú (ô "Đang cho con bú" hoặc ghi trong "Tiền sử bệnh…") → không kê (bác sĩ đặt 2026-10-25;
+  // fluoxetin và chất chuyển hoá có thời gian bán thải dài, tích luỹ ở trẻ bú mẹ)
+  if(norm(d.hc || '').includes('fluoxetin') && breastfeeding(p, v, ctx)) out.push('tiền sử ghi đang cho con bú (fluoxetin bán thải dài, tích luỹ ở trẻ bú mẹ)');
   // Carbamazepin: điện tim có block nhĩ thất → không kê (bác sĩ đặt 2026-10-25; carbamazepin làm chậm dẫn truyền nhĩ thất)
   if(norm(d.hc || '').includes('carbamazepin')){
     const e = avBlock(p, v); if(e) out.push(`điện tim ${e.current ? 'lần khám này' : 'ngày ' + fmtDate(e.date)} có block nhĩ thất (carbamazepin làm chậm dẫn truyền nhĩ thất)`);
