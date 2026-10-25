@@ -63,7 +63,7 @@ function afterChange(path){
   } else if(root === 's'){ saveSettings(); if(path === 's.doctor') $('#docname').textContent = '· ' + (S.settings.doctor || ''); }
   updateLive();
 }
-const CHRONIC = ['ckd','htn','diabetes','dyslipid','af','heart_failure','gout','oa','asthma','hbv','depression','liver','cvd','bipolar','dementia','parkinson'];
+const CHRONIC = ['ckd','htn','diabetes','dyslipid','af','heart_failure','gout','oa','asthma','hbv','depression','liver','cvd','bipolar','dementia','parkinson','epilepsy'];
 function isLatestVisit(p, v){ return !p.visits.some(x => x !== v && x.date > v.date); }
 
 // ================= KHUNG CẬP NHẬT TỨC THỜI =================

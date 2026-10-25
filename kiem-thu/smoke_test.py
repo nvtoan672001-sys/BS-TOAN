@@ -312,6 +312,19 @@ def main():
             pg.evaluate("() => { const p = curP(); p.birthYear = Number(curV().date.slice(0, 4)) - 30; }")
             assert pg.evaluate(CB, 'amitri25') == 0 and pg.evaluate(AB, 'amitri25') == 0
             pg.evaluate("(s) => { const p = curP(), o = JSON.parse(s); p.dob = o.dob || ''; p.birthYear = o.by; }", dob0)
+            # bệnh gan mạn / xơ gan -> chặn agomelatin, duloxetin, valproat; động kinh -> clomipramin, bupropion, TCA > 150 mg/ngày
+            LB = "(id) => drugBlockReasons(curP(), curV(), drugById(id)).filter(r => /gan mạn/.test(r)).length"
+            pg.evaluate("() => { curP().conds = curP().conds.filter(k => k !== 'liver' && k !== 'epilepsy'); }")
+            assert [pg.evaluate(LB, i) for i in ['agome25', 'dulox30n', 'valp500n', 'sert50']] == [0, 0, 0, 0]
+            pg.evaluate("() => { curP().conds.push('liver'); }")
+            assert [pg.evaluate(LB, i) for i in ['agome25', 'dulox30n', 'valp500n', 'valp500f', 'sert50']] == [1, 1, 1, 1, 0]
+            assert pg.evaluate("() => drugBlockReasons(curP(), curV(), {id: 'x', n: 'Nefazodon 100 mg', hc: 'nefazodon', tags: []}).length") == 1
+            pg.evaluate("() => { curP().conds = curP().conds.filter(k => k !== 'liver').concat(['epilepsy']); }")
+            assert pg.evaluate("() => drugBlockReasons(curP(), curV(), {id: 'y', n: 'Clomipramin 25 mg', hc: 'clomipramin', cls: 'Chống trầm cảm 3 vòng', tags: []}).length") == 1
+            assert pg.evaluate("() => drugBlockReasons(curP(), curV(), {id: 'z', n: 'Bupropion 150 mg', hc: 'bupropion', tags: []}).length") == 1
+            ami = "(n) => checkAll(curP(), curV(), [{line: {id: 'L', s: 0, tr: 0, c: 0, t: n}, drug: drugById('amitri25')}]).items.some(w => w.kind === 'Quy tắc phòng khám' && /liều cao/.test(w.m))"
+            assert not pg.evaluate(ami, 2) and pg.evaluate(ami, 8), 'amitriptylin 50 mg/ngày được; 200 mg/ngày phải bị chặn ở động kinh'
+            pg.evaluate("() => { curP().conds = curP().conds.filter(k => k !== 'epilepsy'); }")
             # venlafaxin: bệnh nền tăng huyết áp -> chặn (ca mẫu có THA)
             VH = "(id) => drugBlockReasons(curP(), curV(), drugById(id)).filter(r => /tăng huyết áp/.test(r)).length"
             assert pg.evaluate("curP().conds.includes('htn')") and pg.evaluate(VH, 'venla75n') == 1 and pg.evaluate(VH, 'dulox30n') == 0

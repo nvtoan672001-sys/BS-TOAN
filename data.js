@@ -724,6 +724,8 @@ const ICD = [
   ['K58.9','Hội chứng ruột kích thích',[]],
   ['K76.0','Gan nhiễm mỡ',[]],
   ['B18.1','Viêm gan B mạn',['hbv']],
+  ['K74.6','Xơ gan, khác và không đặc hiệu',['liver']],
+  ['G40.9','Động kinh, không đặc hiệu',['epilepsy']],
   ['I10','Tăng huyết áp vô căn',['htn']],
   ['I48','Rung nhĩ',['af']],
   ['I50.9','Suy tim',['heart_failure']],
