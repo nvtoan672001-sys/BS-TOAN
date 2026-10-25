@@ -253,6 +253,16 @@ def main():
             pg.evaluate("addRx('cipro500')"); pg.wait_for_timeout(200)
             pg.evaluate("addRx('agome25')"); pg.wait_for_timeout(200)
             assert pg.evaluate("curV().rx.map(l => l.drugId)") == ['cipro500'], 'agomelatin phải bị chặn khi đơn có ciprofloxacin'
+            # duloxetin: chặn khi AST/ALT > 3 lần hoặc CrCl < 30
+            DB = "() => drugBlockReasons(curP(), curV(), drugById('dulox30n')).join(' | ')"
+            pg.evaluate("() => { const v = curV(); v.rx = []; v.orders.find(o => o.id === 'o_ast_t').value = 150; }")
+            assert 'men gan' in pg.evaluate(DB)
+            pg.evaluate("() => { curV().orders.find(o => o.id === 'o_ast_t').value = 30; }")
+            assert pg.evaluate(DB) == '', 'ca mẫu CrCl ≈ 48 và men gan bình thường thì duloxetin kê được'
+            pg.evaluate("() => { curV().orders.find(o => o.key === 'creat').value = 300; }")   # CrCl ~ 23
+            assert 'CrCl' in pg.evaluate(DB), pg.evaluate(DB)
+            pg.evaluate("addRx('dulox30n')"); pg.wait_for_timeout(200)
+            assert pg.evaluate("curV().rx.length") == 0, 'duloxetin phải bị chặn khi CrCl < 30'
             pg.evaluate("(s) => { const v = curV(), o = JSON.parse(s); v.rx = o.rx; v.orders = o.orders; curP().meds = o.meds; savePatient(curP()); }", st2)
 
             # 6c. Khám tâm thần + gợi ý chẩn đoán (BYT 2020, Bài 18–23)

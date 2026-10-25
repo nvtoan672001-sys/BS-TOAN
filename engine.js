@@ -399,6 +399,14 @@ function cyp1a2InhNames(p, v, ctx){
 function drugBlockReasons(p, v, d, ctx){
   if(!d || !v) return [];
   const out = [];
+  // Duloxetin: không kê khi AST/ALT > 3 lần giới hạn trên hoặc CrCl < 30 mL/phút (bác sĩ đặt 2026-10-25).
+  // Chưa có cân nặng để tính CrCl thì dùng eGFR < 30 thay thế (ghi rõ trong lý do).
+  if(norm(d.hc || '').includes('duloxetin')){
+    const tx = transaminaseHigh(p, v); if(tx.length) out.push('men gan tăng > 3 lần: ' + tx.join(', '));
+    const r = renalOf(p);
+    if(r && r.crcl != null && r.crcl < 30) out.push(`CrCl ≈ ${fmtN(r.crcl)} mL/phút (< 30; ${r.src})`);
+    else if(r && r.crcl == null && r.egfr != null && r.egfr < 30) out.push(`eGFR ≈ ${fmtN(r.egfr)} (< 30; chưa có cân nặng để tính CrCl; ${r.src})`);
+  }
   if(isAgomelatine(d)){
     const tx = transaminaseHigh(p, v); if(tx.length) out.push('men gan tăng > 3 lần: ' + tx.join(', '));
     const ci = cyp1a2InhNames(p, v, ctx); if(ci.length) out.push('đang dùng thuốc ức chế mạnh CYP1A2: ' + ci.join(', '));
