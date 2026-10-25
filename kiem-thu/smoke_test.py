@@ -315,9 +315,12 @@ def main():
             # venlafaxin: bệnh nền tăng huyết áp -> chặn (ca mẫu có THA)
             VH = "(id) => drugBlockReasons(curP(), curV(), drugById(id)).filter(r => /tăng huyết áp/.test(r)).length"
             assert pg.evaluate("curP().conds.includes('htn')") and pg.evaluate(VH, 'venla75n') == 1 and pg.evaluate(VH, 'dulox30n') == 0
-            pg.evaluate("() => { curP().conds = curP().conds.filter(k => k !== 'htn'); }")
-            assert pg.evaluate(VH, 'venla75f') == 0
-            pg.evaluate("() => { curP().conds.push('htn'); }")
+            dx0 = pg.evaluate("() => JSON.stringify(curV().dx)")
+            pg.evaluate("() => { const v = curV(); curP().conds = curP().conds.filter(k => k !== 'htn'); v.dx = {...v.dx, icd: '', main: 'Viêm dạ dày', secondary: ''}; }")
+            assert pg.evaluate(VH, 'venla75f') == 0, 'không có THA (hồ sơ, ICD, chẩn đoán) thì không chặn'
+            pg.evaluate("() => { curV().dx.secondary = 'Tăng huyết áp độ 1'; }")
+            assert pg.evaluate(VH, 'venla75f') == 1, 'THA ghi trong chẩn đoán kèm theo cũng phải chặn'
+            pg.evaluate("(s) => { curP().conds.push('htn'); curV().dx = JSON.parse(s); }", dx0)
             # carbamazepin: điện tim có block nhĩ thất -> chặn
             A = "(t) => avBlockText(t)"
             for txt in ['Block nhĩ thất độ I', 'Blốc nhĩ thất cấp II', 'BAV độ III', 'AV block 1st degree', 'Nhịp xoang, block AV độ I']:
