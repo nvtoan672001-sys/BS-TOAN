@@ -335,6 +335,15 @@ def main():
             pg.evaluate("() => { const p = curP(), v = curV(); p.risk.smoke = 'never'; p.weight = 80; v.vitals.weight = 80; }")   # BMI 27,7
             assert [pg.evaluate(SB, i) for i in ['mirta30f', 'olan10f']] == [1, 1], 'BMI ≥ 25 -> chặn'
             pg.evaluate("(s) => { const p = curP(), v = curV(), o = JSON.parse(s); p.risk = o.risk; p.condNote = o.note; p.weight = o.w; p.height = o.h; v.vitals = o.vt; v.dx = o.dx; }", so0)
+            # tích ô động kinh -> chặn SSRI (không chặn SNRI); chẩn đoán G40.9 không có ô tích -> không chặn
+            EB = "(id) => drugBlockReasons(curP(), curV(), drugById(id)).filter(r => /tích ô động kinh/.test(r)).length"
+            ep0 = pg.evaluate("() => JSON.stringify(curP().conds)")
+            pg.evaluate("() => { const p = curP(); p.conds = p.conds.filter(k => k !== 'epilepsy'); }")
+            assert pg.evaluate(EB, 'sert50') == 0
+            pg.evaluate("() => { curP().conds.push('epilepsy'); }")
+            assert pg.evaluate(EB, 'sert50') == 1 and pg.evaluate(EB, 'escit10') == 1, 'tích ô động kinh phải chặn SSRI'
+            assert pg.evaluate(EB, 'venla75n') == 0 and pg.evaluate(EB, 'tiane12') == 0
+            pg.evaluate("(s) => { curP().conds = JSON.parse(s); }", ep0)
             # rối loạn / lo ngại tình dục (ô hồ sơ hoặc ghi chữ) -> chặn paroxetin
             XB = "(id) => drugBlockReasons(curP(), curV(), drugById(id)).filter(r => /paroxetin gây rối loạn chức năng tình dục/.test(r)).length"
             sx0 = pg.evaluate("() => JSON.stringify({conds: curP().conds, note: curP().condNote})")

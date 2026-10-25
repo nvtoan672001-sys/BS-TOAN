@@ -463,6 +463,8 @@ function drugBlockReasons(p, v, d, ctx, line){
   // Bệnh gan mạn / xơ gan → không kê agomelatin, duloxetin, valproat, nefazodon (bác sĩ đặt 2026-10-25; độc gan)
   if(C.has('liver')){ const k = ['agomelatin', 'duloxetin', 'valpro', 'nefazodon'].find(x => H.includes(x)); if(k) out.push('bệnh nền bệnh gan mạn / xơ gan (thuốc có độc tính gan hoặc chống chỉ định khi bệnh gan)'); }
   // Động kinh → không kê bupropion, clomipramin; thuốc chống trầm cảm 3 vòng liều cao (> TCA_EPI_MAX mg/ngày) (bác sĩ đặt 2026-10-25; hạ ngưỡng co giật)
+  // Tích ô "Động kinh" ở hồ sơ nền → không kê SSRI (bác sĩ đặt 2026-10-25; chỉ theo ô tích, không theo ICD / chữ)
+  if((p.conds || []).includes('epilepsy') && d && (d.cls === 'SSRI' || expandTags(d.tags).has('ssri'))) out.push('hồ sơ nền tích ô động kinh (SSRI có thể hạ ngưỡng co giật)');
   if(C.has('epilepsy')){
     if(H.includes('bupropion')) out.push('bệnh nền động kinh (bupropion hạ ngưỡng co giật rõ)');
     else if(H.includes('clomipramin')) out.push('bệnh nền động kinh (clomipramin hạ ngưỡng co giật mạnh nhất nhóm 3 vòng)');
