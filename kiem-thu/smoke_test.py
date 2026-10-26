@@ -348,6 +348,20 @@ def main():
             assert pg.evaluate(EB, 'sert50') == 1 and pg.evaluate(EB, 'escit10') == 1, 'tích ô động kinh phải chặn SSRI'
             assert pg.evaluate(EB, 'venla75n') == 0 and pg.evaluate(EB, 'tiane12') == 0
             pg.evaluate("(s) => { curP().conds = JSON.parse(s); }", ep0)
+            # chán ăn tâm thần (ICD F50.0) -> chặn TCA, IMAO, bupropion; F50.2 không chặn; SSRI không bị quy tắc này chặn
+            AB = "(id) => drugBlockReasons(curP(), curV(), drugById(id)).filter(r => /^chán ăn tâm thần/.test(r)).length"
+            an0 = pg.evaluate("() => JSON.stringify(curV().dx)")
+            pg.evaluate("() => { curV().dx = {...curV().dx, main: 'Ăn vô độ tâm thần', secondary: '', icd: 'F50.2 – Ăn vô độ tâm thần (bulimia)'}; }")
+            assert pg.evaluate(AB, 'amitri25') == 0
+            assert pg.evaluate("() => drugBlockReasons(curP(), curV(), {hc: 'bupropion', n: 'Bupropion 150 mg'}).filter(r => /^ăn vô độ tâm thần/.test(r)).length") == 1, 'F50.2 phải chặn bupropion'
+            pg.evaluate("() => { curV().dx = {...curV().dx, main: 'Chán ăn tâm thần', icd: 'F50.0 – Chán ăn tâm thần'}; }")
+            assert pg.evaluate(AB, 'amitri25') == 1, 'ICD F50.0 phải chặn TCA'
+            assert pg.evaluate(AB, 'sert50') == 0
+            assert pg.evaluate("() => [{hc: 'bupropion', n: 'Bupropion 150 mg'}, {hc: 'moclobemid', n: 'Moclobemid 150 mg'}].map(d => drugBlockReasons(curP(), curV(), d).filter(r => /^chán ăn tâm thần/.test(r)).length)") == [1, 1], 'phải chặn bupropion và IMAO'
+            pg.evaluate("(s) => { curV().dx = JSON.parse(s); }", an0)
+            # danh mục: ICD và cận lâm sàng rối loạn ăn uống
+            assert pg.evaluate("() => ['F50.3','F50.5','F50.8','F50.9','F98.2','F98.3'].every(c => ICD.some(x => x[0] === c))")
+            assert pg.evaluate("() => ['mg','phos','cl','ca','hco3','amylase','ft3','e2','testo','sa_tim','eeg','dexa','edeq'].every(k => LABS.some(x => x[1] === k))")
             # rối loạn / lo ngại tình dục (ô hồ sơ hoặc ghi chữ) -> chặn paroxetin
             XB = "(id) => drugBlockReasons(curP(), curV(), drugById(id)).filter(r => /paroxetin gây rối loạn chức năng tình dục/.test(r)).length"
             sx0 = pg.evaluate("() => JSON.stringify({conds: curP().conds, note: curP().condNote})")
@@ -413,6 +427,8 @@ def main():
             for k in dep: pg.check(f'input[data-v="{k}"]')
             pg.fill('input[data-b="v.mental.weeks"]', '3'); pg.wait_for_timeout(200)
             assert '2/3 chính' in pg.inner_text('[data-live="mentalSum"]')
+            pg.check('input[data-v="scoff_s"]'); pg.check('input[data-v="scoff_f1"]'); pg.wait_for_timeout(200)
+            assert 'SCOFF = 2/5: nghi rối loạn ăn uống' in pg.inner_text('[data-live="mentalSum"]')
             pg.fill('textarea[data-b="v.mental.premorbid"]', 'Hướng nội, cầu toàn'); pg.wait_for_timeout(200)
             assert pg.evaluate("curV().mental.premorbid") == 'Hướng nội, cầu toàn', 'ô nhân cách tiền bệnh lý phải lưu vào lần khám'
             pg.fill('textarea[data-b="v.mental.trauma"]', 'Mất người thân 2024'); pg.wait_for_timeout(200)

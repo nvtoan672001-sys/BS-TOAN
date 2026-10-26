@@ -31,7 +31,7 @@ const CONDS = [
   {k:'parkinson', t:'Bệnh Parkinson'},
   {k:'sexual_dysf', t:'Rối loạn / lo ngại chức năng tình dục'},
 ];
-const COND_EXTRA = {elderly:'Người cao tuổi (≥ 65)', alcohol:'Có uống rượu bia', alcohol_heavy:'Uống rượu nhiều', obese:'Thừa cân / béo phì', sedentary:'Ít vận động', child:'Dưới 18 tuổi', 'tag:anticoag':'Đang dùng thuốc chống đông'};
+const COND_EXTRA = {elderly:'Người cao tuổi (≥ 65)', alcohol:'Có uống rượu bia', alcohol_heavy:'Uống rượu nhiều', obese:'Thừa cân / béo phì', sedentary:'Ít vận động', child:'Dưới 18 tuổi', anorexia:'Chán ăn tâm thần (F50.0 / F50.1)', bulimia:'Ăn vô độ tâm thần (F50.2 / F50.3)', 'tag:anticoag':'Đang dùng thuốc chống đông'};
 
 const ALLERGY = [
   {k:'penicillin', t:'Penicillin / Amoxicilin', hit:{penicillin:3, cephalosporin:1}},
@@ -826,10 +826,16 @@ const ICD = [
   ['F52.6','Đau khi giao hợp không thực tổn',['sexual_dysf']],
   ['F52.7','Xu hướng tình dục quá mức',['sexual_dysf']],
   // Rối loạn ăn uống (LEC9, BYT Bài 26)
-  ['F50.0','Chán ăn tâm thần',[]],
-  ['F50.1','Chán ăn tâm thần không điển hình',[]],
-  ['F50.2','Ăn vô độ tâm thần (bulimia)',[]],
+  ['F50.0','Chán ăn tâm thần',['anorexia']],
+  ['F50.1','Chán ăn tâm thần không điển hình',['anorexia']],
+  ['F50.2','Ăn vô độ tâm thần (bulimia)',['bulimia']],
+  ['F50.3','Ăn vô độ tâm thần không điển hình',['bulimia']],
   ['F50.4','Ăn quá nhiều kết hợp với rối loạn tâm lý khác',[]],
+  ['F50.5','Nôn kết hợp với rối loạn tâm lý khác',[]],
+  ['F50.8','Rối loạn ăn uống khác (gồm rối loạn ăn uống vô độ – BED)',[]],
+  ['F50.9','Rối loạn ăn uống không đặc hiệu',[]],
+  ['F98.2','Rối loạn ăn uống ở trẻ nhỏ và trẻ em',[]],
+  ['F98.3','Ăn bậy (pica) ở trẻ nhỏ và trẻ em',[]],
   // Rối loạn hành vi (LEC11)
   ['F60.2','Rối loạn nhân cách chống đối xã hội',[]],
   ['F91','Rối loạn hành vi (rối loạn cư xử)',[]],
@@ -858,8 +864,14 @@ const LABS = [
   ['Máu','ure','Ure','mmol/L','2,5–7,5','n'],
   ['Máu','k','Kali','mmol/L','3,5–5,0','n'],
   ['Máu','na','Natri','mmol/L','135–145','n'],
+  ['Máu','cl','Clo','mmol/L','98–107','n'],
+  ['Máu','ca','Canxi toàn phần','mmol/L','2,15–2,55','n'],
+  ['Máu','mg','Magie','mmol/L','0,7–1,0','n'],
+  ['Máu','phos','Phospho','mmol/L','0,8–1,5','n'],
+  ['Máu','hco3','Bicarbonat (HCO₃⁻)','mmol/L','22–29','n'],
   ['Máu','ast','AST (GOT)','U/L','< 40','n'],
   ['Máu','alt','ALT (GPT)','U/L','< 40','n'],
+  ['Máu','amylase','Amylase máu','U/L','< 100 (tuỳ phòng xét nghiệm)','n'],
   ['Máu','chol','Cholesterol toàn phần','mmol/L','< 5,2','n'],
   ['Máu','tg','Triglycerid','mmol/L','< 1,7','n'],
   ['Máu','ldl','LDL-C','mmol/L','Mục tiêu tuỳ nguy cơ','n'],
@@ -871,6 +883,9 @@ const LABS = [
   ['Máu','tsh','TSH','mIU/L','0,4–4,0','n'],
   ['Máu','ft4','FT4','pmol/L','12–22 (tuỳ phòng xét nghiệm)','n'],
   ['Máu','bhcg','β-hCG máu','mIU/mL','< 5: không mang thai','n'],
+  ['Máu','ft3','FT3','pmol/L','3,1–6,8 (tuỳ phòng xét nghiệm)','n'],
+  ['Máu','e2','Estradiol','pmol/L','Tuỳ pha chu kỳ / tuổi','n'],
+  ['Máu','testo','Testosteron','nmol/L','Nam 8,6–29 (tuỳ phòng xét nghiệm)','n'],
   ['Nước tiểu','tptnt','Tổng phân tích nước tiểu','','','t'],
   ['Nước tiểu','acr','Albumin/creatinin niệu (ACR)','mg/mmol','< 3','n'],
   ['H. pylori','hp_ubt','Test thở H. pylori (UBT)','','Âm tính','t'],
@@ -878,6 +893,9 @@ const LABS = [
   ['Hình ảnh','sa_bung','Siêu âm ổ bụng','','','t'],
   ['Hình ảnh','xq_nguc','X-quang ngực','','','t'],
   ['Hình ảnh','ecg','Điện tim (ECG)','','','t'],
+  ['Hình ảnh','sa_tim','Siêu âm tim','','','t'],
+  ['Hình ảnh','eeg','Điện não đồ (EEG)','','','t'],
+  ['Hình ảnh','dexa','Đo mật độ xương (DXA)','','T-score ≥ −1 bình thường; −1 đến −2,5 thiếu xương; ≤ −2,5 loãng xương (người trẻ dùng Z-score)','t'],
   ['Nội soi','ns_dd','Nội soi dạ dày – tá tràng','','','t'],
   ['Nội soi','ns_dt','Nội soi đại tràng','','','t'],
   ['Trắc nghiệm tâm lý','bdi','Trầm cảm Beck (BDI-II)','điểm','0–13 tối thiểu; 14–19 nhẹ; 20–28 vừa; ≥ 29 nặng','n'],
@@ -899,6 +917,7 @@ const LABS = [
   ['Trắc nghiệm tâm lý','mmpi','MMPI (nhân cách đa diện)','','Ghi thang điểm nổi trội (T ≥ 65)','t'],
   ['Trắc nghiệm tâm lý','hamd','Trầm cảm Hamilton (HAM-D 17)','điểm','0–7 bình thường; 8–16 nhẹ; 17–23 vừa; ≥ 24 nặng','n'],
   ['Trắc nghiệm tâm lý','hama','Lo âu Hamilton (HAM-A)','điểm','< 18 nhẹ; 18–24 nhẹ–vừa; 25–30 vừa–nặng; > 30 nặng','n'],
+  ['Trắc nghiệm tâm lý','edeq','EDE-Q 6.0 (rối loạn ăn uống) – điểm toàn thể','/6','0–6; ≥ 4 thường dùng làm ngưỡng mức lâm sàng (tham khảo)','n'],
 ];
 
 // Khám tâm thần (bước 1): bảng kiểm triệu chứng theo "Hướng dẫn chẩn đoán và điều trị một số rối loạn tâm thần
@@ -953,6 +972,12 @@ const MENTAL_SX = [
     ['anx_motor','Căng thẳng vận động: bồn chồn, đứng ngồi không yên, đau căng đầu, run, không thư giãn được'],
     ['anx_auto','Triệu chứng thần kinh tự trị: vã mồ hôi, mạch nhanh, thở gấp, khô miệng, đánh trống ngực, sôi bụng, chóng mặt…'],
     ['anx_primary','Lo âu – sợ hãi là biểu hiện chính, nguyên phát']]},
+  {g:'scoff', t:'Rối loạn ăn uống – thang SCOFF (mỗi câu "có" = 1 điểm; ≥ 2: nghi rối loạn ăn uống)', src:'LEC9; Morgan 1999', items:[
+    ['scoff_s','Tự gây nôn vì thấy no khó chịu'],
+    ['scoff_c','Lo mất kiểm soát lượng mình ăn'],
+    ['scoff_o','Sụt > 6 kg trong 3 tháng gần đây'],
+    ['scoff_f1','Tin mình béo dù người khác nói mình quá gầy'],
+    ['scoff_f2','Thức ăn chi phối cuộc sống']]},
 ];
 // Mức ảnh hưởng chức năng (hưng cảm – tiêu chuẩn C, Bài 18)
 const MENTAL_IMPAIR = [['none','Không suy giảm rõ rệt'],['marked','Suy giảm rõ rệt hoạt động nghề nghiệp, xã hội, quan hệ'],['hosp','Cần nhập viện để ngăn thiệt hại cho bản thân / người khác']];

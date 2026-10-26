@@ -281,7 +281,7 @@ function resolveMed(m){
   return {name: m.text + (m.dose ? ' – ' + m.dose : ''), short: m.text, tags: expandTags(tags), drug: hit || null, cls: hit ? hit.cls : null};
 }
 
-const DX_KEYWORDS = [['viem da day','peptic'],['loet da day','peptic'],['loet ta trang','peptic'],['xuat huyet tieu hoa','gi_bleed'],['tang huyet ap','htn'],['dai thao duong','diabetes'],['suy than','ckd'],['benh than man','ckd'],['suy tim','heart_failure'],['gut','gout'],['thoai hoa khop','oa'],['luong cuc','bipolar'],['sa sut tri tue','dementia'],['alzheimer','dementia'],['parkinson','parkinson'],['nghien ruou','alcohol_heavy'],['lo au','depression'],['xo gan','liver'],['benh gan man','liver'],['suy gan','liver'],['dong kinh','epilepsy']];
+const DX_KEYWORDS = [['viem da day','peptic'],['loet da day','peptic'],['loet ta trang','peptic'],['xuat huyet tieu hoa','gi_bleed'],['tang huyet ap','htn'],['dai thao duong','diabetes'],['suy than','ckd'],['benh than man','ckd'],['suy tim','heart_failure'],['gut','gout'],['thoai hoa khop','oa'],['luong cuc','bipolar'],['sa sut tri tue','dementia'],['alzheimer','dementia'],['parkinson','parkinson'],['nghien ruou','alcohol_heavy'],['lo au','depression'],['xo gan','liver'],['benh gan man','liver'],['suy gan','liver'],['dong kinh','epilepsy'],['chan an tam than','anorexia'],['an vo do tam than','bulimia']];
 function ctxOf(p, v){
   const a = ageOf(p, v ? v.date : null);
   const conds = new Set(p.conds || []);
@@ -450,6 +450,8 @@ function smokeObeseReasons(p, v){
   else if(/\be66\b|beo phi/.test(dxT)) out.push('béo phì (ghi trong chẩn đoán / tiền sử)');
   return out;
 }
+// IMAO chống trầm cảm (không tính selegilin / rasagilin – ức chế MAO-B điều trị Parkinson)
+const isMaoi = d => !!d && (/imao|maoi/.test(norm(d.cls || '')) || ['moclobemid', 'phenelzin', 'tranylcypromin', 'isocarboxazid'].some(k => norm(d.hc || '').includes(k)));
 const isTca = d => !!d && (/3 vong|ba vong|tca/.test(norm(d.cls || '')) || ['amitriptylin', 'clomipramin', 'imipramin', 'nortriptylin', 'doxepin'].some(k => norm(d.hc || '').includes(k)));
 const TCA_EPI_MAX = 150;   // mg/ngày — ngưỡng "liều cao" của TCA ở bệnh nhân động kinh (bác sĩ có thể đổi)
 // Liều mg/ngày của một dòng đơn: (sáng + trưa + chiều + tối) × hàm lượng ghi trong tên thuốc ("… 25 mg")
@@ -463,6 +465,14 @@ function drugBlockReasons(p, v, d, ctx, line){
   // Bệnh gan mạn / xơ gan → không kê agomelatin, duloxetin, valproat, nefazodon (bác sĩ đặt 2026-10-25; độc gan)
   if(C.has('liver')){ const k = ['agomelatin', 'duloxetin', 'valpro', 'nefazodon'].find(x => H.includes(x)); if(k) out.push('bệnh nền bệnh gan mạn / xơ gan (thuốc có độc tính gan hoặc chống chỉ định khi bệnh gan)'); }
   // Động kinh → không kê bupropion, clomipramin; thuốc chống trầm cảm 3 vòng liều cao (> TCA_EPI_MAX mg/ngày) (bác sĩ đặt 2026-10-25; hạ ngưỡng co giật)
+  // Chán ăn tâm thần (ICD F50.0 / F50.1) → không kê TCA, IMAO, bupropion (bác sĩ đặt 2026-10-26; LEC9: TCA độc tính tim ở người suy dinh dưỡng, bupropion chống chỉ định vì tăng co giật)
+  if(C.has('anorexia')){
+    if(isTca(d)) out.push('chán ăn tâm thần (thuốc chống trầm cảm 3 vòng: độc tính trên tim ở người suy dinh dưỡng)');
+    else if(H.includes('bupropion')) out.push('chán ăn tâm thần (bupropion chống chỉ định ở rối loạn ăn uống: tăng nguy cơ co giật)');
+    else if(isMaoi(d)) out.push('chán ăn tâm thần (thuốc ức chế MAO – IMAO)');
+  }
+  // Ăn vô độ tâm thần (ICD F50.2 / F50.3) → không kê bupropion (bác sĩ đặt 2026-10-26; LEC9: chống chỉ định ở rối loạn ăn uống vì tăng co giật)
+  if(C.has('bulimia') && H.includes('bupropion')) out.push('ăn vô độ tâm thần (bupropion chống chỉ định ở rối loạn ăn uống: tăng nguy cơ co giật)');
   // Tích ô "Động kinh" ở hồ sơ nền → không kê SSRI (bác sĩ đặt 2026-10-25; chỉ theo ô tích, không theo ICD / chữ)
   if((p.conds || []).includes('epilepsy') && d && (d.cls === 'SSRI' || expandTags(d.tags).has('ssri'))) out.push('hồ sơ nền tích ô động kinh (SSRI có thể hạ ngưỡng co giật)');
   if(C.has('epilepsy')){

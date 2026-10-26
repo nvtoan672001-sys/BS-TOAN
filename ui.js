@@ -381,6 +381,8 @@ function mentalCard(p, v){
 function mentalSumHTML(){
   const v = curV(), c = psyCounts(v);
   const out = [chip(`Trầm cảm: ${c.core}/3 chính · ${c.common}/7 phổ biến · ${c.som}/8 cơ thể`, c.core >= 2 ? 'r2' : ''), chip(`Hưng cảm: A ${c.manA ? 'có' : 'không'} · B ${c.manB}/9`, c.manA && c.manB >= 3 ? 'r2' : '')];
+  const sc = [...c.sx].filter(k => k.startsWith('scoff_')).length;
+  if(sc) out.push(chip(`SCOFF = ${sc}/5${sc >= 2 ? ': nghi rối loạn ăn uống — đánh giá thêm (EDE-Q 6.0, BMI, điện giải, ECG)' : ''}`, sc >= 2 ? 'r2' : ''));
   if(c.sx.has('dep_suicide')) out.push(`<div class="w l3" style="margin-top:6px"><div class="wt">Có ý tưởng / hành vi tự sát</div><div>Đánh giá nguy cơ tự sát ngay trong buổi khám (C-SSRS); cân nhắc nhập viện hoặc chuyển chuyên khoa tâm thần.</div></div>`);
   return out.join(' ');
 }
