@@ -643,7 +643,7 @@ function nextAppt(p){ const t = todayISO(); return apptList().filter(a => a.p ==
 // ================= GỢI Ý CHẨN ĐOÁN TÂM THẦN =================
 // Theo BYT 2020 (QĐ 2058/QĐ-BYT), Bài 18–23. Chỉ là gợi ý: liệt kê tiêu chuẩn đã thỏa / còn thiếu, bác sĩ quyết định.
 const icdName = c => (ICD.find(x => x[0] === c) || [c, c])[1];
-function hasMental(v){ const m = v && v.mental; return !!(m && ((m.sx || []).length || (m.hist || []).length || m.weeks != null || m.text)); }
+function hasMental(v){ const m = v && v.mental; return !!(m && ((m.sx || []).length || (m.hist || []).length || m.weeks != null || m.text || m.premorbid || m.trauma)); }
 function orderNum(v, key){ const o = (v.orders || []).find(x => x.key === key); return o ? num(o.value) : null; }
 function psyCounts(v){
   const sx = new Set(((v.mental || {}).sx) || []), n = g => MENTAL_SX.find(x => x.g === g).items.filter(([k]) => sx.has(k)).length;

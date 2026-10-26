@@ -409,6 +409,10 @@ def main():
             for k in dep: pg.check(f'input[data-v="{k}"]')
             pg.fill('input[data-b="v.mental.weeks"]', '3'); pg.wait_for_timeout(200)
             assert '2/3 chính' in pg.inner_text('[data-live="mentalSum"]')
+            pg.fill('textarea[data-b="v.mental.premorbid"]', 'Hướng nội, cầu toàn'); pg.wait_for_timeout(200)
+            assert pg.evaluate("curV().mental.premorbid") == 'Hướng nội, cầu toàn', 'ô nhân cách tiền bệnh lý phải lưu vào lần khám'
+            pg.fill('textarea[data-b="v.mental.trauma"]', 'Mất người thân 2024'); pg.wait_for_timeout(200)
+            assert pg.evaluate("curV().mental.trauma") == 'Mất người thân 2024', 'ô tiền sử sang chấn phải lưu vào lần khám'
             pg.evaluate("go({name: 'visit', pid: 'p_demoA', vid: 'v_demo_now', step: 3})"); pg.wait_for_timeout(300)
             assert 'F32.1' in pg.inner_text('[data-live="dxsug"]')
             pg.click('[data-act="dxPick"][data-code="F32.1"]'); pg.wait_for_timeout(300)

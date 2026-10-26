@@ -374,6 +374,7 @@ function mentalCard(p, v){
     <div class="g3 mgrp">${F('Thời gian kéo dài giai đoạn hiện tại', U('v.mental.weeks', m.weeks, 'tuần'))}<div class="field spanall"><label>Mức ảnh hưởng chức năng</label><div class="row">${MENTAL_IMPAIR.map(([k, l]) => RAD('v.mental.impair', m.impair, k, l)).join('')}</div></div></div>
     ${grp('Tiền sử giai đoạn khí sắc', 'Bài 19, 21', MENTAL_HIST.map(([k, l]) => CL('v.mental.hist', m.hist, k, l)).join(''))}
     ${grp('Yếu tố cần loại trừ', 'Bài 18–23', MENTAL_EXCL.map(([k, l]) => CL('v.mental.excl', m.excl, k, l)).join(''))}
+    <div class="g2 mgrp">${F('Nhân cách tiền bệnh lý', T('v.mental.premorbid', m.premorbid, {rows: 2, ph: 'Tính cách, cách ứng xử, quan hệ xã hội, đối phó căng thẳng trước khi khởi bệnh…'}))}${F('Tiền sử sang chấn', T('v.mental.trauma', m.trauma, {rows: 2, ph: 'Sự kiện sang chấn (mất mát, bạo lực, tai nạn…), thời điểm, ảnh hưởng…'}))}</div>
     <div class="mgrp">${F('Mô tả thêm (ý thức, định hướng, tư duy, tri giác, hành vi…)', T('v.mental.text', m.text, {rows: 3}))}</div></div>`;
 }
 function mentalSumHTML(){
