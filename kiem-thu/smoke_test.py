@@ -362,6 +362,28 @@ def main():
             # danh mục: ICD và cận lâm sàng rối loạn ăn uống
             assert pg.evaluate("() => ['F50.3','F50.5','F50.8','F50.9','F98.2','F98.3'].every(c => ICD.some(x => x[0] === c))")
             assert pg.evaluate("() => ['mg','phos','cl','ca','hco3','amylase','ft3','e2','testo','sa_tim','eeg','dexa','edeq'].every(k => LABS.some(x => x[1] === k))")
+            # olanzapin: QT kéo dài (ô hồ sơ) / hạ huyết áp tư thế (ICD I95.1 hoặc ghi chữ) -> chặn
+            OB = "(id) => drugBlockReasons(curP(), curV(), drugById(id)).filter(r => /^olanzapin:/.test(r)).length"
+            ol0 = pg.evaluate("() => JSON.stringify({dx: curV().dx, hpi: curV().hpi, conds: curP().conds, note: curP().condNote})")
+            pg.evaluate("() => { const p = curP(), v = curV(); p.conds = p.conds.filter(k => k !== 'qt_long'); p.condNote = 'Không hạ huyết áp tư thế'; v.hpi = ''; v.dx = {...v.dx, main: 'Viêm dạ dày', secondary: '', icd: ''}; v.orders = (v.orders || []).filter(o => o.key !== 'ecg'); }")
+            assert pg.evaluate(OB, 'olan10n') == 0
+            pg.evaluate("() => { curP().conds.push('qt_long'); }")
+            assert pg.evaluate(OB, 'olan10n') == 1, 'QT kéo dài phải chặn olanzapin'
+            pg.evaluate("() => { const p = curP(); p.conds = p.conds.filter(k => k !== 'qt_long'); curV().dx = {...curV().dx, icd: 'I95.1 – Hạ huyết áp tư thế'}; }")
+            assert pg.evaluate(OB, 'olan10f') == 1 and pg.evaluate(OB, 'sert50') == 0, 'hạ huyết áp tư thế phải chặn olanzapin'
+            pg.evaluate("(s) => { const p = curP(), v = curV(), o = JSON.parse(s); v.dx = o.dx; v.hpi = o.hpi; p.conds = o.conds; p.condNote = o.note; }", ol0)
+            # fluoxetin: mất ngủ (bệnh sử / ICD), động kinh theo ICD, lo ngại tình dục -> chặn; sertralin không bị quy tắc này chặn
+            FB = "(id) => drugBlockReasons(curP(), curV(), drugById(id)).filter(r => /^fluoxetin:/.test(r)).length"
+            fl0 = pg.evaluate("() => JSON.stringify({dx: curV().dx, hpi: curV().hpi, reason: curV().reason, conds: curP().conds, note: curP().condNote, mental: curV().mental})")
+            pg.evaluate("() => { const p = curP(), v = curV(); p.conds = p.conds.filter(k => !['epilepsy','sexual_dysf'].includes(k)); p.condNote = ''; v.mental = {sx: [], hist: [], excl: []}; v.reason = ''; v.hpi = 'Ngủ tốt, không mất ngủ'; v.dx = {...v.dx, main: 'Viêm dạ dày', secondary: '', icd: ''}; }")
+            assert pg.evaluate(FB, 'fluox20n') == 0
+            pg.evaluate("() => { curV().hpi = 'Khó ngủ 2 tuần'; }")
+            assert pg.evaluate(FB, 'fluox20n') == 1 and pg.evaluate(FB, 'sert50') == 0, 'mất ngủ phải chặn fluoxetin'
+            pg.evaluate("() => { const v = curV(); v.hpi = ''; v.dx = {...v.dx, icd: 'G40.9 – Động kinh, không đặc hiệu'}; }")
+            assert pg.evaluate(FB, 'fluox20f') == 1, 'ICD động kinh phải chặn fluoxetin'
+            pg.evaluate("() => { const v = curV(); v.dx = {...v.dx, icd: ''}; curP().condNote = 'Lo ngại rối loạn cương'; }")
+            assert pg.evaluate(FB, 'fluox20n') == 1, 'lo ngại tình dục phải chặn fluoxetin'
+            pg.evaluate("(s) => { const p = curP(), v = curV(), o = JSON.parse(s); v.dx = o.dx; v.hpi = o.hpi; v.reason = o.reason; p.conds = o.conds; p.condNote = o.note; v.mental = o.mental; }", fl0)
             # rối loạn / lo ngại tình dục (ô hồ sơ hoặc ghi chữ) -> chặn paroxetin
             XB = "(id) => drugBlockReasons(curP(), curV(), drugById(id)).filter(r => /paroxetin gây rối loạn chức năng tình dục/.test(r)).length"
             sx0 = pg.evaluate("() => JSON.stringify({conds: curP().conds, note: curP().condNote})")

@@ -281,7 +281,7 @@ function resolveMed(m){
   return {name: m.text + (m.dose ? ' – ' + m.dose : ''), short: m.text, tags: expandTags(tags), drug: hit || null, cls: hit ? hit.cls : null};
 }
 
-const DX_KEYWORDS = [['viem da day','peptic'],['loet da day','peptic'],['loet ta trang','peptic'],['xuat huyet tieu hoa','gi_bleed'],['tang huyet ap','htn'],['dai thao duong','diabetes'],['suy than','ckd'],['benh than man','ckd'],['suy tim','heart_failure'],['gut','gout'],['thoai hoa khop','oa'],['luong cuc','bipolar'],['sa sut tri tue','dementia'],['alzheimer','dementia'],['parkinson','parkinson'],['nghien ruou','alcohol_heavy'],['lo au','depression'],['xo gan','liver'],['benh gan man','liver'],['suy gan','liver'],['dong kinh','epilepsy'],['chan an tam than','anorexia'],['an vo do tam than','bulimia']];
+const DX_KEYWORDS = [['viem da day','peptic'],['loet da day','peptic'],['loet ta trang','peptic'],['xuat huyet tieu hoa','gi_bleed'],['tang huyet ap','htn'],['dai thao duong','diabetes'],['suy than','ckd'],['benh than man','ckd'],['suy tim','heart_failure'],['gut','gout'],['thoai hoa khop','oa'],['luong cuc','bipolar'],['sa sut tri tue','dementia'],['alzheimer','dementia'],['parkinson','parkinson'],['nghien ruou','alcohol_heavy'],['lo au','depression'],['xo gan','liver'],['benh gan man','liver'],['suy gan','liver'],['dong kinh','epilepsy'],['chan an tam than','anorexia'],['an vo do tam than','bulimia'],['mat ngu','insomnia'],['ha huyet ap tu the','orthostatic']];
 function ctxOf(p, v){
   const a = ageOf(p, v ? v.date : null);
   const conds = new Set(p.conds || []);
@@ -440,6 +440,17 @@ function sexualConcern(p, v, ctx){
   const kw = ['roi loan tinh duc', 'roi loan chuc nang tinh duc', 'lo ngai tinh duc', 'roi loan cuong', 'xuat tinh som', 'giam ham muon', 'lanh cam', 'dau khi giao hop'];
   return kw.some(k => mentionsSymptom(t, k)) ? 'tiền sử / bệnh sử ghi rối loạn chức năng tình dục' : '';
 }
+// Fluoxetin (bác sĩ đặt 2026-10-26): buồn nôn, rối loạn tình dục, tiêu chảy, mất ngủ, tiền sử động kinh.
+// Buồn nôn / tiêu chảy đã chặn chung SSRI (ssriBlockReasons) — ở đây chỉ thêm phần rộng hơn: lo ngại tình dục (sexualConcern),
+// mất ngủ (ICD G47.0 / F51.0, chẩn đoán hoặc bệnh sử / tiền sử ghi "mất ngủ", "khó ngủ"), động kinh theo ICD / chữ (ô tích đã chặn mọi SSRI).
+function fluoxBlockReasons(p, v, ctx){
+  const C = (ctx || ctxOf(p, v)).conds, out = [];
+  const s = sexualConcern(p, v, ctx); if(s) out.push(s);
+  const t = ((v && v.hpi) || '') + ' . ' + ((v && v.reason) || '') + ' . ' + (p.condNote || '');
+  if(C.has('insomnia') || ['mat ngu', 'kho ngu'].some(k => mentionsSymptom(t, k))) out.push('mất ngủ');
+  if(C.has('epilepsy') && !(p.conds || []).includes('epilepsy')) out.push('tiền sử động kinh');
+  return out;
+}
 // Đang hút thuốc lá (hồ sơ "Đang hút" hoặc tiền sử ghi "hút thuốc"; "đã bỏ" không tính) / béo phì (BMI ≥ 25, ICD E66, "béo phì")
 function smokeObeseReasons(p, v){
   const out = [], r = p.risk || {}, note = norm((p.condNote || '') + ' . ' + (p.social || '')).replace(/\b(da|tung)\s+bo\s+(hut\s+)?thuoc(\s+la)?\b|\bbo\s+thuoc(\s+la)?\b/g, ' ');
@@ -473,6 +484,14 @@ function drugBlockReasons(p, v, d, ctx, line){
   }
   // Ăn vô độ tâm thần (ICD F50.2 / F50.3) → không kê bupropion (bác sĩ đặt 2026-10-26; LEC9: chống chỉ định ở rối loạn ăn uống vì tăng co giật)
   if(C.has('bulimia') && H.includes('bupropion')) out.push('ăn vô độ tâm thần (bupropion chống chỉ định ở rối loạn ăn uống: tăng nguy cơ co giật)');
+  // Olanzapin (bác sĩ đặt 2026-10-26): QT kéo dài (ô hồ sơ hoặc điện tim mô tả QTc dài) / hạ huyết áp tư thế (I95.1, chẩn đoán hoặc tiền sử / bệnh sử ghi)
+  if(H.includes('olanzapin')){
+    const r = [];
+    if(C.has('qt_long')) r.push('QT kéo dài');
+    if(C.has('orthostatic') || mentionsSymptom((p.condNote || '') + ' . ' + ((v && v.hpi) || '') + ' . ' + ((v && v.reason) || ''), 'ha huyet ap tu the')) r.push('hạ huyết áp tư thế');
+    if(r.length) out.push('olanzapin: ' + r.join('; ') + ' (olanzapin có thể kéo dài QT, gây hạ huyết áp tư thế)');
+  }
+  if(H.includes('fluoxetin')){ const r = fluoxBlockReasons(p, v, ctx); if(r.length) out.push('fluoxetin: ' + r.join('; ') + ' (fluoxetin gây kích hoạt, mất ngủ, buồn nôn, rối loạn tình dục; hạ ngưỡng co giật)'); }
   // Tích ô "Động kinh" ở hồ sơ nền → không kê SSRI (bác sĩ đặt 2026-10-25; chỉ theo ô tích, không theo ICD / chữ)
   if((p.conds || []).includes('epilepsy') && d && (d.cls === 'SSRI' || expandTags(d.tags).has('ssri'))) out.push('hồ sơ nền tích ô động kinh (SSRI có thể hạ ngưỡng co giật)');
   if(C.has('epilepsy')){

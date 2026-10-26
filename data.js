@@ -31,7 +31,7 @@ const CONDS = [
   {k:'parkinson', t:'Bệnh Parkinson'},
   {k:'sexual_dysf', t:'Rối loạn / lo ngại chức năng tình dục'},
 ];
-const COND_EXTRA = {elderly:'Người cao tuổi (≥ 65)', alcohol:'Có uống rượu bia', alcohol_heavy:'Uống rượu nhiều', obese:'Thừa cân / béo phì', sedentary:'Ít vận động', child:'Dưới 18 tuổi', anorexia:'Chán ăn tâm thần (F50.0 / F50.1)', bulimia:'Ăn vô độ tâm thần (F50.2 / F50.3)', 'tag:anticoag':'Đang dùng thuốc chống đông'};
+const COND_EXTRA = {elderly:'Người cao tuổi (≥ 65)', alcohol:'Có uống rượu bia', alcohol_heavy:'Uống rượu nhiều', obese:'Thừa cân / béo phì', sedentary:'Ít vận động', child:'Dưới 18 tuổi', anorexia:'Chán ăn tâm thần (F50.0 / F50.1)', bulimia:'Ăn vô độ tâm thần (F50.2 / F50.3)', insomnia:'Mất ngủ (G47.0 / F51.0)', orthostatic:'Hạ huyết áp tư thế (I95.1)', 'tag:anticoag':'Đang dùng thuốc chống đông'};
 
 const ALLERGY = [
   {k:'penicillin', t:'Penicillin / Amoxicilin', hit:{penicillin:3, cephalosporin:1}},
@@ -728,6 +728,7 @@ const ICD = [
   ['K74.6','Xơ gan, khác và không đặc hiệu',['liver']],
   ['G40.9','Động kinh, không đặc hiệu',['epilepsy']],
   ['I10','Tăng huyết áp vô căn',['htn']],
+  ['I95.1','Hạ huyết áp tư thế',['orthostatic']],
   ['I48','Rung nhĩ',['af']],
   ['I50.9','Suy tim',['heart_failure']],
   ['E11.9','Đái tháo đường type 2',['diabetes']],
@@ -769,7 +770,7 @@ const ICD = [
   ['F41.2','Rối loạn hỗn hợp lo âu và trầm cảm',['depression']],
   ['F34','Rối loạn khí sắc dai dẳng (khí sắc chu kỳ, loạn khí sắc)',['depression']],
   ['F38','Rối loạn khí sắc khác',[]],
-  ['G47.0','Mất ngủ',[]],
+  ['G47.0','Mất ngủ',['insomnia']],
   // ---- Tâm thần bổ sung (ICD-10; mã có trong BYT 2020 / bài giảng LEC1–11 ở Desktop\Tâm thần, còn lại theo bài học tương ứng)
   // Rối loạn nhận thức (BYT Bài 1–5, LEC1)
   ['F00','Sa sút trí tuệ trong bệnh Alzheimer',['dementia']],
@@ -809,7 +810,7 @@ const ICD = [
   ['F45.2','Rối loạn nghi bệnh',[]],
   ['F45.4','Rối loạn đau dạng cơ thể dai dẳng',[]],
   // Rối loạn giấc ngủ không thực tổn (LEC2, BYT Bài 27)
-  ['F51.0','Mất ngủ không thực tổn',[]],
+  ['F51.0','Mất ngủ không thực tổn',['insomnia']],
   ['F51.1','Ngủ nhiều không thực tổn',[]],
   ['F51.2','Rối loạn nhịp thức – ngủ không thực tổn',[]],
   ['F51.3','Miên hành (đi trong lúc ngủ)',[]],
