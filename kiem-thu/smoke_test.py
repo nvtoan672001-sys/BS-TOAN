@@ -81,6 +81,10 @@ def main():
             pf = [f for f in pg.evaluate(LIST) if '/benh-nhan/tran-thi-binh' in f]
             assert len(pf) == 1 and 'tran-thi-binh-an_' in pf[0], pf
             assert json.loads(pg.evaluate(READ, pf[0]))['phone'] == '0988 000 111'
+            # 3b. Nhân trắc: ô InBody (body fat %, lean mass kg) lưu vào hồ sơ
+            pg.evaluate("go({name: 'patient', pid: 'p_test1', tab: 'profile'})"); pg.wait_for_timeout(300)
+            pg.fill('input[data-b="p.bodyFat"]', '28.5'); pg.fill('input[data-b="p.leanMass"]', '52'); pg.wait_for_timeout(200)
+            assert pg.evaluate("[curP().bodyFat, curP().leanMass]") == [28.5, 52], 'ô InBody phải lưu số vào hồ sơ'
 
             # 4. Đính kèm file -> nằm trong tep-dinh-kem và đọc lại được
             pg.evaluate("go({name: 'visit', pid: 'p_test1', vid: 'v_demo_now', step: 2})"); pg.wait_for_timeout(300)

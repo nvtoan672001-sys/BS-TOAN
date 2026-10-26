@@ -280,6 +280,7 @@ function tabProfile(p){
   <div class="card"><div class="ch"><h3>Nhân trắc & vận động</h3><div data-live="bmiP"></div></div><div class="g4">
     ${F('Chiều cao', U('p.height', p.height, 'cm'))}${F('Cân nặng', U('p.weight', p.weight, 'kg'))}${F('Vòng eo', U('p.waist', p.waist, 'cm'))}${F('Vận động mức vừa', U('p.exerciseMin', p.exerciseMin, 'phút/tuần'))}
     ${F('Mức hoạt động hằng ngày', SEL('p.activity', p.activity || 'sedentary', Object.entries(ACT_LV).map(([k, x]) => [k, x.t])), 'span2')}
+    ${F('Body fat (InBody)', U('p.bodyFat', p.bodyFat, '%'))}${F('Lean mass (InBody)', U('p.leanMass', p.leanMass, 'kg'))}
   </div></div>
   <div class="card"><h3>Bệnh nền, tiền sử</h3><div class="checks">${CONDS.filter(c => p.sex !== 'Nam' || !['pregnant','breastfeeding'].includes(c.k)).map(c => CL('p.conds', p.conds, c.k, c.t)).join('')}</div>
     <div style="margin-top:10px">${F('Tiền sử bệnh, phẫu thuật, nhập viện', T('p.condNote', p.condNote, {rows: 2}))}</div></div>
