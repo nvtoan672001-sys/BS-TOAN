@@ -503,6 +503,12 @@ function drugBlockReasons(p, v, d, ctx, line){
     const kw = ['khong dung nap galactose', 'thieu lactase lapp', 'thieu lactase', 'kem hap thu glucose galactose'];
     if(kw.some(k => mentionsSymptom(p.condNote || '', k))) out.push('tiền sử ghi không dung nạp galactose / thiếu lactase Lapp / kém hấp thu glucose – galactose (viên pregabalin chứa lactose)');
   }
+  // Propranolol (bác sĩ đặt 2026-10-27): bệnh nền hen / COPD, rung nhĩ / rối loạn nhịp, suy tim; tiền sử ghi bệnh mạch ngoại biên nặng → không kê
+  if(H.includes('propranolol')){
+    const r = [['asthma', 'hen / COPD (co thắt phế quản)'], ['af', 'rối loạn nhịp'], ['heart_failure', 'suy tim']].filter(([k]) => C.has(k)).map(([, t]) => t);
+    if(['benh mach ngoai bien nang', 'benh dong mach ngoai bien nang', 'benh mach mau ngoai bien nang'].some(k => mentionsSymptom(p.condNote || '', k))) r.push('bệnh mạch ngoại biên nặng');
+    if(r.length) out.push('propranolol: bệnh nền ' + r.join('; '));
+  }
   // Tích ô "Động kinh" ở hồ sơ nền → không kê SSRI (bác sĩ đặt 2026-10-25; chỉ theo ô tích, không theo ICD / chữ)
   if((p.conds || []).includes('epilepsy') && d && (d.cls === 'SSRI' || expandTags(d.tags).has('ssri'))) out.push('hồ sơ nền tích ô động kinh (SSRI có thể hạ ngưỡng co giật)');
   if(C.has('epilepsy')){

@@ -909,7 +909,7 @@ const SEED_ADDED = ['gavis10',
   'sert50f','escit10n','fluox20n','fluox20f','parox20n','parox20f','venla75n','venla75f','dulox30n','dulox30f','mirta30n','mirta30f','tiane12','sulpi50',
   'broma6','loraz1','alpra05n','alpra05f','clona2','etifo50','zopi7n','zopi7f','olan10n','olan10f','quet100n','quet100f','risp2n','risp2f','arip10n','arip10f','amis200',
   'valp500n','valp500f','carba200n','carba200f','oxca300','lamo50n','lamo50f','gaba300n','gaba300f','done5n','done5f','riva3','gala8',
-  'agome25', 'fluvo100', 'pregab75'];
+  'agome25', 'fluvo100', 'pregab75', 'propra40', 'piracetam', 'ginkgo', 'vinpocetin', 'cholalf', 'nicergolin', 'silymarin'];
 async function addNewSeedDrugs(){
   const done = S.settings.seedAdded || [], todo = SEED_ADDED.filter(id => !done.includes(id));
   if(!todo.length) return;

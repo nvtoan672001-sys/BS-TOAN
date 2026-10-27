@@ -420,6 +420,18 @@ def main():
                 assert pg.evaluate(GB) == 1, note
             assert pg.evaluate("() => drugBlockReasons(curP(), curV(), drugById('gaba300n')).filter(r => /galactose/.test(r)).length") == 0
             pg.evaluate("(s) => { curP().condNote = s; }", gl0)
+            # propranolol: hen/COPD, rối loạn nhịp, suy tim (ô bệnh nền), bệnh mạch ngoại biên nặng (tiền sử) -> chặn
+            PRB = "() => drugBlockReasons(curP(), curV(), drugById('propra40')).filter(r => /^propranolol:/.test(r)).length"
+            pr0 = pg.evaluate("() => JSON.stringify({conds: curP().conds, note: curP().condNote, dx: curV().dx})")
+            pg.evaluate("() => { const p = curP(); p.conds = p.conds.filter(k => !['asthma','af','heart_failure'].includes(k)); p.condNote = ''; curV().dx = {...curV().dx, main: 'Lo âu', secondary: '', icd: ''}; }")
+            assert pg.evaluate(PRB) == 0
+            for k in ['asthma', 'af', 'heart_failure']:
+                pg.evaluate("(k) => { const p = curP(); p.conds = p.conds.filter(x => !['asthma','af','heart_failure'].includes(x)).concat([k]); }", k)
+                assert pg.evaluate(PRB) == 1, k
+            pg.evaluate("() => { const p = curP(); p.conds = p.conds.filter(x => !['asthma','af','heart_failure'].includes(x)); p.condNote = 'Bệnh mạch ngoại biên nặng, đau cách hồi'; }")
+            assert pg.evaluate(PRB) == 1, 'bệnh mạch ngoại biên nặng phải chặn propranolol'
+            pg.evaluate("(s) => { const p = curP(), o = JSON.parse(s); p.conds = o.conds; p.condNote = o.note; curV().dx = o.dx; }", pr0)
+            assert pg.evaluate("() => ['piracetam','ginkgo','vinpocetin','cholalf','nicergolin','silymarin'].every(id => { const d = drugById(id); return d && !/mg/.test(d.n); })"), 'thiếu thuốc hỗ trợ thần kinh / silymarin'
             # mang thai (ô hồ sơ / tiền sử ghi) -> chặn toàn bộ nhóm thần kinh – tâm thần; thuốc nhóm khác không bị chặn
             PB = "(id) => drugBlockReasons(curP(), curV(), drugById(id)).filter(r => /^đang mang thai/.test(r)).length"
             pg0 = pg.evaluate("() => JSON.stringify({conds: curP().conds, note: curP().condNote, hpi: curV().hpi, reason: curV().reason, orders: curV().orders})")
