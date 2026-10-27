@@ -386,14 +386,17 @@ def main():
             # mẫu lời dặn "Tâm bệnh" có trong thư viện, gợi ý khi đơn có SSRI
             assert pg.evaluate("() => { const t = S.tpls.find(x => x.id === 'adv_psych'); return !!t && t.cat === 'advice' && t.title === 'Tâm bệnh' && tplMatches(t, ctxOf(curP(), curV()), new Set(['ssri'])); }"), 'thiếu mẫu lời dặn Tâm bệnh'
             # tiền sử ghi "đang sử dụng rượu" -> chặn benzodiazepin; "không ..." hoặc "đã bỏ rượu" không chặn; zopiclon không bị quy tắc này chặn
-            RB = "(id) => drugBlockReasons(curP(), curV(), drugById(id)).filter(r => /đang sử dụng rượu/.test(r)).length"
-            rb0 = pg.evaluate("() => curP().condNote")
+            RB = "(id) => drugBlockReasons(curP(), curV(), drugById(id)).filter(r => /đang sử dụng rượu|uống rượu bia thường xuyên/.test(r)).length"
+            rb0 = pg.evaluate("() => curP().condNote"); al0 = pg.evaluate("() => (curP().risk || {}).alcohol || 'no'")
+            pg.evaluate("() => { curP().risk = {...(curP().risk || {}), alcohol: 'some'}; }")
             pg.evaluate("() => { curP().condNote = 'Đã bỏ rượu 2 năm; không đang sử dụng rượu'; }")
             assert pg.evaluate(RB, 'diaz5') == 0
             pg.evaluate("() => { curP().condNote = 'THA 5 năm. Đang sử dụng rượu 3 cốc/ngày'; }")
             assert [pg.evaluate(RB, x) for x in ['diaz5', 'loraz1', 'alpra05n', 'clona2', 'broma6']] == [1, 1, 1, 1, 1], 'đang sử dụng rượu phải chặn benzodiazepin'
             assert pg.evaluate(RB, 'zopi7n') == 0
-            pg.evaluate("(s) => { curP().condNote = s; }", rb0)
+            pg.evaluate("() => { curP().condNote = ''; curP().risk.alcohol = 'heavy'; }")
+            assert pg.evaluate(RB, 'diaz5') == 1, 'uống rượu bia thường xuyên, nhiều phải chặn benzodiazepin'
+            pg.evaluate("([s, a]) => { curP().condNote = s; curP().risk.alcohol = a; }", [rb0, al0])
             # mang thai (ô hồ sơ / tiền sử ghi) -> chặn toàn bộ nhóm thần kinh – tâm thần; thuốc nhóm khác không bị chặn
             PB = "(id) => drugBlockReasons(curP(), curV(), drugById(id)).filter(r => /^đang mang thai/.test(r)).length"
             pg0 = pg.evaluate("() => JSON.stringify({conds: curP().conds, note: curP().condNote, hpi: curV().hpi, reason: curV().reason, orders: curV().orders})")
