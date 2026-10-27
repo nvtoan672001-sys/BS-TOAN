@@ -85,7 +85,7 @@ const LIVE = {
   scale: el => { const o = curV().orders.find(x => x.id === el.dataset.id); if(!o) return ''; const r = scaleResult(o.key, o.value); return r ? chip(r.t, ['ok', 'r1', 'r2', 'r3'][r.lv]) : '<span class="small muted">Nhập tổng điểm để có kết luận.</span>'; },
   egfr: el => { const p = curP(), v = curV(), o = v.orders.find(x => x.id === el.dataset.id); if(!o) return '';
     if(!num(o.value)) return '<span class="small muted">Nhập kết quả creatinin để tính.</span>';
-    const e = egfrFromOrder(p, v, o); if(e == null) return '<span class="small muted">Cần ngày sinh / năm sinh và giới của bệnh nhân để tính.</span>';
+    const e = egfrFromOrder(p, v, o); if(e == null) return '<span class="small muted">Cần ngày sinh / tuổi và giới của bệnh nhân để tính.</span>';
     const w = num(v.vitals && v.vitals.weight) || num(p.weight); const cc = w ? crclCG(num(o.value), ageOf(p, v.date), w, p.sex) : null;
     return `<span class="chip ${e < 30 ? 'r3' : e < 60 ? 'r2' : 'ok'}"><b>${fmtN(e)}</b> mL/phút/1,73m² · ${ckdStage(e)} – ${EGFR_LABEL[ckdStage(e)]}</span>${cc ? ` <span class="small muted">· CrCl (Cockcroft-Gault) ≈ ${fmtN(cc)} mL/phút</span>` : ''}`; },
   bmiV: () => { const v = curV(), p = curP(); const b = bmiOf(v.vitals.weight || p.weight, v.vitals.height || p.height); const bp = bpClass(v.vitals.sbp, v.vitals.dbp); return [b ? chip(`BMI ${fmtN(b, 1)} – ${bmiClass(b)}`, b >= 25 ? 'r2' : b >= 23 ? 'r1' : 'ok') : '', bp ? chip('Huyết áp: ' + bp, bp.startsWith('Tăng') ? 'r2' : 'ok') : ''].join(' '); },
@@ -315,7 +315,7 @@ function recallsHTML(p){
   <div class="row" style="margin-top:10px"><span class="small muted">Thêm nhanh:</span>${RECALL_PRESETS.map(([t, m]) => `<button class="btn sm" data-act="recallAdd" data-title="${esc(t)}" data-months="${m}">${esc(t)} (${m >= 12 ? m / 12 + ' năm' : m + ' tháng'})</button>`).join('')}<button class="btn sm" data-act="recallAdd">+ Khác</button></div>`;
 }
 function tabScreen(p){
-  if(ageOf(p) == null) return `<div class="empty">Cần ngày sinh hoặc năm sinh để gợi ý sàng lọc.</div>`;
+  if(ageOf(p) == null) return `<div class="empty">Cần ngày sinh hoặc tuổi để gợi ý sàng lọc.</div>`;
   const l = screenList(p);
   return `<div class="stack"><div class="card"><div class="ch"><h3>Sàng lọc theo tuổi, giới, nguy cơ</h3><span class="small muted">Gợi ý tham khảo (USPSTF, ADA, KDIGO, thực hành châu Á) — tự cập nhật khi nhập kết quả trong lượt khám</span></div>
   <div class="tscroll"><table class="t"><thead><tr><th>Nội dung</th><th>Khuyến cáo</th><th>Lần gần nhất</th><th>Chu kỳ (tháng)</th><th>Trạng thái</th><th></th></tr></thead><tbody>
