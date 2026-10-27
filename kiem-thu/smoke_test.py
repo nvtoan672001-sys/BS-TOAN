@@ -386,9 +386,9 @@ def main():
             # mẫu lời dặn "Tâm bệnh" có trong thư viện, gợi ý khi đơn có SSRI
             assert pg.evaluate("() => { const t = S.tpls.find(x => x.id === 'adv_psych'); return !!t && t.cat === 'advice' && t.title === 'Tâm bệnh' && tplMatches(t, ctxOf(curP(), curV()), new Set(['ssri'])); }"), 'thiếu mẫu lời dặn Tâm bệnh'
             # tiền sử ghi "đang sử dụng rượu" -> chặn benzodiazepin; "không ..." hoặc "đã bỏ rượu" không chặn; zopiclon không bị quy tắc này chặn
-            RB = "(id) => drugBlockReasons(curP(), curV(), drugById(id)).filter(r => /đang sử dụng rượu|uống rượu bia thường xuyên/.test(r)).length"
+            RB = "(id) => drugBlockReasons(curP(), curV(), drugById(id)).filter(r => /đang sử dụng rượu|có uống rượu bia/.test(r)).length"
             rb0 = pg.evaluate("() => curP().condNote"); al0 = pg.evaluate("() => (curP().risk || {}).alcohol || 'no'")
-            pg.evaluate("() => { curP().risk = {...(curP().risk || {}), alcohol: 'some'}; }")
+            pg.evaluate("() => { curP().risk = {...(curP().risk || {}), alcohol: 'no'}; }")
             pg.evaluate("() => { curP().condNote = 'Đã bỏ rượu 2 năm; không đang sử dụng rượu'; }")
             assert pg.evaluate(RB, 'diaz5') == 0
             pg.evaluate("() => { curP().condNote = 'THA 5 năm. Đang sử dụng rượu 3 cốc/ngày'; }")
@@ -396,6 +396,8 @@ def main():
             assert pg.evaluate(RB, 'zopi7n') == 0
             pg.evaluate("() => { curP().condNote = ''; curP().risk.alcohol = 'heavy'; }")
             assert pg.evaluate(RB, 'diaz5') == 1, 'uống rượu bia thường xuyên, nhiều phải chặn benzodiazepin'
+            pg.evaluate("() => { curP().risk.alcohol = 'some'; }")
+            assert pg.evaluate(RB, 'diaz5') == 1, 'uống rượu bia thỉnh thoảng cũng chặn benzodiazepin'
             pg.evaluate("([s, a]) => { curP().condNote = s; curP().risk.alcohol = a; }", [rb0, al0])
             # mang thai (ô hồ sơ / tiền sử ghi) -> chặn toàn bộ nhóm thần kinh – tâm thần; thuốc nhóm khác không bị chặn
             PB = "(id) => drugBlockReasons(curP(), curV(), drugById(id)).filter(r => /^đang mang thai/.test(r)).length"

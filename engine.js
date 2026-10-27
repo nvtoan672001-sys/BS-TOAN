@@ -496,7 +496,7 @@ function drugBlockReasons(p, v, d, ctx, line){
   if(d.cls === 'Benzodiazepin' || expandTags(d.tags).has('bzd')){
     const kw = ['dang su dung ruou', 'dang dung ruou', 'dang uong ruou', 'dang nghien ruou'];
     if(kw.some(k => mentionsSymptom(p.condNote || '', k))) out.push('tiền sử ghi đang sử dụng rượu (benzodiazepin + rượu: ức chế hô hấp, an thần quá mức, lệ thuộc)');
-    else if((p.risk || {}).alcohol === 'heavy') out.push('hồ sơ ghi uống rượu bia thường xuyên, nhiều (benzodiazepin + rượu: ức chế hô hấp, an thần quá mức, lệ thuộc)');
+    else if(['some', 'heavy'].includes((p.risk || {}).alcohol)) out.push(`hồ sơ ghi có uống rượu bia (${p.risk.alcohol === 'heavy' ? 'thường xuyên, nhiều' : 'thỉnh thoảng'}) (benzodiazepin + rượu: ức chế hô hấp, an thần quá mức, lệ thuộc)`);
   }
   // Tích ô "Động kinh" ở hồ sơ nền → không kê SSRI (bác sĩ đặt 2026-10-25; chỉ theo ô tích, không theo ICD / chữ)
   if((p.conds || []).includes('epilepsy') && d && (d.cls === 'SSRI' || expandTags(d.tags).has('ssri'))) out.push('hồ sơ nền tích ô động kinh (SSRI có thể hạ ngưỡng co giật)');
