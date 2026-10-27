@@ -891,6 +891,15 @@ async function loadAll(){
   const st = await Store.get('kv', 'settings'); if(st) S.settings = st;
   await addNewSeedDrugs();
   await updateSeedDrugs();
+  await addNewSeedTpls();
+}
+// Mẫu lời dặn bổ sung sau khi phát hành: chỉ thêm id chưa có, mỗi id đúng một lần (BS đã xoá thì không thêm lại)
+const TPL_ADDED = ['adv_psych'];
+async function addNewSeedTpls(){
+  const done = S.settings.tplAdded || [], todo = TPL_ADDED.filter(id => !done.includes(id));
+  if(!todo.length) return;
+  for(const id of todo){ const t = TEMPLATES_SEED.find(x => x.id === id); if(t && !S.tpls.some(x => x.id === id)){ const c = clone(t); S.tpls.push(c); await Store.put('templates', c); } }
+  S.settings.tplAdded = done.concat(todo); await saveSettings();
 }
 // Thuốc mẫu bổ sung sau khi phát hành: chỉ thêm id chưa có, không ghi đè; mỗi id thêm đúng một lần (BS đã xoá thì không thêm lại)
 const SEED_ADDED = ['gavis10',

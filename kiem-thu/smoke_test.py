@@ -372,6 +372,8 @@ def main():
             pg.evaluate("() => { const p = curP(); p.conds = p.conds.filter(k => k !== 'bph'); p.condNote = 'Suy gan do rượu'; }")
             assert pg.evaluate(DB) == 1, 'tiền sử ghi suy gan phải chặn duloxetin'
             pg.evaluate("(s) => { const p = curP(), o = JSON.parse(s); p.conds = o.conds; p.condNote = o.note; }", du0)
+            # mẫu lời dặn "Tâm bệnh" có trong thư viện, gợi ý khi đơn có SSRI
+            assert pg.evaluate("() => { const t = S.tpls.find(x => x.id === 'adv_psych'); return !!t && t.cat === 'advice' && t.title === 'Tâm bệnh' && tplMatches(t, ctxOf(curP(), curV()), new Set(['ssri'])); }"), 'thiếu mẫu lời dặn Tâm bệnh'
             # mang thai (ô hồ sơ / tiền sử ghi) -> chặn toàn bộ nhóm thần kinh – tâm thần; thuốc nhóm khác không bị chặn
             PB = "(id) => drugBlockReasons(curP(), curV(), drugById(id)).filter(r => /^đang mang thai/.test(r)).length"
             pg0 = pg.evaluate("() => JSON.stringify({conds: curP().conds, note: curP().condNote, hpi: curV().hpi, reason: curV().reason, orders: curV().orders})")
