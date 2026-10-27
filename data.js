@@ -679,6 +679,11 @@ const DRUGS_SEED = [
  renal:[{lt:60,lv:2,m:'CrCl 30–59: 400–1400 mg/ngày chia 2 lần (Stahl).'},{lt:30,lv:2,m:'CrCl 16–29: 200–700 mg/ngày; < 16: 100–300 mg/ngày, uống 1 lần (Stahl).'}], lact:{lv:1,m:'Có thể cho con bú; theo dõi trẻ ngủ li bì, chậm tăng cân (LactMed).'}, old:{lv:1,m:'Người cao tuổi: chóng mặt, té ngã; chỉnh theo chức năng thận.'},
  cond:{asthma:{lv:1,m:'Bệnh phổi mạn: thận trọng khi dùng cùng opioid (ức chế hô hấp).'}}},
 // -- Sa sút trí tuệ
+{id:'pregab75', n:'Pregabalin 75 mg', hc:'pregabalin', o:'Ngoại', u:'viên', p:10000, cls:'Gabapentinoid', g:'neuro', tags:['cns_dep'], dose:[1,0,0,1], how:'Khởi đầu 150 mg/ngày chia 2–3 lần; sau 3–7 ngày có thể tăng 300 mg/ngày, tối đa 600 mg/ngày (Stahl). Uống cùng hoặc không cùng bữa ăn. Suy thận (CrCl): 30–59 mL/phút: 75–300 mg/ngày; 15–29: 25–150 mg/ngày; < 15: 25–75 mg/ngày',
+ ae:'Buồn ngủ, chóng mặt, phù chân, tăng cân, khô miệng, táo bón, giảm ham muốn.', warn:'Không lái xe khi chóng mặt, buồn ngủ; không uống rượu; không tự ngừng đột ngột (người động kinh có thể lên cơn).',
+ pro:'Giảm đau thần kinh và lo âu trong khoảng 1 tuần; không chuyển hoá qua gan, ít tương tác (Stahl).', con:'Thải nguyên dạng qua thận — chỉnh liều theo CrCl; an thần, tăng cân, phù; có thể lạm dụng; viên chứa lactose.',
+ renal:[{lt:60,lv:2,m:'CrCl 30–59 mL/phút: 75–300 mg/ngày.'},{lt:30,lv:2,m:'CrCl 15–29 mL/phút: 25–150 mg/ngày.'},{lt:15,lv:3,m:'CrCl < 15 mL/phút: 25–75 mg/ngày, uống 1 lần; lọc máu: bổ sung 25–100 mg sau mỗi lần lọc (Stahl).'}],
+ lact:{lv:2,m:'Chưa rõ bài tiết qua sữa — Stahl khuyên ngừng thuốc hoặc cho trẻ bú bình; nếu vẫn dùng, theo dõi trẻ.'}, old:{lv:1,m:'Người cao tuổi: chóng mặt, buồn ngủ → nguy cơ té ngã; khởi đầu liều thấp, chỉnh theo chức năng thận (Stahl).'}},
 {id:'done5n', n:'Donepezil 5 mg', hc:'donepezil', o:'Nội', u:'viên', p:3000, cls:'Ức chế cholinesterase', g:'neuro', tags:['ache_inh','cyp2d6_sub'], dose:[0,0,0,1], how:'Uống buổi tối trước khi ngủ. Liều BYT 2020: 5–23 mg/ngày (thường 5–10 mg)',
  ae:'Buồn nôn, tiêu chảy, chán ăn, mất ngủ, chuột rút, nhịp chậm.', warn:'Choáng, ngất, mạch chậm; phân đen → đi khám.',
  pro:'Uống 1 lần/ngày; dung nạp tốt nhất nhóm.', con:'Cải thiện triệu chứng mức độ vừa phải; nhịp chậm.',

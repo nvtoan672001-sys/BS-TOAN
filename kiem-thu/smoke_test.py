@@ -410,7 +410,8 @@ def main():
             assert pg.evaluate(BB, 'cipro500') == 0
             pg.evaluate("(s) => { const p = curP(), o = JSON.parse(s); p.conds = o.conds; p.condNote = o.note; curV().hpi = o.hpi; }", bb0)
             # pregabalin: tiền sử ghi không dung nạp galactose / thiếu lactase Lapp / kém hấp thu glucose – galactose -> chặn
-            GB = "() => drugBlockReasons(curP(), curV(), {hc: 'pregabalin', n: 'Pregabalin 75 mg', g: 'neuro'}).filter(r => /galactose/.test(r)).length"
+            GB = "() => drugBlockReasons(curP(), curV(), drugById('pregab75')).filter(r => /galactose/.test(r)).length"
+            assert pg.evaluate("() => { const d = drugById('pregab75'); return !!d && d.renal.length === 3 && /15–29: 25–150/.test(d.how); }"), 'thiếu pregabalin / liều theo thận'
             gl0 = pg.evaluate("() => curP().condNote")
             pg.evaluate("() => { curP().condNote = 'Viêm dạ dày'; }")
             assert pg.evaluate(GB) == 0
