@@ -362,6 +362,20 @@ def main():
             # danh mục: ICD và cận lâm sàng rối loạn ăn uống
             assert pg.evaluate("() => ['F50.3','F50.5','F50.8','F50.9','F98.2','F98.3'].every(c => ICD.some(x => x[0] === c))")
             assert pg.evaluate("() => ['mg','phos','cl','ca','hco3','amylase','ft3','e2','testo','sa_tim','eeg','dexa','edeq'].every(k => LABS.some(x => x[1] === k))")
+            # sertralin: ICD trầm cảm + (gan mạn hoặc 6–12 tuổi) -> cảnh báo giảm ½ liều (không chặn)
+            HD = "(id) => checkAll(curP(), curV(), [{line: {id: 'L_hd', drugId: id}, drug: drugById(id)}]).items.filter(w => w.kind === 'Liều (quy tắc phòng khám)').length"
+            hd0 = pg.evaluate("() => JSON.stringify({dx: curV().dx, conds: curP().conds, dob: curP().dob || null, by: curP().birthYear || null})")
+            pg.evaluate("() => { const p = curP(); p.conds = p.conds.filter(k => k !== 'liver'); curV().dx = {...curV().dx, main: 'Giai đoạn trầm cảm vừa', secondary: '', icd: 'F32.1 – Giai đoạn trầm cảm vừa'}; }")
+            assert pg.evaluate(HD, 'sert50') == 0
+            pg.evaluate("() => { curP().conds.push('liver'); }")
+            assert pg.evaluate(HD, 'sert50') == 1 and pg.evaluate(HD, 'fluox20n') == 0, 'gan mạn + trầm cảm phải cảnh báo ½ liều sertralin'
+            assert 'Quy tắc phòng khám' not in pg.evaluate("() => checkAll(curP(), curV(), [{line: {id: 'L_hd', drugId: 'sert50'}, drug: drugById('sert50')}]).items.map(w => w.kind)"), 'chỉ cảnh báo, không chặn'
+            pg.evaluate("() => { const p = curP(); p.conds = p.conds.filter(k => k !== 'liver'); p.dob = (Number(curV().date.slice(0, 4)) - 9) + '-01-01'; }")
+            assert pg.evaluate(HD, 'sert50') == 1, 'trẻ 9 tuổi + trầm cảm phải cảnh báo ½ liều'
+            assert pg.evaluate("() => halfDoseReasons(curP(), curV(), {hc: 'fluvoxamin', n: 'Fluvoxamin 50 mg'}).length") == 1, 'fluvoxamin cũng cảnh báo ½ liều'
+            pg.evaluate("() => { curV().dx = {...curV().dx, icd: 'F41.1 – Rối loạn lo âu lan toả'}; }")
+            assert pg.evaluate(HD, 'sert50') == 0
+            pg.evaluate("(s) => { const p = curP(), o = JSON.parse(s); curV().dx = o.dx; p.conds = o.conds; p.dob = o.dob || ''; if(o.by) p.birthYear = o.by; }", hd0)
             # olanzapin: QT kéo dài (ô hồ sơ) / hạ huyết áp tư thế (ICD I95.1 hoặc ghi chữ) -> chặn
             OB = "(id) => drugBlockReasons(curP(), curV(), drugById(id)).filter(r => /^olanzapin:/.test(r)).length"
             ol0 = pg.evaluate("() => JSON.stringify({dx: curV().dx, hpi: curV().hpi, conds: curP().conds, note: curP().condNote})")

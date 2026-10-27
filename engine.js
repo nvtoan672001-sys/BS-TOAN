@@ -554,6 +554,18 @@ function bipolarHistory(p, v, ctx){
 }
 
 // entries: [{line:{id}, drug}] — mặc định lấy đơn thuốc của lượt khám
+// Sertralin, fluvoxamin — cảnh báo giảm ½ liều (bác sĩ đặt 2026-10-27): chẩn đoán ICD trầm cảm (F32.x, F33.x, F34 / F34.1, F41.2,
+// lưỡng cực giai đoạn trầm cảm F31.3–F31.5) VÀ (bệnh gan mạn / xơ gan HOẶC 6–12 tuổi). Chỉ cảnh báo, không chặn.
+const DEP_ICD = /^(F32|F33|F34(\.1)?$|F41\.2|F31\.[345])/;
+function halfDoseReasons(p, v, d, ctx){
+  if(!d || !v || !['sertralin', 'fluvoxamin'].some(k => norm(d.hc || '').includes(k))) return [];
+  const code = String((v.dx && v.dx.icd) || '').trim().split(' ')[0];
+  if(!DEP_ICD.test(code)) return [];
+  const out = [], a = ageOf(p, v.date);
+  if((ctx || ctxOf(p, v)).conds.has('liver')) out.push('bệnh gan mạn / xơ gan');
+  if(a != null && a >= 6 && a <= 12) out.push(`trẻ ${a} tuổi (6–12 tuổi)`);
+  return out;
+}
 function checkAll(p, v, entries){
   const ctx = ctxOf(p, v);
   entries = entries || (v.rx || []).map(l => ({line: l, drug: drugById(l.drugId)}));
@@ -566,6 +578,8 @@ function checkAll(p, v, entries){
     for(const e of ents) if(e.src === 'rx'){
       const block = drugBlockReasons(p, v, e.drug, ctx, e.line);
       if(block.length) items.push({lv: 3, kind: 'Quy tắc phòng khám', title: e.name, m: 'Không kê thuốc này vì ' + block.join('; ') + '. Chọn thuốc khác.', lines: [e.id]});
+      const half = halfDoseReasons(p, v, e.drug, ctx);
+      if(half.length) items.push({lv: 2, kind: 'Liều (quy tắc phòng khám)', title: `${e.name} — giảm ½ liều`, m: `Chẩn đoán trầm cảm kèm ${half.join(' và ')}: dùng ½ liều thông thường.`, lines: [e.id]});
       if(!isSsriSnri(e.drug)) continue;
       if(bip && !(e.drug.cond && e.drug.cond.bipolar && ctx.conds.has('bipolar'))) items.push({lv: 2, kind: 'Bệnh kèm', title: `${e.name} — Rối loạn cảm xúc lưỡng cực`, m: 'Tiền sử rối loạn lưỡng cực / hưng cảm: SSRI/SNRI có thể gây chuyển pha hưng cảm — chỉ dùng kèm thuốc chỉnh khí sắc, theo dõi sát (Stahl).', lines: [e.id]});
     }
