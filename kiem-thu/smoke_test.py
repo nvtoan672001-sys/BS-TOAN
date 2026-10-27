@@ -290,14 +290,14 @@ def main():
             pg.evaluate("() => { const p = curP(); p.condNote = ''; p.conds = p.conds.concat(['breastfeeding']); }")
             assert pg.evaluate(FB, 'fluox20f') == 1, 'ô "Đang cho con bú" phải chặn fluoxetin'
             pg.evaluate("([s, sx]) => { const p = curP(), o = JSON.parse(s); p.conds = o.conds; p.condNote = o.note; p.sex = sx; }", [nb, sex0])
-            # mang thai (β-hCG > 5 hoặc tiền sử ghi mang thai) -> chặn valproat, carbamazepin, paroxetin; sertralin không bị chặn
+            # mang thai (β-hCG > 5 hoặc tiền sử ghi mang thai) -> chặn valproat, carbamazepin, paroxetin; từ 2026-10-27 mọi thuốc thần kinh – tâm thần cũng bị chặn
             PB = "(id) => drugBlockReasons(curP(), curV(), drugById(id)).filter(r => /mang thai/.test(r)).length"
             pg.evaluate("() => { const p = curP(), v = curV(); p.sex = 'Nữ'; p.conds = (p.conds || []).filter(k => k !== 'pregnant'); p.condNote = 'Không mang thai'; v.hpi = ''; v.reason = ''; v.orders = v.orders.filter(o => o.key !== 'bhcg'); }")
             assert [pg.evaluate(PB, i) for i in ['valp500n', 'carba200n', 'parox20n']] == [0, 0, 0], 'phủ định "không mang thai" không được chặn'
             pg.evaluate("() => { curP().condNote = 'PARA 2002, đã mang thai 2 lần, sinh thường'; }")
             assert pg.evaluate(PB, 'parox20n') == 0, 'tiền sử "đã mang thai" không phải đang mang thai'
             pg.evaluate("() => { curP().condNote = 'Đang mang thai 10 tuần'; }")
-            assert [pg.evaluate(PB, i) for i in ['valp500n', 'carba200n', 'parox20n', 'sert50']] == [1, 1, 1, 0]
+            assert [pg.evaluate(PB, i) for i in ['valp500n', 'carba200n', 'parox20n', 'sert50']] == [1, 1, 1, 1]
             pg.evaluate("() => { const v = curV(); curP().condNote = ''; v.orders = v.orders.concat([{id: 'o_hcg2', key: 'bhcg', name: 'β-hCG', unit: 'mIU/mL', ref: '< 5', type: 'n', value: 1200, flag: '', note: ''}]); }")
             assert [pg.evaluate(PB, i) for i in ['valp500f', 'carba200f', 'parox20f']] == [1, 1, 1], 'β-hCG > 5 phải chặn'
             pg.evaluate("addRx('carba200n')"); pg.wait_for_timeout(200)
@@ -362,6 +362,16 @@ def main():
             # danh mục: ICD và cận lâm sàng rối loạn ăn uống
             assert pg.evaluate("() => ['F50.3','F50.5','F50.8','F50.9','F98.2','F98.3'].every(c => ICD.some(x => x[0] === c))")
             assert pg.evaluate("() => ['mg','phos','cl','ca','hco3','amylase','ft3','e2','testo','sa_tim','eeg','dexa','edeq'].every(k => LABS.some(x => x[1] === k))")
+            # mang thai (ô hồ sơ / tiền sử ghi) -> chặn toàn bộ nhóm thần kinh – tâm thần; thuốc nhóm khác không bị chặn
+            PB = "(id) => drugBlockReasons(curP(), curV(), drugById(id)).filter(r => /^đang mang thai/.test(r)).length"
+            pg0 = pg.evaluate("() => JSON.stringify({conds: curP().conds, note: curP().condNote, hpi: curV().hpi, reason: curV().reason, orders: curV().orders})")
+            pg.evaluate("() => { const p = curP(), v = curV(); p.conds = p.conds.filter(k => k !== 'pregnant'); p.condNote = 'Đã từng mang thai 2 lần'; v.hpi = ''; v.reason = ''; v.orders = (v.orders || []).filter(o => o.key !== 'bhcg'); }")
+            assert pg.evaluate(PB, 'sert50') == 0 and pg.evaluate(PB, 'gaba300n') == 0
+            pg.evaluate("() => { curP().condNote = 'Đang mang thai 10 tuần'; }")
+            neuro = pg.evaluate("() => DRUGS_SEED.filter(d => d.g === 'neuro').map(d => d.id)")
+            assert all(pg.evaluate(PB, x) == 1 for x in neuro), 'mang thai phải chặn mọi thuốc thần kinh – tâm thần'
+            assert pg.evaluate(PB, 'tiane12') == 1 and pg.evaluate(PB, 'cipro500') == 0
+            pg.evaluate("(s) => { const p = curP(), v = curV(), o = JSON.parse(s); p.conds = o.conds; p.condNote = o.note; v.hpi = o.hpi; v.reason = o.reason; v.orders = o.orders; }", pg0)
             # sertralin: ICD trầm cảm + (gan mạn hoặc 6–12 tuổi) -> cảnh báo giảm ½ liều (không chặn)
             HD = "(id) => checkAll(curP(), curV(), [{line: {id: 'L_hd', drugId: id}, drug: drugById(id)}]).items.filter(w => w.kind === 'Liều (quy tắc phòng khám)').length"
             hd0 = pg.evaluate("() => JSON.stringify({dx: curV().dx, conds: curP().conds, dob: curP().dob || null, by: curP().birthYear || null})")

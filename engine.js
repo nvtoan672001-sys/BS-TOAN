@@ -518,6 +518,8 @@ function drugBlockReasons(p, v, d, ctx, line){
   const hc = norm(d.hc || ''), teratogen = ['valpro', 'carbamazepin', 'paroxetin'].find(k => hc.includes(k));
   const preg = teratogen ? pregnancyReason(p, v, ctx) : '';
   if(preg) out.push(`đang mang thai: ${preg} (${{valpro: 'valproat gây dị tật ống thần kinh, chậm phát triển', carbamazepin: 'carbamazepin gây dị tật ống thần kinh', paroxetin: 'paroxetin tăng nguy cơ dị tật tim thai'}[teratogen]})`);
+  // Mang thai → không kê mọi thuốc nhóm thần kinh – tâm thần (g 'neuro'; bác sĩ đặt 2026-10-27, chọn cả gabapentin, ức chế cholinesterase)
+  if(d.g === 'neuro' && !teratogen){ const pr = pregnancyReason(p, v, ctx); if(pr) out.push(`đang mang thai: ${pr} (quy tắc phòng khám: không kê thuốc nhóm thần kinh – tâm thần khi mang thai)`); }
   if(norm(d.hc || '').includes('valpro') && p.sex === 'Nữ' && !preg){
     const r = bhcgLatest(p, v), recent = r && (r.current || (v.date && r.date && daysBetween(r.date, v.date) <= 7));
     if(!recent) out.push('bệnh nhân nữ chưa có kết quả β-hCG' + (r ? ` gần đây (lần cuối ${fmtDate(r.date)})` : '') + ' — làm β-hCG trước khi kê valproat');
