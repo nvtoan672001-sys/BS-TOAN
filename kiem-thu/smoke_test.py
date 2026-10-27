@@ -409,6 +409,16 @@ def main():
             assert all(pg.evaluate(BB, x) == 1 for x in neuro_b), 'cho con bú phải chặn mọi thuốc thần kinh – tâm thần'
             assert pg.evaluate(BB, 'cipro500') == 0
             pg.evaluate("(s) => { const p = curP(), o = JSON.parse(s); p.conds = o.conds; p.condNote = o.note; curV().hpi = o.hpi; }", bb0)
+            # pregabalin: tiền sử ghi không dung nạp galactose / thiếu lactase Lapp / kém hấp thu glucose – galactose -> chặn
+            GB = "() => drugBlockReasons(curP(), curV(), {hc: 'pregabalin', n: 'Pregabalin 75 mg', g: 'neuro'}).filter(r => /galactose/.test(r)).length"
+            gl0 = pg.evaluate("() => curP().condNote")
+            pg.evaluate("() => { curP().condNote = 'Viêm dạ dày'; }")
+            assert pg.evaluate(GB) == 0
+            for note in ['Không dung nạp galactose bẩm sinh', 'Thiếu lactase Lapp', 'Kém hấp thu glucose – galactose']:
+                pg.evaluate("(s) => { curP().condNote = s; }", note)
+                assert pg.evaluate(GB) == 1, note
+            assert pg.evaluate("() => drugBlockReasons(curP(), curV(), drugById('gaba300n')).filter(r => /galactose/.test(r)).length") == 0
+            pg.evaluate("(s) => { curP().condNote = s; }", gl0)
             # mang thai (ô hồ sơ / tiền sử ghi) -> chặn toàn bộ nhóm thần kinh – tâm thần; thuốc nhóm khác không bị chặn
             PB = "(id) => drugBlockReasons(curP(), curV(), drugById(id)).filter(r => /^đang mang thai/.test(r)).length"
             pg0 = pg.evaluate("() => JSON.stringify({conds: curP().conds, note: curP().condNote, hpi: curV().hpi, reason: curV().reason, orders: curV().orders})")

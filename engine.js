@@ -498,6 +498,11 @@ function drugBlockReasons(p, v, d, ctx, line){
     if(kw.some(k => mentionsSymptom(p.condNote || '', k))) out.push('tiền sử ghi đang sử dụng rượu (benzodiazepin + rượu: ức chế hô hấp, an thần quá mức, lệ thuộc)');
     else if(['some', 'heavy'].includes((p.risk || {}).alcohol)) out.push(`hồ sơ ghi có uống rượu bia (${p.risk.alcohol === 'heavy' ? 'thường xuyên, nhiều' : 'thỉnh thoảng'}) (benzodiazepin + rượu: ức chế hô hấp, an thần quá mức, lệ thuộc)`);
   }
+  // Pregabalin (viên chứa lactose): tiền sử ghi không dung nạp galactose / thiếu lactase Lapp / kém hấp thu glucose – galactose → không kê (bác sĩ đặt 2026-10-27)
+  if(H.includes('pregabalin')){
+    const kw = ['khong dung nap galactose', 'thieu lactase lapp', 'thieu lactase', 'kem hap thu glucose galactose'];
+    if(kw.some(k => mentionsSymptom(p.condNote || '', k))) out.push('tiền sử ghi không dung nạp galactose / thiếu lactase Lapp / kém hấp thu glucose – galactose (viên pregabalin chứa lactose)');
+  }
   // Tích ô "Động kinh" ở hồ sơ nền → không kê SSRI (bác sĩ đặt 2026-10-25; chỉ theo ô tích, không theo ICD / chữ)
   if((p.conds || []).includes('epilepsy') && d && (d.cls === 'SSRI' || expandTags(d.tags).has('ssri'))) out.push('hồ sơ nền tích ô động kinh (SSRI có thể hạ ngưỡng co giật)');
   if(C.has('epilepsy')){
