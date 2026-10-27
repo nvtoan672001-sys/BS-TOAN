@@ -362,6 +362,15 @@ def main():
             # danh mục: ICD và cận lâm sàng rối loạn ăn uống
             assert pg.evaluate("() => ['F50.3','F50.5','F50.8','F50.9','F98.2','F98.3'].every(c => ICD.some(x => x[0] === c))")
             assert pg.evaluate("() => ['F40.8','F40.9','F41.3','F41.8','F06.4','F93.1','F93.2'].every(c => ICD.some(x => x[0] === c))"), 'thiếu mã ICD rối loạn lo âu'
+            assert pg.evaluate("() => [['gad7', 12], ['gad2', 3], ['phq4_d', 1], ['phq9', 20], ['mmse', 23], ['moca', 27]].map(([k, v]) => (scaleResult(k, v) || {}).t)") == ['Lo âu vừa', 'Dương tính — làm GAD-7', 'Âm tính', 'Trầm cảm nặng', 'Suy giảm nhận thức (< 24; đối chiếu trình độ học vấn)', 'Bình thường']
+            assert pg.evaluate("() => Object.keys(SCALE_BANDS).every(k => LABS.some(x => x[1] === k))"), 'SCALE_BANDS có key không có trong LABS'
+            # giao diện: chọn GAD-7 ở bước 2, nhập 12 -> ô Kết quả hiện "Lo âu vừa"
+            pg.evaluate("go({name: 'visit', pid: curP().id, vid: curV().id, step: 2})"); pg.wait_for_timeout(300)
+            pg.click('input[data-act="ord"][data-key="gad7"]'); pg.wait_for_timeout(300)
+            gid = pg.evaluate("curV().orders.find(o => o.key === 'gad7').id")
+            pg.fill(f'input[data-b="v.orders.#{gid}.value"]', '12'); pg.wait_for_timeout(300)
+            assert 'Lo âu vừa' in pg.inner_text(f'[data-live="scale"][data-id="{gid}"]')
+            pg.evaluate("(id) => { curV().orders = curV().orders.filter(o => o.id !== id); }", gid)
             assert pg.evaluate("(ks) => ks.every(k => LABS.some(x => x[1] === k))", ['phq2', 'madrs', 'hads_a', 'hads_d', 'ymrs', 'rads', 'panss', 'bfcrs', 'audit', 'ciwa', 'isi', 'minicog', 'gpcog', 'adascog', 'clock', 'adl', 'cam', 'rass', 'wechsler', 'raven', 'denver', 'cbcl', 'mchat', 'cars', 'ados', 'vanderbilt', 'asq', 'asex', 'iief5', 'sdq_sex', 'ddimer', 'ntprobnp', 'tnths']), 'thiếu thang điểm / xét nghiệm mới'
             assert pg.evaluate("() => ['mg','phos','cl','ca','hco3','amylase','ft3','e2','testo','sa_tim','eeg','dexa','edeq'].every(k => LABS.some(x => x[1] === k))")
             # duloxetin: phì đại tiền liệt tuyến (ô / tiền sử), tiền sử ghi suy gan -> chặn

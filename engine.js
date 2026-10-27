@@ -574,6 +574,11 @@ function halfDoseReasons(p, v, d, ctx){
   if(a != null && a >= 6 && a <= 12) out.push(`trẻ ${a} tuổi (6–12 tuổi)`);
   return out;
 }
+// Kết luận tổng điểm trắc nghiệm theo SCALE_BANDS; null nếu không có bảng hoặc chưa nhập / ngoài khoảng
+function scaleResult(key, value){
+  const b = SCALE_BANDS[key], n = num(value); if(!b || n == null || n < 0) return null;
+  const r = b.find(x => n <= x[0]); return r ? {t: r[1], lv: r[2]} : null;
+}
 function checkAll(p, v, entries){
   const ctx = ctxOf(p, v);
   entries = entries || (v.rx || []).map(l => ({line: l, drug: drugById(l.drugId)}));

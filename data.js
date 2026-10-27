@@ -918,6 +918,10 @@ const LABS = [
   ['Trắc nghiệm tâm lý','zung_d','Trầm cảm Zung (SDS) – chỉ số','điểm','< 50 bình thường; 50–59 nhẹ; 60–69 vừa; ≥ 70 nặng','n'],
   ['Trắc nghiệm tâm lý','zung_a','Lo âu Zung (SAS) – chỉ số','điểm','< 45 bình thường; 45–59 nhẹ–vừa; 60–74 nặng; ≥ 75 rất nặng','n'],
   ['Trắc nghiệm tâm lý','phq9','PHQ-9','điểm','0–4 tối thiểu; 5–9 nhẹ; 10–14 vừa; 15–19 vừa–nặng; ≥ 20 nặng','n'],
+  ['Trắc nghiệm tâm lý','gad7','GAD-7 (lo âu lan toả)','/21','0–4 tối thiểu; 5–9 nhẹ; 10–14 vừa; 15–21 vừa–nặng','n'],
+  ['Trắc nghiệm tâm lý','gad2','GAD-2 (sàng lọc lo âu)','/6','0–2 âm tính; ≥ 3 dương tính — làm GAD-7','n'],
+  ['Trắc nghiệm tâm lý','phq4_a','PHQ-4 – lo âu (câu 1 + 2)','/6','≥ 3: sàng lọc thêm bằng GAD-7','n'],
+  ['Trắc nghiệm tâm lý','phq4_d','PHQ-4 – trầm cảm (câu 3 + 4)','/6','≥ 3: sàng lọc thêm bằng PHQ-9','n'],
   ['Trắc nghiệm tâm lý','mdq','MDQ (sàng lọc lưỡng cực)','câu','Dương tính: ≥ 7/13 câu "có" + xảy ra cùng lúc + ảnh hưởng vừa/nặng','n'],
   ['Trắc nghiệm tâm lý','hcl32','HCL-32 (hưng cảm nhẹ)','điểm','≥ 14 gợi ý hưng cảm nhẹ','n'],
   ['Trắc nghiệm tâm lý','epds','EPDS (trầm cảm chu sinh)','điểm','< 10 bình thường; 10–12 theo dõi; ≥ 13 nghi trầm cảm; câu 10 > 0: hỏi ý tưởng tự sát','n'],
@@ -965,6 +969,30 @@ const LABS = [
   ['Trắc nghiệm tâm lý','iief5','IIEF-5 (chức năng cương)','/25','22–25 bình thường; 17–21 nhẹ; 12–16 nhẹ–vừa; 8–11 vừa; 5–7 nặng (tham khảo)','n'],
   ['Trắc nghiệm tâm lý','sdq_sex','Sexual Dysfunction Questionnaire (SDQ)','','Ghi điểm và kết luận','t'],
 ];
+
+// Diễn giải tổng điểm trắc nghiệm (ô "Kết quả" ở bước 2 và trên phiếu): key → [[điểm tối đa của khoảng, kết luận, mức 0–3]].
+// Ngưỡng lấy từ cột tham chiếu đã có của từng thang; GAD-7, GAD-2, PHQ-4 theo phiếu trong thư mục Tâm thần (Spitzer 2006, Kroenke 2007).
+const SCALE_BANDS = {
+  bdi: [[13,'Trầm cảm tối thiểu',0],[19,'Trầm cảm nhẹ',1],[28,'Trầm cảm vừa',2],[63,'Trầm cảm nặng',3]],
+  zung_d: [[49,'Không trầm cảm',0],[59,'Trầm cảm nhẹ',1],[69,'Trầm cảm vừa',2],[100,'Trầm cảm nặng',3]],
+  zung_a: [[44,'Không lo âu',0],[59,'Lo âu nhẹ – vừa',1],[74,'Lo âu nặng',2],[100,'Lo âu rất nặng',3]],
+  phq9: [[4,'Trầm cảm tối thiểu',0],[9,'Trầm cảm nhẹ',1],[14,'Trầm cảm vừa',2],[19,'Trầm cảm vừa – nặng',3],[27,'Trầm cảm nặng',3]],
+  phq2: [[2,'Âm tính',0],[6,'Dương tính — làm PHQ-9',2]],
+  gad7: [[4,'Lo âu tối thiểu',0],[9,'Lo âu nhẹ',1],[14,'Lo âu vừa',2],[21,'Lo âu vừa – nặng',3]],
+  gad2: [[2,'Âm tính',0],[6,'Dương tính — làm GAD-7',2]],
+  phq4_a: [[2,'Âm tính',0],[6,'Dương tính — làm GAD-7',2]],
+  phq4_d: [[2,'Âm tính',0],[6,'Dương tính — làm PHQ-9',2]],
+  mdq: [[6,'Chưa đủ điểm câu 1',0],[13,'Đủ ≥ 7 câu "có" — dương tính nếu thêm cùng lúc + ảnh hưởng vừa/nặng',2]],
+  hcl32: [[13,'Không gợi ý hưng cảm nhẹ',0],[32,'Gợi ý hưng cảm nhẹ',2]],
+  gds: [[4,'Bình thường',0],[8,'Trầm cảm nhẹ',1],[11,'Trầm cảm vừa',2],[15,'Trầm cảm nặng',3]],
+  mmse: [[23,'Suy giảm nhận thức (< 24; đối chiếu trình độ học vấn)',2],[30,'Bình thường',0]],
+  moca: [[25,'Suy giảm nhận thức (< 26; +1 điểm nếu học vấn ≤ 12 năm)',2],[30,'Bình thường',0]],
+  psqi: [[5,'Chất lượng giấc ngủ tốt',0],[21,'Chất lượng giấc ngủ kém',2]],
+  hamd: [[7,'Bình thường',0],[16,'Trầm cảm nhẹ',1],[23,'Trầm cảm vừa',2],[52,'Trầm cảm nặng',3]],
+  hama: [[17,'Lo âu nhẹ',1],[24,'Lo âu nhẹ – vừa',1],[30,'Lo âu vừa – nặng',2],[56,'Lo âu nặng',3]],
+  madrs: [[6,'Bình thường',0],[19,'Trầm cảm nhẹ',1],[34,'Trầm cảm vừa',2],[60,'Trầm cảm nặng',3]],
+  isi: [[7,'Không mất ngủ',0],[14,'Mất ngủ dưới ngưỡng',1],[21,'Mất ngủ vừa',2],[28,'Mất ngủ nặng',3]],
+};
 
 // Khám tâm thần (bước 1): bảng kiểm triệu chứng theo "Hướng dẫn chẩn đoán và điều trị một số rối loạn tâm thần
 // thường gặp" – QĐ 2058/QĐ-BYT ngày 14/5/2020 (gọi tắt BYT 2020), Bài 18–23. Key lưu vào v.mental.sx — KHÔNG đổi key.
