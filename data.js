@@ -1032,12 +1032,15 @@ const LABS = [
 // Bộ chỉ định gộp ở bước 2: tích một ô → thêm các xét nghiệm thành phần (mỗi chất một dòng kết quả riêng)
 const LAB_PANELS = [{id: 'dgd', g: 'Máu', name: 'Điện giải đồ (Na, K, Clo)', keys: ['na', 'k', 'cl']}];
 
+// Lựa chọn ô "đánh giá" riêng theo key (bác sĩ đặt 2026-10-27); key khác dùng Bình thường / Cao / Thấp / Bất thường
+const FLAG_OPTS = {zung_a: ['Bình thường', 'Nhẹ – vừa', 'Nặng', 'Rất nặng']};
+
 // Diễn giải tổng điểm trắc nghiệm (ô "Kết quả" ở bước 2 và trên phiếu): key → [[điểm tối đa của khoảng, kết luận, mức 0–3]].
 // Ngưỡng lấy từ cột tham chiếu đã có của từng thang; GAD-7, GAD-2, PHQ-4 theo phiếu trong thư mục Tâm thần (Spitzer 2006, Kroenke 2007).
 const SCALE_BANDS = {
   bdi: [[13,'Trầm cảm tối thiểu',0],[19,'Trầm cảm nhẹ',1],[28,'Trầm cảm vừa',2],[63,'Trầm cảm nặng',3]],
   zung_d: [[49,'Không trầm cảm',0],[59,'Trầm cảm nhẹ',1],[69,'Trầm cảm vừa',2],[100,'Trầm cảm nặng',3]],
-  zung_a: [[44,'Không lo âu',0],[59,'Lo âu nhẹ – vừa',1],[74,'Lo âu nặng',2],[100,'Lo âu rất nặng',3]],
+  zung_a: [[44,'Bình thường',0],[59,'Lo âu nhẹ – vừa',1],[74,'Lo âu nặng',2],[100,'Lo âu rất nặng',3]],
   phq9: [[4,'Trầm cảm tối thiểu',0],[9,'Trầm cảm nhẹ',1],[14,'Trầm cảm vừa',2],[19,'Trầm cảm vừa – nặng',3],[27,'Trầm cảm nặng',3]],
   phq2: [[2,'Âm tính',0],[6,'Dương tính — làm PHQ-9',2]],
   gad7: [[4,'Lo âu tối thiểu',0],[9,'Lo âu nhẹ',1],[14,'Lo âu vừa',2],[21,'Lo âu vừa – nặng',3]],

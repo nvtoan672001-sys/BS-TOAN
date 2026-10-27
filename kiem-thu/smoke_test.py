@@ -388,6 +388,12 @@ def main():
             pg.click('input[data-act="ordPanel"][data-id="dgd"]'); pg.wait_for_timeout(300)
             assert pg.evaluate("curV().orders.filter(o => ['na','k','cl'].includes(o.key)).length") == 0
             pg.evaluate("(s) => { curV().orders = JSON.parse(s); renderMain(true); }", od0)
+            # Zung SAS: ô đánh giá chỉ có Bình thường / Nhẹ – vừa / Nặng / Rất nặng
+            pg.click('input[data-act="ord"][data-key="zung_a"]'); pg.wait_for_timeout(300)
+            zid = pg.evaluate("curV().orders.find(o => o.key === 'zung_a').id")
+            opts = pg.evaluate("(id) => [...document.querySelectorAll(`select[data-b=\"v.orders.#${id}.flag\"] option`)].map(o => o.textContent)", zid)
+            assert opts == ['— đánh giá —', 'Bình thường', 'Nhẹ – vừa', 'Nặng', 'Rất nặng'], opts
+            pg.evaluate("(id) => { curV().orders = curV().orders.filter(o => o.id !== id); renderMain(true); }", zid); pg.wait_for_timeout(200)
             # giao diện: chọn GAD-7 ở bước 2, nhập 12 -> ô Kết quả hiện "Lo âu vừa"
             pg.evaluate("go({name: 'visit', pid: curP().id, vid: curV().id, step: 2})"); pg.wait_for_timeout(300)
             pg.click('input[data-act="ord"][data-key="gad7"]'); pg.wait_for_timeout(300)
