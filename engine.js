@@ -540,6 +540,12 @@ function drugBlockReasons(p, v, d, ctx, line){
     const r = renalOf(p);
     if(r && r.crcl != null && r.crcl < 30) out.push(`CrCl ≈ ${fmtN(r.crcl)} mL/phút (< 30; ${r.src})`);
     else if(r && r.crcl == null && r.egfr != null && r.egfr < 30) out.push(`eGFR ≈ ${fmtN(r.egfr)} (< 30; chưa có cân nặng để tính CrCl; ${r.src})`);
+    else if(r && r.egfr != null && r.egfr < 15) out.push(`eGFR ≈ ${fmtN(r.egfr)} (< 15; ${r.src})`);
+    // Bác sĩ đặt 2026-10-27: hồ sơ nền phì đại tiền liệt tuyến (ô tích hoặc tiền sử ghi) → chặn (duloxetin gây bí tiểu);
+    // bệnh gan mạn / suy gan ghi bằng chữ ở tiền sử (ô tích "liver" đã chặn ở quy tắc bệnh gan phía trên)
+    const note = p.condNote || '';
+    if(C.has('bph') || ['phi dai tien liet tuyen', 'phi dai tuyen tien liet', 'tang san tien liet tuyen'].some(k => mentionsSymptom(note, k))) out.push('hồ sơ nền phì đại tiền liệt tuyến (duloxetin có thể gây bí tiểu)');
+    if(!C.has('liver') && ['benh gan man', 'suy gan', 'xo gan', 'viem gan man'].some(k => mentionsSymptom(note, k))) out.push('tiền sử ghi bệnh gan mạn / suy gan (duloxetin chống chỉ định khi bệnh gan)');
   }
   if(isAgomelatine(d)){
     const tx = transaminaseHigh(p, v); if(tx.length) out.push('men gan tăng > 3 lần: ' + tx.join(', '));

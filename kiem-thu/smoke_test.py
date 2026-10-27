@@ -362,6 +362,16 @@ def main():
             # danh mục: ICD và cận lâm sàng rối loạn ăn uống
             assert pg.evaluate("() => ['F50.3','F50.5','F50.8','F50.9','F98.2','F98.3'].every(c => ICD.some(x => x[0] === c))")
             assert pg.evaluate("() => ['mg','phos','cl','ca','hco3','amylase','ft3','e2','testo','sa_tim','eeg','dexa','edeq'].every(k => LABS.some(x => x[1] === k))")
+            # duloxetin: phì đại tiền liệt tuyến (ô / tiền sử), tiền sử ghi suy gan -> chặn
+            DB = "() => drugBlockReasons(curP(), curV(), drugById('dulox30n')).filter(r => /tiền liệt tuyến|suy gan/.test(r)).length"
+            du0 = pg.evaluate("() => JSON.stringify({conds: curP().conds, note: curP().condNote})")
+            pg.evaluate("() => { const p = curP(); p.conds = p.conds.filter(k => !['bph','liver'].includes(k)); p.condNote = 'Không phì đại tiền liệt tuyến'; }")
+            assert pg.evaluate(DB) == 0
+            pg.evaluate("() => { curP().conds.push('bph'); }")
+            assert pg.evaluate(DB) == 1, 'ô phì đại tiền liệt tuyến phải chặn duloxetin'
+            pg.evaluate("() => { const p = curP(); p.conds = p.conds.filter(k => k !== 'bph'); p.condNote = 'Suy gan do rượu'; }")
+            assert pg.evaluate(DB) == 1, 'tiền sử ghi suy gan phải chặn duloxetin'
+            pg.evaluate("(s) => { const p = curP(), o = JSON.parse(s); p.conds = o.conds; p.condNote = o.note; }", du0)
             # mang thai (ô hồ sơ / tiền sử ghi) -> chặn toàn bộ nhóm thần kinh – tâm thần; thuốc nhóm khác không bị chặn
             PB = "(id) => drugBlockReasons(curP(), curV(), drugById(id)).filter(r => /^đang mang thai/.test(r)).length"
             pg0 = pg.evaluate("() => JSON.stringify({conds: curP().conds, note: curP().condNote, hpi: curV().hpi, reason: curV().reason, orders: curV().orders})")
