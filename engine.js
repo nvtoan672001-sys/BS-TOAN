@@ -529,6 +529,7 @@ function drugBlockReasons(p, v, d, ctx, line){
     const tca = isTca(d);
     const old = ageNow > 65, who = `bệnh nhân ${ageNow} tuổi (${old ? '> 65' : '< 18'})`;
     if(tca) out.push(old ? `${who}: thuốc chống trầm cảm 3 vòng kháng cholinergic mạnh — lú lẫn, bí tiểu, té ngã, loạn nhịp (Beers)` : `${who}: thuốc chống trầm cảm 3 vòng độc tim, rất nguy hiểm khi quá liều ở trẻ em`);
+    else if(d.cls === 'Benzodiazepin' || expandTags(d.tags).has('bzd')) out.push(old ? `${who}: benzodiazepin — té ngã, lú lẫn, suy giảm nhận thức (Beers)` : `${who}: benzodiazepin — quy tắc phòng khám không kê cho người dưới 18 tuổi`);
     else if(norm(d.hc || '').includes('paroxetin')) out.push(old ? `${who}: paroxetin kháng cholinergic, an thần, hạ huyết áp tư thế (Beers)` : `${who}: paroxetin không khuyến cáo ở trẻ em / vị thành niên (tăng ý tưởng tự sát, hiệu quả chưa chứng minh)`);
   }
   // Mang thai → không kê valproat, carbamazepin, paroxetin (bác sĩ đặt 2026-10-25; nguy cơ dị tật thai)

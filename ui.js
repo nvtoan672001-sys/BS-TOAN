@@ -1,5 +1,7 @@
 'use strict';
 // ================= ĐIỀU KHIỂN NHẬP LIỆU =================
+// Ô tuổi: lưu vào trường năm sinh (birthYear = năm nay − tuổi), hiển thị lại tuổi
+function AGE(path, by, o = {}){ const y = Number(todayISO().slice(0, 4)), a = num(by) ? y - num(by) : ''; return `<input type="text" data-b="${path}" data-t="age" inputmode="numeric" value="${esc(a)}"${o.ph != null ? ` placeholder="${esc(o.ph)}"` : ''}>`; }
 function I(path, val, o = {}){ if(o.num && typeof val === 'number') val = String(val).replace('.', ','); return `<input type="${o.type || 'text'}" data-b="${path}"${o.num ? ' data-t="num" inputmode="decimal"' : ''} value="${esc(val ?? '')}"${o.ph != null ? ` placeholder="${esc(o.ph)}"` : ''}${o.list ? ` list="${o.list}"` : ''}${o.attr ? ' ' + o.attr : ''}>`; }
 function U(path, val, unit, o = {}){ return `<div class="unitwrap">${I(path, val, {...o, num: true})}<span>${esc(unit)}</span></div>`; }
 function T(path, val, o = {}){ return `<textarea data-b="${path}" rows="${o.rows || 3}"${o.ph ? ` placeholder="${esc(o.ph)}"` : ''}>${esc(val || '')}</textarea>`; }
@@ -41,6 +43,7 @@ function onBind(el){
   else if(t === 'bool') r.o[r.k] = el.checked;
   else if(t === 'radio'){ if(el.checked) r.o[r.k] = el.value; }
   else if(t === 'num') r.o[r.k] = el.value.trim() === '' ? null : num(el.value);
+  else if(t === 'age'){ const a = num(el.value); r.o[r.k] = a == null || a < 0 ? null : Number(todayISO().slice(0, 4)) - Math.round(a); }
   else r.o[r.k] = el.value;
   afterChange(path, el);
 }
@@ -213,7 +216,7 @@ function viewNewP(){
     ${F('Họ và tên *', I('n.name', n.name, {attr: 'id="newName" autocomplete="off"'}), 'span2')}
     ${F('Giới', SEL('n.sex', n.sex, [['Nam','Nam'],['Nữ','Nữ']]))}
     ${F('Ngày sinh', I('n.dob', n.dob, {type: 'date'}))}
-    ${F('hoặc Năm sinh', I('n.birthYear', n.birthYear, {num: true, ph: 'vd. 1964'}))}
+    ${F('hoặc Tuổi', AGE('n.birthYear', n.birthYear, {ph: 'vd. 62'}))}
     ${F('Số điện thoại', I('n.phone', n.phone, {type: 'tel'}))}
     ${F('Nghề nghiệp', I('n.job', n.job))}
     ${F('Địa chỉ', I('n.address', n.address), 'span2')}
@@ -274,7 +277,7 @@ function tabProfile(p){
   return `<div class="stack">
   <div class="card"><h3>Thông tin hành chính</h3><div class="g4">
     ${F('Họ và tên', I('p.name', p.name), 'span2')}${F('Giới', SEL('p.sex', p.sex, [['Nam','Nam'],['Nữ','Nữ']]))}${F('Mã bệnh nhân', I('p.code', p.code))}
-    ${F('Ngày sinh', I('p.dob', p.dob, {type: 'date'}))}${F('hoặc Năm sinh', I('p.birthYear', p.birthYear, {num: true}))}${F('Số điện thoại', I('p.phone', p.phone, {type: 'tel'}))}${F('Nghề nghiệp', I('p.job', p.job))}
+    ${F('Ngày sinh', I('p.dob', p.dob, {type: 'date'}))}${F('hoặc Tuổi', AGE('p.birthYear', p.birthYear))}${F('Số điện thoại', I('p.phone', p.phone, {type: 'tel'}))}${F('Nghề nghiệp', I('p.job', p.job))}
     ${F('Địa chỉ', I('p.address', p.address), 'span2')}${F('Số thẻ BHYT', I('p.insurance', p.insurance))}${F('Người liên hệ', I('p.contact', p.contact))}
   </div></div>
   <div class="card"><h3>Hoàn cảnh & mong muốn</h3>${T('p.social', p.social, {rows: 2, ph: 'Kinh tế (ưu tiên thuốc rẻ?), người chăm sóc, công việc, lo lắng/mong muốn của bệnh nhân…'})}</div>

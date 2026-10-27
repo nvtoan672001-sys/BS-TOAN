@@ -81,6 +81,12 @@ def main():
             pf = [f for f in pg.evaluate(LIST) if '/benh-nhan/tran-thi-binh' in f]
             assert len(pf) == 1 and 'tran-thi-binh-an_' in pf[0], pf
             assert json.loads(pg.evaluate(READ, pf[0]))['phone'] == '0988 000 111'
+            # 3a. Ô "Tuổi" ở hồ sơ nền: nhập 45 -> birthYear = năm nay − 45
+            pg.evaluate("go({name: 'patient', pid: 'p_test1', tab: 'profile'})"); pg.wait_for_timeout(300)
+            dob0 = pg.evaluate("() => curP().dob || ''"); pg.evaluate("() => { curP().dob = ''; renderMain(true); }"); pg.wait_for_timeout(200)
+            pg.fill('input[data-b="p.birthYear"][data-t="age"]', '45'); pg.wait_for_timeout(200)
+            assert pg.evaluate("() => curP().birthYear") == pg.evaluate("() => Number(todayISO().slice(0, 4)) - 45"), 'ô Tuổi phải lưu thành năm sinh'
+            pg.evaluate("(d) => { curP().dob = d; }", dob0)
             # 3b. Nhân trắc: ô InBody (body fat %, lean mass kg) lưu vào hồ sơ
             pg.evaluate("go({name: 'patient', pid: 'p_test1', tab: 'profile'})"); pg.wait_for_timeout(300)
             pg.fill('input[data-b="p.bodyFat"]', '28.5'); pg.fill('input[data-b="p.leanMass"]', '52'); pg.wait_for_timeout(200)
@@ -432,6 +438,13 @@ def main():
             assert pg.evaluate(PRB) == 1, 'bệnh mạch ngoại biên nặng phải chặn propranolol'
             pg.evaluate("(s) => { const p = curP(), o = JSON.parse(s); p.conds = o.conds; p.condNote = o.note; curV().dx = o.dx; }", pr0)
             assert pg.evaluate("() => ['piracetam','ginkgo','vinpocetin','cholalf','nicergolin','silymarin'].every(id => { const d = drugById(id); return d && !/mg/.test(d.n); })"), 'thiếu thuốc hỗ trợ thần kinh / silymarin'
+            # tuổi < 18 hoặc > 65 -> chặn benzodiazepin; 40 tuổi không chặn
+            AGB = "(id) => drugBlockReasons(curP(), curV(), drugById(id)).filter(r => /benzodiazepin —/.test(r)).length"
+            ag0 = pg.evaluate("() => JSON.stringify({dob: curP().dob || '', by: curP().birthYear ?? null})")
+            for age, exp in [(40, 0), (16, 1), (70, 1), (65, 0), (18, 0)]:
+                pg.evaluate("(a) => { const p = curP(); p.dob = ''; p.birthYear = Number(curV().date.slice(0, 4)) - a; }", age)
+                assert pg.evaluate(AGB, 'diaz5') == exp, (age, exp)
+            pg.evaluate("(s) => { const p = curP(), o = JSON.parse(s); p.dob = o.dob; p.birthYear = o.by; }", ag0)
             # mang thai (ô hồ sơ / tiền sử ghi) -> chặn toàn bộ nhóm thần kinh – tâm thần; thuốc nhóm khác không bị chặn
             PB = "(id) => drugBlockReasons(curP(), curV(), drugById(id)).filter(r => /^đang mang thai/.test(r)).length"
             pg0 = pg.evaluate("() => JSON.stringify({conds: curP().conds, note: curP().condNote, hpi: curV().hpi, reason: curV().reason, orders: curV().orders})")
