@@ -535,6 +535,8 @@ function drugBlockReasons(p, v, d, ctx, line){
   // Fluoxetin: tiền sử ghi đang cho con bú (ô "Đang cho con bú" hoặc ghi trong "Tiền sử bệnh…") → không kê (bác sĩ đặt 2026-10-25;
   // fluoxetin và chất chuyển hoá có thời gian bán thải dài, tích luỹ ở trẻ bú mẹ)
   if(norm(d.hc || '').includes('fluoxetin') && breastfeeding(p, v, ctx)) out.push('tiền sử ghi đang cho con bú (fluoxetin bán thải dài, tích luỹ ở trẻ bú mẹ)');
+  // Đang cho con bú → không kê mọi thuốc nhóm thần kinh – tâm thần (bác sĩ đặt 2026-10-27, cùng quy tắc mang thai)
+  else if(d.g === 'neuro' && breastfeeding(p, v, ctx)) out.push('đang cho con bú (quy tắc phòng khám: không kê thuốc nhóm thần kinh – tâm thần khi cho con bú)');
   // Carbamazepin: điện tim có block nhĩ thất → không kê (bác sĩ đặt 2026-10-25; carbamazepin làm chậm dẫn truyền nhĩ thất)
   if(norm(d.hc || '').includes('carbamazepin')){
     const e = avBlock(p, v); if(e) out.push(`điện tim ${e.current ? 'lần khám này' : 'ngày ' + fmtDate(e.date)} có block nhĩ thất (carbamazepin làm chậm dẫn truyền nhĩ thất)`);

@@ -280,13 +280,13 @@ def main():
                 pg.evaluate("(x) => { const v = curV(); v.orders = v.orders.filter(o => o.key !== 'bhcg').concat([{id: 'o_hcg', key: 'bhcg', name: 'β-hCG', unit: 'mIU/mL', ref: '< 5', type: 'n', value: x, flag: '', note: ''}]); }", val)
                 assert (pg.evaluate(VB) != '') == blocked, (val, pg.evaluate(VB))
             pg.evaluate("(s) => { curP().sex = s; }", sex0)
-            # fluoxetin: tiền sử đang cho con bú -> chặn (ô bệnh nền hoặc ghi chữ); sertralin không bị chặn vì lý do này
+            # fluoxetin: tiền sử đang cho con bú -> chặn (ô bệnh nền hoặc ghi chữ); từ 2026-10-27 sertralin cũng bị chặn (mọi thuốc thần kinh – tâm thần)
             FB = "(id) => drugBlockReasons(curP(), curV(), drugById(id)).filter(r => /cho con bú/.test(r)).length"
             nb = pg.evaluate("() => JSON.stringify({conds: curP().conds, note: curP().condNote})")
             pg.evaluate("() => { const p = curP(); p.sex = 'Nữ'; p.conds = (p.conds || []).filter(k => k !== 'breastfeeding'); p.condNote = 'Sinh con 3 tháng, không cho con bú'; }")
             assert pg.evaluate(FB, 'fluox20n') == 0, 'câu phủ định không được tính'
             pg.evaluate("() => { curP().condNote = 'Sinh con 3 tháng, đang cho con bú'; }")
-            assert pg.evaluate(FB, 'fluox20n') == 1 and pg.evaluate(FB, 'sert50') == 0
+            assert pg.evaluate(FB, 'fluox20n') == 1 and pg.evaluate(FB, 'sert50') == 1
             pg.evaluate("() => { const p = curP(); p.condNote = ''; p.conds = p.conds.concat(['breastfeeding']); }")
             assert pg.evaluate(FB, 'fluox20f') == 1, 'ô "Đang cho con bú" phải chặn fluoxetin'
             pg.evaluate("([s, sx]) => { const p = curP(), o = JSON.parse(s); p.conds = o.conds; p.condNote = o.note; p.sex = sx; }", [nb, sex0])
@@ -399,6 +399,16 @@ def main():
             pg.evaluate("() => { curP().risk.alcohol = 'some'; }")
             assert pg.evaluate(RB, 'diaz5') == 1, 'uống rượu bia thỉnh thoảng cũng chặn benzodiazepin'
             pg.evaluate("([s, a]) => { curP().condNote = s; curP().risk.alcohol = a; }", [rb0, al0])
+            # tích ô đang cho con bú -> chặn mọi thuốc thần kinh – tâm thần; thuốc nhóm khác không bị chặn
+            BB = "(id) => drugBlockReasons(curP(), curV(), drugById(id)).filter(r => /cho con bú/.test(r)).length"
+            bb0 = pg.evaluate("() => JSON.stringify({conds: curP().conds, note: curP().condNote, hpi: curV().hpi})")
+            pg.evaluate("() => { const p = curP(); p.conds = p.conds.filter(k => k !== 'breastfeeding'); p.condNote = ''; curV().hpi = ''; }")
+            assert pg.evaluate(BB, 'sert50') == 0
+            pg.evaluate("() => { curP().conds.push('breastfeeding'); }")
+            neuro_b = pg.evaluate("() => DRUGS_SEED.filter(d => d.g === 'neuro').map(d => d.id)")
+            assert all(pg.evaluate(BB, x) == 1 for x in neuro_b), 'cho con bú phải chặn mọi thuốc thần kinh – tâm thần'
+            assert pg.evaluate(BB, 'cipro500') == 0
+            pg.evaluate("(s) => { const p = curP(), o = JSON.parse(s); p.conds = o.conds; p.condNote = o.note; curV().hpi = o.hpi; }", bb0)
             # mang thai (ô hồ sơ / tiền sử ghi) -> chặn toàn bộ nhóm thần kinh – tâm thần; thuốc nhóm khác không bị chặn
             PB = "(id) => drugBlockReasons(curP(), curV(), drugById(id)).filter(r => /^đang mang thai/.test(r)).length"
             pg0 = pg.evaluate("() => JSON.stringify({conds: curP().conds, note: curP().condNote, hpi: curV().hpi, reason: curV().reason, orders: curV().orders})")
