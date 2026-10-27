@@ -1027,6 +1027,9 @@ const LABS = [
   ['Trắc nghiệm tâm lý','sdq_sex','Sexual Dysfunction Questionnaire (SDQ)','','Ghi điểm và kết luận','t'],
 ];
 
+// Bộ chỉ định gộp ở bước 2: tích một ô → thêm các xét nghiệm thành phần (mỗi chất một dòng kết quả riêng)
+const LAB_PANELS = [{id: 'dgd', g: 'Máu', name: 'Điện giải đồ (Na, K, Clo)', keys: ['na', 'k', 'cl']}];
+
 // Diễn giải tổng điểm trắc nghiệm (ô "Kết quả" ở bước 2 và trên phiếu): key → [[điểm tối đa của khoảng, kết luận, mức 0–3]].
 // Ngưỡng lấy từ cột tham chiếu đã có của từng thang; GAD-7, GAD-2, PHQ-4 theo phiếu trong thư mục Tâm thần (Spitzer 2006, Kroenke 2007).
 const SCALE_BANDS = {

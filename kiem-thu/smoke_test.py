@@ -375,6 +375,18 @@ def main():
             assert pg.evaluate("() => ['F43.8','F43.9','F43.22','F44.5','F45.3','F48.0','F62.0'].every(c => ICD.some(x => x[0] === c))"), 'thiếu mã ICD rối loạn liên quan stress'
             assert pg.evaluate("() => [['gad7', 12], ['gad2', 3], ['phq4_d', 1], ['phq9', 20], ['mmse', 23], ['moca', 27]].map(([k, v]) => (scaleResult(k, v) || {}).t)") == ['Lo âu vừa', 'Dương tính — làm GAD-7', 'Âm tính', 'Trầm cảm nặng', 'Suy giảm nhận thức (< 24; đối chiếu trình độ học vấn)', 'Bình thường']
             assert pg.evaluate("() => Object.keys(SCALE_BANDS).every(k => LABS.some(x => x[1] === k))"), 'SCALE_BANDS có key không có trong LABS'
+            # bộ chỉ định "Điện giải đồ (Na, K, Clo)": tích -> thêm 3 dòng Na, K, Clo; bỏ tích -> bỏ cả 3
+            pg.evaluate("go({name: 'visit', pid: curP().id, vid: curV().id, step: 2})"); pg.wait_for_timeout(300)
+            od0 = pg.evaluate("() => JSON.stringify(curV().orders)")
+            pg.evaluate("() => { curV().orders = curV().orders.filter(o => !['na','k','cl'].includes(o.key)); renderMain(true); }"); pg.wait_for_timeout(200)
+            pg.click('input[data-act="ordPanel"][data-id="dgd"]'); pg.wait_for_timeout(300)
+            assert sorted(pg.evaluate("curV().orders.filter(o => ['na','k','cl'].includes(o.key)).map(o => o.key)")) == ['cl', 'k', 'na']
+            assert pg.is_checked('input[data-act="ordPanel"][data-id="dgd"]')
+            assert pg.locator('input[data-act="ord"][data-key="k"]').count() == 0, 'Na, K, Clo không còn ô chọn riêng'
+            assert 'Điện giải đồ (Na, K, Clo)' in pg.inner_text('tr.panel-hdr')
+            pg.click('input[data-act="ordPanel"][data-id="dgd"]'); pg.wait_for_timeout(300)
+            assert pg.evaluate("curV().orders.filter(o => ['na','k','cl'].includes(o.key)).length") == 0
+            pg.evaluate("(s) => { curV().orders = JSON.parse(s); renderMain(true); }", od0)
             # giao diện: chọn GAD-7 ở bước 2, nhập 12 -> ô Kết quả hiện "Lo âu vừa"
             pg.evaluate("go({name: 'visit', pid: curP().id, vid: curV().id, step: 2})"); pg.wait_for_timeout(300)
             pg.click('input[data-act="ord"][data-key="gad7"]'); pg.wait_for_timeout(300)

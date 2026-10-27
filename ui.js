@@ -402,11 +402,15 @@ function dxSugHTML(){
   return h + '<div class="tiny muted" style="margin-top:6px">Gợi ý dựa trên bảng kiểm, không thay thế đánh giá lâm sàng của bác sĩ.</div>';
 }
 function step2(p, v){
-  const groups = {}; LABS.forEach(l => (groups[l[0]] = groups[l[0]] || []).push(l));
+  const inPanel = new Set(LAB_PANELS.flatMap(x => x.keys));
+  const groups = {}; LABS.filter(l => !inPanel.has(l[1])).forEach(l => (groups[l[0]] = groups[l[0]] || []).push(l));
   const keys = new Set(v.orders.map(o => o.key));
-  const ordered = `<div class="g3">${Object.entries(groups).map(([g, ls]) => `<div><div class="lbl">${esc(g)}</div>${ls.map(l => `<label class="check"><input type="checkbox" data-act="ord" data-key="${l[1]}"${keys.has(l[1]) ? ' checked' : ''}> <span>${esc(l[2])}</span></label>`).join('')}</div>`).join('')}</div>
-  <div class="row" style="margin-top:10px"><input type="text" id="ordCustom" placeholder="Chỉ định khác (vd. Điện giải đồ, Xquang khớp gối)…" style="max-width:420px"><button class="btn" data-act="ordCustom">+ Thêm</button></div>`;
-  const rows = v.orders.map(o => o.type === 't'
+  const ordered = `<div class="g3">${Object.entries(groups).map(([g, ls]) => `<div><div class="lbl">${esc(g)}</div>${LAB_PANELS.filter(x => x.g === g).map(x => `<label class="check"><input type="checkbox" data-act="ordPanel" data-id="${x.id}"${x.keys.every(k => keys.has(k)) ? ' checked' : ''}> <span><b>${esc(x.name)}</b></span></label>`).join('')}${ls.map(l => `<label class="check"><input type="checkbox" data-act="ord" data-key="${l[1]}"${keys.has(l[1]) ? ' checked' : ''}> <span>${esc(l[2])}</span></label>`).join('')}</div>`).join('')}</div>
+  <div class="row" style="margin-top:10px"><input type="text" id="ordCustom" placeholder="Chỉ định khác (vd. Xquang khớp gối)…" style="max-width:420px"><button class="btn" data-act="ordCustom">+ Thêm</button></div>`;
+  const seenPn = new Set(), list = [];
+  v.orders.forEach(o => { const pn = LAB_PANELS.find(x => x.keys.includes(o.key)); if(!pn){ list.push(o); return; } if(seenPn.has(pn.id)) return; seenPn.add(pn.id);
+    list.push({_hdr: pn.name}); pn.keys.forEach(k => v.orders.filter(x => x.key === k).forEach(x => list.push(x))); });
+  const rows = list.map(o => o._hdr ? `<tr class="panel-hdr"><td colspan="5"><b>${esc(o._hdr)}</b></td></tr>` : o.type === 't'
     ? `<tr><td style="width:30%"><b>${esc(o.name)}</b>${o.ref ? `<div class="tiny muted">BT: ${esc(o.ref)}</div>` : ''}</td><td colspan="3">${T(`v.orders.#${o.id}.value`, o.value, {rows: 2, ph: 'Kết quả / mô tả'})}</td><td><button class="btn xs danger" data-act="ordDel" data-id="${o.id}">✕</button></td></tr>`
     : `<tr><td style="width:30%"><b>${esc(o.name)}</b>${o.ref ? `<div class="tiny muted">Tham chiếu: ${esc(o.ref)}</div>` : ''}</td><td style="width:150px">${U(`v.orders.#${o.id}.value`, o.value, o.unit || '')}</td><td style="width:140px">${SEL(`v.orders.#${o.id}.flag`, o.flag, [['', '— đánh giá —'], ['BT', 'Bình thường'], ['Cao', 'Cao'], ['Thấp', 'Thấp'], ['BTh', 'Bất thường']])}</td><td>${I(`v.orders.#${o.id}.note`, o.note, {ph: 'Ghi chú'})}</td><td><button class="btn xs danger" data-act="ordDel" data-id="${o.id}">✕</button></td></tr>`
       + (SCALE_BANDS[o.key] ? `<tr class="scale-row"><td><b>Kết quả</b><div class="tiny muted">tự diễn giải theo tổng điểm</div></td><td colspan="3" data-live="scale" data-id="${o.id}"></td><td></td></tr>` : '')
@@ -729,6 +733,13 @@ const ACT = {
   ord: a => { const v = curV(), k = a.dataset.key, ex = v.orders.find(o => o.key === k);
     if(ex){ if((ex.value && String(ex.value).trim()) && !confirm('Chỉ định này đã có kết quả. Bỏ chỉ định và xoá kết quả?')){ a.checked = true; return; } v.orders = v.orders.filter(o => o !== ex); }
     else { const l = LABS.find(x => x[1] === k); v.orders.push({id: uid('o'), key: k, name: l[2], unit: l[3], ref: l[4], type: l[5], value: '', flag: '', note: ''}); }
+    savePatient(curP()); renderMain(true); },
+  ordPanel: a => { const v = curV(), pn = LAB_PANELS.find(x => x.id === a.dataset.id); if(!pn) return;
+    if(pn.keys.every(k => v.orders.some(o => o.key === k))){
+      const ex = v.orders.filter(o => pn.keys.includes(o.key));
+      if(ex.some(o => o.value != null && String(o.value).trim()) && !confirm('Bộ chỉ định này đã có kết quả. Bỏ chỉ định và xoá kết quả?')){ a.checked = true; return; }
+      v.orders = v.orders.filter(o => !pn.keys.includes(o.key));
+    } else pn.keys.filter(k => !v.orders.some(o => o.key === k)).forEach(k => { const l = LABS.find(x => x[1] === k); v.orders.push({id: uid('o'), key: k, name: l[2], unit: l[3], ref: l[4], type: l[5], value: '', flag: '', note: ''}); });
     savePatient(curP()); renderMain(true); },
   ordCustom: () => { const el = $('#ordCustom'), t = el.value.trim(); if(!t) return; curV().orders.push({id: uid('o'), key: 'custom', name: t, unit: '', ref: '', type: 't', value: '', flag: '', note: ''}); savePatient(curP()); renderMain(true); },
   ordDel: a => { const v = curV(); v.orders = v.orders.filter(o => o.id !== a.dataset.id); savePatient(curP()); renderMain(true); },
