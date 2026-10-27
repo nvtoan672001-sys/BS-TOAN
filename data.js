@@ -785,6 +785,7 @@ const ICD = [
   ['F04','Hội chứng quên thực tổn không do rượu và chất tác động tâm thần khác',[]],
   ['F05','Sảng không do rượu và các chất tác động tâm thần khác',[]],
   ['F06.7','Rối loạn nhận thức nhẹ',[]],
+  ['F06.4','Rối loạn lo âu thực tổn (do bệnh cơ thể / tổn thương não)',[]],
   ['F07.2','Hội chứng sau chấn động não',[]],
   // Rối loạn do rượu, thuốc lá (BYT Bài 7, LEC8)
   ['F10.0','Rối loạn tâm thần do rượu – nhiễm độc cấp',['alcohol']],
@@ -803,7 +804,11 @@ const ICD = [
   ['F40.0','Ám ảnh sợ khoảng trống',['depression']],
   ['F40.1','Ám ảnh sợ xã hội',['depression']],
   ['F40.2','Ám ảnh sợ đặc hiệu (riêng lẻ)',['depression']],
+  ['F40.8','Rối loạn lo âu ám ảnh sợ khác',['depression']],
+  ['F40.9','Rối loạn lo âu ám ảnh sợ không biệt định',['depression']],
   ['F41.0','Rối loạn hoảng sợ (lo âu kịch phát từng giai đoạn)',['depression']],
+  ['F41.3','Rối loạn lo âu hỗn hợp khác',['depression']],
+  ['F41.8','Rối loạn lo âu biệt định khác',['depression']],
   ['F41.9','Rối loạn lo âu không biệt định',['depression']],
   ['F42','Rối loạn ám ảnh nghi thức (ám ảnh – cưỡng chế)',['depression']],
   // Rối loạn liên quan stress, phân ly, dạng cơ thể (LEC4, BYT Bài 24–25)
@@ -854,6 +859,8 @@ const ICD = [
   ['F84.0','Tự kỷ ở trẻ em (rối loạn phổ tự kỷ)',[]],
   ['F90.0','Rối loạn hoạt động và chú ý (tăng động giảm chú ý – ADHD)',[]],
   ['F93.0','Rối loạn lo âu chia ly ở trẻ em',[]],
+  ['F93.1','Rối loạn lo âu ám ảnh sợ ở trẻ em',[]],
+  ['F93.2','Rối loạn lo âu xã hội ở trẻ em',[]],
   ['F95.2','Rối loạn tic phối hợp lời nói và vận động nhiều kiểu (Tourette)',[]],
   ['F98.0','Đái dầm không thực tổn',[]],
   ['F98.1','Ỉa bậy không thực tổn',[]],
