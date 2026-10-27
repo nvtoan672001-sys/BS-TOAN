@@ -959,6 +959,8 @@ const LABS = [
   ['Máu','ft3','FT3','pmol/L','3,1–6,8 (tuỳ phòng xét nghiệm)','n'],
   ['Máu','e2','Estradiol','pmol/L','Tuỳ pha chu kỳ / tuổi','n'],
   ['Máu','testo','Testosteron','nmol/L','Nam 8,6–29 (tuỳ phòng xét nghiệm)','n'],
+  ['Máu','cortisol','Cortisol máu (sáng 7–9 giờ)','nmol/L','140–690 buổi sáng (tuỳ phòng xét nghiệm)','n'],
+  ['Máu','acth','ACTH (sáng 7–9 giờ)','pg/mL','7,2–63 buổi sáng (tuỳ phòng xét nghiệm)','n'],
   ['Nước tiểu','tptnt','Tổng phân tích nước tiểu','','','t'],
   ['Nước tiểu','acr','Albumin/creatinin niệu (ACR)','mg/mmol','< 3','n'],
   ['H. pylori','hp_ubt','Test thở H. pylori (UBT)','','Âm tính','t'],
