@@ -382,7 +382,8 @@ def main():
             assert 'Quy tắc phòng khám' not in pg.evaluate("() => checkAll(curP(), curV(), [{line: {id: 'L_hd', drugId: 'sert50'}, drug: drugById('sert50')}]).items.map(w => w.kind)"), 'chỉ cảnh báo, không chặn'
             pg.evaluate("() => { const p = curP(); p.conds = p.conds.filter(k => k !== 'liver'); p.dob = (Number(curV().date.slice(0, 4)) - 9) + '-01-01'; }")
             assert pg.evaluate(HD, 'sert50') == 1, 'trẻ 9 tuổi + trầm cảm phải cảnh báo ½ liều'
-            assert pg.evaluate("() => halfDoseReasons(curP(), curV(), {hc: 'fluvoxamin', n: 'Fluvoxamin 50 mg'}).length") == 1, 'fluvoxamin cũng cảnh báo ½ liều'
+            assert pg.evaluate("() => halfDoseReasons(curP(), curV(), drugById('fluvo100')).length") == 1, 'fluvoxamin cũng cảnh báo ½ liều'
+            assert pg.evaluate("() => { const d = drugById('fluvo100'); return d && d.cls === 'SSRI' && isSsriSnri(d); }"), 'fluvoxamin có trong danh mục, nhóm SSRI'
             pg.evaluate("() => { curV().dx = {...curV().dx, icd: 'F41.1 – Rối loạn lo âu lan toả'}; }")
             assert pg.evaluate(HD, 'sert50') == 0
             pg.evaluate("(s) => { const p = curP(), o = JSON.parse(s); curV().dx = o.dx; p.conds = o.conds; p.dob = o.dob || ''; if(o.by) p.birthYear = o.by; }", hd0)
