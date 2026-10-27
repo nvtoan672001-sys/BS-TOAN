@@ -87,6 +87,10 @@ def main():
             pg.fill('input[data-b="p.birthYear"][data-t="age"]', '45'); pg.wait_for_timeout(200)
             assert pg.evaluate("() => curP().birthYear") == pg.evaluate("() => Number(todayISO().slice(0, 4)) - 45"), 'ô Tuổi phải lưu thành năm sinh'
             pg.evaluate("(d) => { curP().dob = d; }", dob0)
+            # 3a2. Ô "Tiền sử gia đình" nằm ngay dưới ô tiền sử bệnh (cùng thẻ Bệnh nền, tiền sử) và lưu vào p.famNote
+            assert pg.evaluate("() => { const a = document.querySelector('[data-b=\"p.condNote\"]'), b = document.querySelector('[data-b=\"p.famNote\"]'); return !!a && !!b && a.closest('.card') === b.closest('.card') && !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING); }"), 'ô tiền sử gia đình phải ngay dưới ô tiền sử bệnh'
+            pg.fill('textarea[data-b="p.famNote"]', 'Mẹ trầm cảm'); pg.wait_for_timeout(200)
+            assert pg.evaluate("() => curP().famNote") == 'Mẹ trầm cảm'
             # 3b. Nhân trắc: ô InBody (body fat %, lean mass kg) lưu vào hồ sơ
             pg.evaluate("go({name: 'patient', pid: 'p_test1', tab: 'profile'})"); pg.wait_for_timeout(300)
             pg.fill('input[data-b="p.bodyFat"]', '28.5'); pg.fill('input[data-b="p.leanMass"]', '52'); pg.wait_for_timeout(200)

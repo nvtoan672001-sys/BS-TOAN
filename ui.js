@@ -287,7 +287,8 @@ function tabProfile(p){
     ${F('Body fat (InBody)', U('p.bodyFat', p.bodyFat, '%'))}${F('Lean mass (InBody)', U('p.leanMass', p.leanMass, 'kg'))}
   </div></div>
   <div class="card"><h3>Bệnh nền, tiền sử</h3><div class="checks">${CONDS.filter(c => p.sex !== 'Nam' || !['pregnant','breastfeeding'].includes(c.k)).map(c => CL('p.conds', p.conds, c.k, c.t)).join('')}</div>
-    <div style="margin-top:10px">${F('Tiền sử bệnh, phẫu thuật, nhập viện', T('p.condNote', p.condNote, {rows: 2}))}</div></div>
+    <div style="margin-top:10px">${F('Tiền sử bệnh, phẫu thuật, nhập viện', T('p.condNote', p.condNote, {rows: 2}))}</div>
+    <div style="margin-top:10px">${F('Tiền sử gia đình', T('p.famNote', p.famNote, {rows: 2, ph: 'Bệnh của bố mẹ, anh chị em, con (tâm thần, tim mạch, đái tháo đường, ung thư…), tuổi mắc / mất'}))}</div></div>
   <div class="card"><h3>Chức năng thận</h3><div class="g4">${F('Creatinin', U('p.renalManual.creat', (p.renalManual || {}).creat, 'µmol/L'))}${F('Ngày xét nghiệm', I('p.renalManual.date', (p.renalManual || {}).date, {type: 'date'}))}${F('hoặc eGFR có sẵn', U('p.renalManual.egfr', (p.renalManual || {}).egfr, 'mL/ph'))}<div></div></div><div style="margin-top:8px" data-live="renalP"></div></div>
   <div class="card"><h3>Dị ứng</h3><div class="checks">${ALLERGY.map(a => CL('p.allergies', p.allergies, a.k, a.t)).join('')}</div>
     <div class="g2" style="margin-top:10px">${F('Dị ứng khác (thuốc, thức ăn) — phân cách bằng dấu phẩy', I('p.allergyText', p.allergyText))}<div class="field"><label>&nbsp;</label>${CB('p.noAllergy', p.noAllergy, 'Đã hỏi — không dị ứng thuốc')}</div></div></div>
@@ -297,8 +298,7 @@ function tabProfile(p){
     ${F('Rượu bia', SEL('p.risk.alcohol', r.alcohol || 'no', [['no','Không / hiếm'],['some','Thỉnh thoảng'],['heavy','Thường xuyên, nhiều']]))}
     ${p.sex === 'Nữ' ? `<div class="field"><label>&nbsp;</label>${CB('p.risk.menopause', r.menopause, 'Đã mãn kinh')}</div>` : ''}
   </div>
-  <div class="lbl" style="margin-top:12px">Người thân (bố mẹ, anh chị em) bị ung thư</div><div class="checks">${Object.entries(FAM_CANCER).map(([k, l]) => CL('p.fam', p.fam, k, l)).join('')}</div>
-  <div style="margin-top:10px">${F('Tiền sử gia đình khác', T('p.famNote', p.famNote, {rows: 2}))}</div></div>
+  <div class="lbl" style="margin-top:12px">Người thân (bố mẹ, anh chị em) bị ung thư</div><div class="checks">${Object.entries(FAM_CANCER).map(([k, l]) => CL('p.fam', p.fam, k, l)).join('')}</div></div>
   <div class="card"><div class="row between"><div><h3 style="margin:0">Xoá hồ sơ</h3><div class="small muted">Xoá vĩnh viễn bệnh nhân này và toàn bộ lượt khám.</div></div><button class="btn danger" data-act="delP">Xoá bệnh nhân</button></div></div>
   </div>`;
 }
