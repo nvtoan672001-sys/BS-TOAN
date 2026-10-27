@@ -1033,7 +1033,8 @@ const LABS = [
 const LAB_PANELS = [{id: 'dgd', g: 'Máu', name: 'Điện giải đồ (Na, K, Clo)', keys: ['na', 'k', 'cl']}];
 
 // Lựa chọn ô "đánh giá" riêng theo key (bác sĩ đặt 2026-10-27); key khác dùng Bình thường / Cao / Thấp / Bất thường
-const FLAG_OPTS = {zung_a: ['Bình thường', 'Nhẹ – vừa', 'Nặng', 'Rất nặng'], psqi: ['Tốt', 'Kém']};
+const DASS_FLAGS = ['Bình thường', 'Nhẹ', 'Vừa', 'Nặng', 'Rất nặng'];
+const FLAG_OPTS = {zung_a: ['Bình thường', 'Nhẹ – vừa', 'Nặng', 'Rất nặng'], psqi: ['Tốt', 'Kém'], dass_d: DASS_FLAGS, dass_a: DASS_FLAGS, dass_s: DASS_FLAGS};
 
 // Diễn giải tổng điểm trắc nghiệm (ô "Kết quả" ở bước 2 và trên phiếu): key → [[điểm tối đa của khoảng, kết luận, mức 0–3]].
 // Ngưỡng lấy từ cột tham chiếu đã có của từng thang; GAD-7, GAD-2, PHQ-4 theo phiếu trong thư mục Tâm thần (Spitzer 2006, Kroenke 2007).
@@ -1057,6 +1058,9 @@ const SCALE_BANDS = {
   hama: [[17,'Lo âu nhẹ',1],[24,'Lo âu nhẹ – vừa',1],[30,'Lo âu vừa – nặng',2],[56,'Lo âu nặng',3]],
   madrs: [[6,'Bình thường',0],[19,'Trầm cảm nhẹ',1],[34,'Trầm cảm vừa',2],[60,'Trầm cảm nặng',3]],
   isi: [[7,'Không mất ngủ',0],[14,'Mất ngủ dưới ngưỡng',1],[21,'Mất ngủ vừa',2],[28,'Mất ngủ nặng',3]],
+  dass_d: [[9,'Bình thường',0],[13,'Trầm cảm nhẹ',1],[20,'Trầm cảm vừa',2],[27,'Trầm cảm nặng',3],[42,'Trầm cảm rất nặng',3]],
+  dass_a: [[7,'Bình thường',0],[9,'Lo âu nhẹ',1],[14,'Lo âu vừa',2],[19,'Lo âu nặng',3],[42,'Lo âu rất nặng',3]],
+  dass_s: [[14,'Bình thường',0],[18,'Stress nhẹ',1],[25,'Stress vừa',2],[33,'Stress nặng',3],[42,'Stress rất nặng',3]],
 };
 
 // Khám tâm thần (bước 1): bảng kiểm triệu chứng theo "Hướng dẫn chẩn đoán và điều trị một số rối loạn tâm thần

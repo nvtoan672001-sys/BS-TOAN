@@ -394,6 +394,14 @@ def main():
             opts = pg.evaluate("(id) => [...document.querySelectorAll(`select[data-b=\"v.orders.#${id}.flag\"] option`)].map(o => o.textContent)", zid)
             assert opts == ['— đánh giá —', 'Bình thường', 'Nhẹ – vừa', 'Nặng', 'Rất nặng'], opts
             pg.evaluate("(id) => { curV().orders = curV().orders.filter(o => o.id !== id); renderMain(true); }", zid); pg.wait_for_timeout(200)
+            # DASS-21 (trầm cảm, lo âu, stress): ô đánh giá 5 mức; tự diễn giải theo điểm đã × 2
+            for dk in ['dass_d', 'dass_a', 'dass_s']:
+                pg.click(f'input[data-act="ord"][data-key="{dk}"]'); pg.wait_for_timeout(300)
+                did = pg.evaluate("(k) => curV().orders.find(o => o.key === k).id", dk)
+                opts = pg.evaluate("(id) => [...document.querySelectorAll(`select[data-b=\"v.orders.#${id}.flag\"] option`)].map(o => o.textContent)", did)
+                assert opts == ['— đánh giá —', 'Bình thường', 'Nhẹ', 'Vừa', 'Nặng', 'Rất nặng'], (dk, opts)
+                pg.evaluate("(id) => { curV().orders = curV().orders.filter(o => o.id !== id); renderMain(true); }", did); pg.wait_for_timeout(200)
+            assert pg.evaluate("() => [['dass_d', 16], ['dass_a', 8], ['dass_s', 34]].map(([k, v]) => scaleResult(k, v).t)") == ['Trầm cảm vừa', 'Lo âu nhẹ', 'Stress rất nặng']
             # PSQI: ô đánh giá chỉ có Tốt / Kém
             pg.click('input[data-act="ord"][data-key="psqi"]'); pg.wait_for_timeout(300)
             qid = pg.evaluate("curV().orders.find(o => o.key === 'psqi').id")
