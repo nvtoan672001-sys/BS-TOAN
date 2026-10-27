@@ -492,6 +492,11 @@ function drugBlockReasons(p, v, d, ctx, line){
     if(r.length) out.push('olanzapin: ' + r.join('; ') + ' (olanzapin có thể kéo dài QT, gây hạ huyết áp tư thế)');
   }
   if(H.includes('fluoxetin')){ const r = fluoxBlockReasons(p, v, ctx); if(r.length) out.push('fluoxetin: ' + r.join('; ') + ' (fluoxetin gây kích hoạt, mất ngủ, buồn nôn, rối loạn tình dục; hạ ngưỡng co giật)'); }
+  // Tiền sử (ô "Tiền sử bệnh, phẫu thuật, nhập viện") ghi đang dùng rượu → không kê benzodiazepin (bác sĩ đặt 2026-10-27; ức chế hô hấp, lệ thuộc)
+  if(d.cls === 'Benzodiazepin' || expandTags(d.tags).has('bzd')){
+    const kw = ['dang su dung ruou', 'dang dung ruou', 'dang uong ruou', 'dang nghien ruou'];
+    if(kw.some(k => mentionsSymptom(p.condNote || '', k))) out.push('tiền sử ghi đang sử dụng rượu (benzodiazepin + rượu: ức chế hô hấp, an thần quá mức, lệ thuộc)');
+  }
   // Tích ô "Động kinh" ở hồ sơ nền → không kê SSRI (bác sĩ đặt 2026-10-25; chỉ theo ô tích, không theo ICD / chữ)
   if((p.conds || []).includes('epilepsy') && d && (d.cls === 'SSRI' || expandTags(d.tags).has('ssri'))) out.push('hồ sơ nền tích ô động kinh (SSRI có thể hạ ngưỡng co giật)');
   if(C.has('epilepsy')){
