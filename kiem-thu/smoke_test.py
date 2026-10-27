@@ -394,6 +394,12 @@ def main():
             opts = pg.evaluate("(id) => [...document.querySelectorAll(`select[data-b=\"v.orders.#${id}.flag\"] option`)].map(o => o.textContent)", zid)
             assert opts == ['— đánh giá —', 'Bình thường', 'Nhẹ – vừa', 'Nặng', 'Rất nặng'], opts
             pg.evaluate("(id) => { curV().orders = curV().orders.filter(o => o.id !== id); renderMain(true); }", zid); pg.wait_for_timeout(200)
+            # PSQI: ô đánh giá chỉ có Tốt / Kém
+            pg.click('input[data-act="ord"][data-key="psqi"]'); pg.wait_for_timeout(300)
+            qid = pg.evaluate("curV().orders.find(o => o.key === 'psqi').id")
+            opts = pg.evaluate("(id) => [...document.querySelectorAll(`select[data-b=\"v.orders.#${id}.flag\"] option`)].map(o => o.textContent)", qid)
+            assert opts == ['— đánh giá —', 'Tốt', 'Kém'], opts
+            pg.evaluate("(id) => { curV().orders = curV().orders.filter(o => o.id !== id); renderMain(true); }", qid); pg.wait_for_timeout(200)
             # giao diện: chọn GAD-7 ở bước 2, nhập 12 -> ô Kết quả hiện "Lo âu vừa"
             pg.evaluate("go({name: 'visit', pid: curP().id, vid: curV().id, step: 2})"); pg.wait_for_timeout(300)
             pg.click('input[data-act="ord"][data-key="gad7"]'); pg.wait_for_timeout(300)
