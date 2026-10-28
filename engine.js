@@ -286,7 +286,7 @@ function ctxOf(p, v){
   const a = ageOf(p, v ? v.date : null);
   const conds = new Set(p.conds || []);
   if(v && v.dx){
-    const it = ICD.find(x => x[0] === String(v.dx.icd || '').trim().split(' ')[0]); if(it) it[2].forEach(k => conds.add(k));
+    dxCodes(v).forEach(c => { const it = ICD.find(x => x[0] === c); if(it) it[2].forEach(k => conds.add(k)); });
     const t = ' ' + norm((v.dx.main || '') + ' ' + (v.dx.secondary || '')) + ' ';
     DX_KEYWORDS.forEach(([kw, k]) => { if(t.includes(kw)) conds.add(k); });
   }
@@ -340,11 +340,13 @@ function mentionsSymptom(text, kw){
   while(i >= 0){ const before = t.slice(Math.max(0, i - 20), i); if(!/\b(khong|ko|chua|het)\b(\s+\w+){0,2}\s*$/.test(before)) return true; i = t.indexOf(' ' + kw + ' ', i + 1); }
   return false;
 }
+// Mã ICD của lượt khám: chẩn đoán chính (v.dx.icd) và chẩn đoán phụ (v.dx.icd2)
+function dxCodes(v){ const d = (v && v.dx) || {}; return [d.icd, d.icd2].map(x => String(x || '').trim().split(' ')[0]).filter(Boolean); }
 function ssriBlockReasons(p, v, ctx){
   ctx = ctx || ctxOf(p, v);
   const out = [], m = (v && v.mental) || {}, sx = m.sx || [];
   const sexItems = (MENTAL_SX.find(g => g.g === 'sex') || {items: []}).items.filter(([k]) => sx.includes(k)).map(([, l]) => l.toLowerCase());
-  const icd = String((v && v.dx && v.dx.icd) || '').trim();
+  const icd = dxCodes(v).find(c => /^F52/.test(c)) || '';
   if(sexItems.length) out.push('khám tâm thần có rối loạn chức năng tình dục (' + sexItems.join(', ') + ')');
   else if(/^F52/.test(icd)) out.push('chẩn đoán rối loạn chức năng tình dục (' + icd.split(' ')[0] + ')');
   const gi = ['buon non', 'tieu chay', 'phan long'].filter(k => mentionsSymptom(((v && v.hpi) || '') + ' . ' + ((v && v.reason) || ''), k));
@@ -456,7 +458,7 @@ function smokeObeseReasons(p, v){
   const out = [], r = p.risk || {}, note = norm((p.condNote || '') + ' . ' + (p.social || '')).replace(/\b(da|tung)\s+bo\s+(hut\s+)?thuoc(\s+la)?\b|\bbo\s+thuoc(\s+la)?\b/g, ' ');
   if(r.smoke === 'current' || (r.smoke !== 'former' && ['hut thuoc'].some(k => mentionsSymptom(note, k)))) out.push('đang hút thuốc lá');
   const vt = (v && v.vitals) || {}, b = bmiOf(num(vt.weight) || p.weight, num(vt.height) || p.height);
-  const dxT = norm(((v && v.dx && (v.dx.main + ' ' + v.dx.secondary + ' ' + v.dx.icd)) || '') + ' ' + (p.condNote || ''));
+  const dxT = norm(((v && v.dx && (v.dx.main + ' ' + v.dx.secondary + ' ' + v.dx.icd + ' ' + (v.dx.icd2 || ''))) || '') + ' ' + (p.condNote || ''));
   if(b != null && b >= 25) out.push(`béo phì (BMI ${fmtN(b, 1)})`);
   else if(/\be66\b|beo phi/.test(dxT)) out.push('béo phì (ghi trong chẩn đoán / tiền sử)');
   return out;
@@ -587,8 +589,7 @@ function bipolarHistory(p, v, ctx){
 const DEP_ICD = /^(F32|F33|F34(\.1)?$|F41\.2|F31\.[345])/;
 function halfDoseReasons(p, v, d, ctx){
   if(!d || !v || !['sertralin', 'fluvoxamin'].some(k => norm(d.hc || '').includes(k))) return [];
-  const code = String((v.dx && v.dx.icd) || '').trim().split(' ')[0];
-  if(!DEP_ICD.test(code)) return [];
+  if(!dxCodes(v).some(c => DEP_ICD.test(c))) return [];
   const out = [], a = ageOf(p, v.date);
   if((ctx || ctxOf(p, v)).conds.has('liver')) out.push('bệnh gan mạn / xơ gan');
   if(a != null && a >= 6 && a <= 12) out.push(`trẻ ${a} tuổi (6–12 tuổi)`);

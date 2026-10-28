@@ -496,6 +496,12 @@ def main():
             assert all(pg.evaluate(PB, x) == 1 for x in neuro), 'mang thai phải chặn mọi thuốc thần kinh – tâm thần'
             assert pg.evaluate(PB, 'tiane12') == 1 and pg.evaluate(PB, 'cipro500') == 0
             pg.evaluate("(s) => { const p = curP(), v = curV(), o = JSON.parse(s); p.conds = o.conds; p.condNote = o.note; v.hpi = o.hpi; v.reason = o.reason; v.orders = o.orders; }", pg0)
+            # chẩn đoán phụ có mã ICD riêng: bệnh nền lấy từ mã phụ; cảnh báo ½ liều sertralin nhận mã trầm cảm ở cột phụ
+            d20 = pg.evaluate("() => JSON.stringify(curV().dx)")
+            pg.evaluate("() => { curV().dx = {...curV().dx, main: 'Viêm dạ dày', icd: 'K29.7 – Viêm dạ dày, không đặc hiệu', icd2: 'G40.9 – Động kinh, không đặc hiệu', secondary: ''}; }")
+            assert pg.evaluate("() => ctxOf(curP(), curV()).conds.has('epilepsy')"), 'mã ICD phụ phải đưa bệnh nền vào kiểm tra'
+            assert pg.evaluate("() => dxCodes(curV())") == ['K29.7', 'G40.9']
+            pg.evaluate("(s) => { curV().dx = JSON.parse(s); }", d20)
             # sertralin: ICD trầm cảm + (gan mạn hoặc 6–12 tuổi) -> cảnh báo giảm ½ liều (không chặn)
             HD = "(id) => checkAll(curP(), curV(), [{line: {id: 'L_hd', drugId: id}, drug: drugById(id)}]).items.filter(w => w.kind === 'Liều (quy tắc phòng khám)').length"
             hd0 = pg.evaluate("() => JSON.stringify({dx: curV().dx, conds: curP().conds, dob: curP().dob || null, by: curP().birthYear || null})")
@@ -621,6 +627,15 @@ def main():
             assert pg.evaluate("curV().dx.icd").startswith('F32.1 – ')
             assert 'depression' in pg.evaluate("curP().conds")
             pg.evaluate("() => { const v = curV(); v.mental = {sx: [], hist: [], excl: []}; v.dx.icd = ''; v.dx.main = ''; savePatient(curP()); }")
+
+            # giao diện bước 3: 2 cột, chọn mã ICD phụ -> tự điền "Chẩn đoán phụ"
+            pg.evaluate("go({name: 'visit', pid: 'p_demoA', vid: 'v_demo_now', step: 3})"); pg.wait_for_timeout(300)
+            dx0 = pg.evaluate("() => JSON.stringify(curV().dx)")
+            pg.evaluate("() => { curV().dx.secondary = ''; curV().dx.icd2 = ''; renderMain(true); }"); pg.wait_for_timeout(200)
+            assert pg.locator('.dxcol').count() == 2
+            pg.fill('input[data-b="v.dx.icd2"]', 'I10 – Tăng huyết áp vô căn'); pg.wait_for_timeout(300)
+            assert pg.evaluate("() => curV().dx.secondary") == 'Tăng huyết áp vô căn'
+            pg.evaluate("(s) => { curV().dx = JSON.parse(s); savePatient(curP()); }", dx0)
 
             # 7. Xoá bệnh nhân -> file chuyển vào da-xoa
             pg.evaluate("go({name: 'patient', pid: 'p_test1'})"); pg.evaluate('ACT.delP()'); pg.wait_for_timeout(1200)

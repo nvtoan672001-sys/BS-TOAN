@@ -273,3 +273,5 @@ table.t td.num input{padding:5px 4px}
 
 /* nút "Bệnh nhân" chỉ hiện trên màn hình hẹp */
 @media (min-width:821px){#sidebtn{display:none}}
+
+.dxcol{display:flex;flex-direction:column;gap:10px;min-width:0}
