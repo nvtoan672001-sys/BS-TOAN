@@ -429,6 +429,9 @@ def main():
             pg.evaluate("(s) => { const p = curP(), o = JSON.parse(s); p.conds = o.conds; p.condNote = o.note; }", du0)
             # mẫu lời dặn "Tâm bệnh" có trong thư viện, gợi ý khi đơn có SSRI
             assert pg.evaluate("() => { const t = S.tpls.find(x => x.id === 'adv_psych'); return !!t && t.cat === 'advice' && t.title === 'Tâm bệnh' && tplMatches(t, ctxOf(curP(), curV()), new Set(['ssri'])); }"), 'thiếu mẫu lời dặn Tâm bệnh'
+            assert pg.evaluate("() => S.tpls.find(x => x.id === 'adv_psych').text.includes('Tránh mang thai trong thời gian sử dụng thuốc')"), 'mẫu Tâm bệnh thiếu câu tránh mang thai'
+            # máy đang dùng có mẫu bản cũ -> updateSeedTpls thêm câu một lần
+            assert pg.evaluate("async () => { const t = S.tpls.find(x => x.id === 'adv_psych'); t.text = t.text.replace(' Tránh mang thai trong thời gian sử dụng thuốc.', ''); S.settings.tplUpdated = []; await updateSeedTpls(); return (t.text.match(/Tránh mang thai/g) || []).length; }") == 1
             # tiền sử ghi "đang sử dụng rượu" -> chặn benzodiazepin; "không ..." hoặc "đã bỏ rượu" không chặn; zopiclon không bị quy tắc này chặn
             RB = "(id) => drugBlockReasons(curP(), curV(), drugById(id)).filter(r => /đang sử dụng rượu|có uống rượu bia/.test(r)).length"
             rb0 = pg.evaluate("() => curP().condNote"); al0 = pg.evaluate("() => (curP().risk || {}).alcohol || 'no'")

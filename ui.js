@@ -908,9 +908,18 @@ async function loadAll(){
   await addNewSeedDrugs();
   await updateSeedDrugs();
   await addNewSeedTpls();
+  await updateSeedTpls();
 }
 // Mẫu lời dặn bổ sung sau khi phát hành: chỉ thêm id chưa có, mỗi id đúng một lần (BS đã xoá thì không thêm lại)
 const TPL_ADDED = ['adv_psych'];
+// Sửa nội dung mẫu đã phát hành: thay đoạn `from` bằng `to` một lần (nhớ ở settings.tplUpdated); mẫu bác sĩ đã sửa đoạn đó thì giữ nguyên
+const TPL_UPDATES = [{ver: 'psych-mang-thai-2026-10-28', id: 'adv_psych', from: 'không tự ý ngừng thuốc. Báo bác sĩ', to: 'không tự ý ngừng thuốc. Tránh mang thai trong thời gian sử dụng thuốc. Báo bác sĩ'}];
+async function updateSeedTpls(){
+  const done = S.settings.tplUpdated || [], todo = TPL_UPDATES.filter(u => !done.includes(u.ver));
+  if(!todo.length) return;
+  for(const u of todo){ const t = S.tpls.find(x => x.id === u.id); if(t && t.text.includes(u.from) && !t.text.includes(u.to)){ t.text = t.text.replace(u.from, u.to); await Store.put('templates', t); } }
+  S.settings.tplUpdated = done.concat(todo.map(u => u.ver)); await saveSettings();
+}
 async function addNewSeedTpls(){
   const done = S.settings.tplAdded || [], todo = TPL_ADDED.filter(id => !done.includes(id));
   if(!todo.length) return;
