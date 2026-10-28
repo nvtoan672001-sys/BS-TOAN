@@ -792,6 +792,53 @@ function psyDx(p, v){
       add('F41.2', 'Bài 23', ['Có khí sắc giảm / mất hứng thú', 'Có biểu hiện lo âu', 'Chưa đủ nặng để chẩn đoán riêng trầm cảm'], mm, 'Nếu cả trầm cảm và lo âu đều đủ nặng thì ưu tiên chẩn đoán trầm cảm.');
     }
   }
+  // --- Rối loạn hoảng sợ, ám ảnh sợ, ám ảnh nghi thức, stress cấp / PTSD (ICD-10 WHO — BYT 2020 không có bài riêng) ---
+  const has = k => sx.has(k), lab = (g, k) => MENTAL_SX.find(x => x.g === g).items.find(i => i[0] === k)[1].split(/[:;(]/)[0].trim();
+  const need = (g, ks) => ks.filter(k => !has(k)).map(k => 'Chưa có: ' + lab(g, k));
+  const phobAny = has('phob_agora') || has('phob_social') || has('phob_specific');
+  if(has('pan_attacks')){
+    const miss = need('panic', ['pan_sx', 'pan_month']);
+    if(phobAny) miss.push('Cơn hoảng sợ xảy ra trong tình huống ám ảnh sợ → ưu tiên chẩn đoán ám ảnh sợ (F40)');
+    if(depOk) miss.push('Đã đủ tiêu chuẩn trầm cảm — ICD-10: không chẩn đoán hoảng sợ là chính khi có trầm cảm');
+    add('F41.0', 'ICD-10', ['Cơn hoảng sợ tái diễn, không dự đoán trước'].concat(['pan_sx', 'pan_month'].filter(has).map(k => lab('panic', k))), miss, 'Loại trừ bệnh tim mạch, cường giáp, hạ đường huyết, do chất (cà phê, amphetamin, cai rượu / benzodiazepin).');
+  }
+  if(phobAny){
+    const base = need('phob', ['phob_avoid', 'phob_insight']);
+    if(has('phob_agora')) add('F40.0', 'ICD-10', ['Sợ ≥ 2 tình huống: đông người, nơi công cộng, xa nhà, đi một mình'].concat(['phob_avoid', 'phob_insight'].filter(has).map(k => lab('phob', k))), base, has('pan_attacks') ? 'Có kèm cơn hoảng sợ.' : '');
+    if(has('phob_social')) add('F40.1', 'ICD-10', ['Sợ bị chú ý / đánh giá trong nhóm nhỏ'].concat(['phob_avoid', 'phob_insight'].filter(has).map(k => lab('phob', k))), base, '');
+    if(has('phob_specific')) add('F40.2', 'ICD-10', ['Sợ đối tượng / tình huống đặc hiệu'].concat(['phob_avoid', 'phob_insight'].filter(has).map(k => lab('phob', k))), base, '');
+  }
+  if(has('ocd_obs') || has('ocd_comp')){
+    const code = has('ocd_obs') && has('ocd_comp') ? 'F42.2' : has('ocd_obs') ? 'F42.0' : 'F42.1';
+    const miss = need('ocd', ['ocd_own', 'ocd_2wk']);
+    add(code, 'ICD-10', ['ocd_obs', 'ocd_comp', 'ocd_own', 'ocd_2wk'].filter(has).map(k => lab('ocd', k)), miss, depOk ? 'Có trầm cảm kèm theo: ICD-10 ưu tiên rối loạn xuất hiện trước; nếu cùng lúc thường chẩn đoán trầm cảm.' : '');
+  }
+  if(has('ptsd_event')){
+    if(has('ast_acute')) add('F43.0', 'ICD-10', ['Sự kiện đe doạ / thảm hoạ đặc biệt', 'Triệu chứng xuất hiện vài phút sau sự kiện, giảm trong 2–3 ngày'], [], 'Nếu triệu chứng kéo dài hoặc xuất hiện muộn → đánh giá rối loạn stress sau sang chấn (F43.1).');
+    if(['ptsd_reexp', 'ptsd_avoid', 'ptsd_arousal'].some(has)){
+      const miss = need('ptsd', ['ptsd_reexp', 'ptsd_arousal', 'ptsd_6m']);
+      add('F43.1', 'ICD-10; LEC4', ['Sự kiện đe doạ / thảm hoạ đặc biệt'].concat(['ptsd_reexp', 'ptsd_avoid', 'ptsd_arousal', 'ptsd_6m'].filter(has).map(k => lab('ptsd', k))), miss, (has('ptsd_avoid') ? '' : 'Né tránh thường có nhưng không bắt buộc. ') + 'Trắc nghiệm hỗ trợ (LEC4): PCL / PTSD Symptom Scale, SPRINT.');
+    }
+  }
+  // --- Chán ăn / ăn vô độ tâm thần (BYT 2020 Bài 26 theo ICD-10; LEC9 handout ICD-10 F50.2) ---
+  const vw = num(((v.vitals || {}).weight)) ?? num(p.weight), vh = num(((v.vitals || {}).height)) ?? num(p.height), bmiNow = bmiOf(vw, vh);
+  const anW = has('an_weight') || (bmiNow != null && bmiNow <= 17.5);
+  const anKeys = ['an_self', 'an_body', 'an_endo'], anCnt = anKeys.filter(has).length + (anW ? 1 : 0);
+  const anOk = anCnt === 4;
+  if(anCnt >= 2 && (has('an_self') || has('an_body'))){
+    const met = (anW ? [bmiNow != null && bmiNow <= 17.5 && !has('an_weight') ? `BMI ${fmtN(bmiNow, 1)} (≤ 17,5)` : 'Cân nặng thấp ≥ 15% so với phải có'] : []).concat(anKeys.filter(has).map(k => lab('ed', k)));
+    const miss = (anW ? [] : ['Chưa có: cân nặng thấp ≥ 15% (BMI ≤ 17,5)' + (bmiNow != null ? ` — BMI hiện ${fmtN(bmiNow, 1)}` : '')]).concat(need('ed', anKeys));
+    const sev = bmiNow != null && bmiNow < 17.5 ? (bmiNow < 15 ? 'trầm trọng' : bmiNow < 16 ? 'nặng' : bmiNow < 17 ? 'trung bình' : 'nhẹ') : '';
+    add(anOk ? 'F50.0' : 'F50.1', 'BYT 2020 Bài 26', met, anOk ? [] : miss, (anOk ? '' : 'Thiếu một hoặc vài đặc điểm chính → chán ăn tâm thần không điển hình (F50.1). ') + (sev ? `Mức độ theo BMI (LEC9, DSM-5): ${sev}. ` : '') + 'Phân biệt: sút cân do bệnh cơ thể (Crohn, kém hấp thu, u não, ung thư), trầm cảm (không có ý tưởng méo mó về cơ thể).');
+  }
+  const bnKeys = ['bn_binge', 'bn_crave', 'bn_comp', 'bn_fat'], bnCnt = bnKeys.filter(has).length;
+  if(has('bn_binge') && bnCnt >= 2){
+    const miss = need('ed', bnKeys);
+    if(anOk) miss.push('Đang đủ tiêu chuẩn chán ăn tâm thần → ưu tiên F50.0');
+    add(bnCnt === 4 && !anOk ? 'F50.2' : 'F50.3', 'LEC9 (ICD-10 F50.2)', bnKeys.filter(has).map(k => lab('ed', k)), bnCnt === 4 && !anOk ? [] : miss, (bnCnt === 4 && !anOk ? '' : 'Thiếu đặc điểm chính → ăn vô độ tâm thần không điển hình (F50.3). ') + 'Kiểm tra kali máu, ECG khi có tự gây nôn / dùng thuốc tẩy, lợi tiểu.');
+  }
+  const scoffN = [...sx].filter(k => k.startsWith('scoff_')).length;
+  if(scoffN >= 2 && anCnt < 2 && !has('bn_binge')) todo.push(`SCOFF = ${scoffN}/5: đánh giá mục "Chán ăn / ăn vô độ tâm thần" để định hướng F50.`);
   // --- Rối loạn sự thích ứng (ICD-10 WHO F43.2; tài liệu BYT 2020 / LEC4 chỉ dẫn chẩn đoán theo ICD-10) ---
   const adjStress = sx.has('adj_stressor') || excl.has('stress');
   const aDep = sx.has('adj_dep'), aAnx = sx.has('adj_anx'), aEmo = sx.has('adj_emo'), aBeh = sx.has('adj_behav');

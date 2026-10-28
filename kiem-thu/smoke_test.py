@@ -609,6 +609,19 @@ def main():
             assert pg.evaluate(ADJ, {'sx': base + ['adj_emo', 'adj_behav'], 'weeks': 6}) == [['F43.25', True]]
             assert pg.evaluate(ADJ, {'sx': ['adj_stressor', 'adj_anx'], 'weeks': 6}) == [['F43.23', False]], 'thiếu khởi phát / suy giảm -> Chưa đủ'
             assert pg.evaluate(ADJ, {'sx': ['adj_anx'], 'weeks': 6}) == [], 'không có sự kiện stress -> không gợi ý F43.2'
+            # lo âu khác + ăn uống: gợi ý mã đúng, đủ / chưa đủ
+            SG = "(o) => { const v = curV(); v.mental = Object.assign({sx: [], hist: [], excl: []}, o); return psyDx(curP(), v).sugs.map(s => [s.code, s.ok]); }"
+            assert ['F41.0', True] in pg.evaluate(SG, {'sx': ['pan_attacks', 'pan_sx', 'pan_month'], 'weeks': 6})
+            assert ['F41.0', False] in pg.evaluate(SG, {'sx': ['pan_attacks', 'pan_sx', 'pan_month', 'phob_agora'], 'weeks': 6})
+            assert ['F40.1', True] in pg.evaluate(SG, {'sx': ['phob_social', 'phob_avoid', 'phob_insight'], 'weeks': 6})
+            assert ['F42.2', True] in pg.evaluate(SG, {'sx': ['ocd_obs', 'ocd_comp', 'ocd_own', 'ocd_2wk'], 'weeks': 6})
+            assert ['F42.1', False] in pg.evaluate(SG, {'sx': ['ocd_comp'], 'weeks': 6})
+            assert ['F43.1', True] in pg.evaluate(SG, {'sx': ['ptsd_event', 'ptsd_reexp', 'ptsd_arousal', 'ptsd_6m'], 'weeks': 10})
+            assert ['F43.0', True] in pg.evaluate(SG, {'sx': ['ptsd_event', 'ast_acute'], 'weeks': 0})
+            assert ['F50.0', True] in pg.evaluate(SG, {'sx': ['an_weight', 'an_self', 'an_body', 'an_endo'], 'weeks': 20})
+            assert ['F50.1', False] in pg.evaluate(SG, {'sx': ['an_weight', 'an_self', 'an_body'], 'weeks': 20})
+            assert ['F50.2', True] in pg.evaluate(SG, {'sx': ['bn_binge', 'bn_crave', 'bn_comp', 'bn_fat'], 'weeks': 20})
+            assert not any(c.startswith('F50') for c, _ in pg.evaluate(SG, {'sx': ['scoff_s'], 'weeks': 2}))
             # giao diện: bảng kiểm ở bước 1 cập nhật tức thời, bước 3 hiện gợi ý và chọn được
             pg.evaluate("() => { curV().mental = {sx: [], hist: [], excl: []}; S.mOpen = {}; renderMain(true); }")
             if not pg.is_visible('input[data-v="dep_mood"]'): pg.click('[data-act="mentalToggle"]')

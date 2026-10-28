@@ -840,6 +840,9 @@ const ICD = [
   ['F41.8','Rối loạn lo âu biệt định khác',['depression']],
   ['F41.9','Rối loạn lo âu không biệt định',['depression']],
   ['F42','Rối loạn ám ảnh nghi thức (ám ảnh – cưỡng chế)',['depression']],
+  ['F42.0','Rối loạn ám ảnh nghi thức – ưu thế ý nghĩ ám ảnh',['depression']],
+  ['F42.1','Rối loạn ám ảnh nghi thức – ưu thế hành vi cưỡng chế (nghi thức)',['depression']],
+  ['F42.2','Rối loạn ám ảnh nghi thức – hỗn hợp ý nghĩ và hành vi',['depression']],
   // Rối loạn liên quan stress, phân ly, dạng cơ thể (LEC4, BYT Bài 24–25)
   // Rối loạn liên quan stress (LEC4: F43, F44, F45, F48; mã con theo ICD-10 WHO)
   ['F43.0','Phản ứng stress cấp',[]],
@@ -1115,6 +1118,28 @@ const MENTAL_SX = [
     ['anx_motor','Căng thẳng vận động: bồn chồn, đứng ngồi không yên, đau căng đầu, run, không thư giãn được'],
     ['anx_auto','Triệu chứng thần kinh tự trị: vã mồ hôi, mạch nhanh, thở gấp, khô miệng, đánh trống ngực, sôi bụng, chóng mặt…'],
     ['anx_primary','Lo âu – sợ hãi là biểu hiện chính, nguyên phát']]},
+  {g:'panic', t:'Rối loạn hoảng sợ (F41.0)', src:'ICD-10 WHO', items:[
+    ['pan_attacks','Các cơn lo âu nặng (hoảng sợ) tái diễn, không giới hạn ở tình huống nào, không dự đoán trước được'],
+    ['pan_sx','Trong cơn: khởi phát đột ngột, đánh trống ngực, đau ngực, nghẹt thở, chóng mặt, cảm giác không thực; sợ chết / mất kiểm soát / phát điên'],
+    ['pan_month','Nhiều cơn nặng trong khoảng 1 tháng; giữa các cơn tương đối không lo âu']]},
+  {g:'phob', t:'Rối loạn lo âu ám ảnh sợ (F40)', src:'ICD-10 WHO', items:[
+    ['phob_agora','Sợ ≥ 2 tình huống: nơi đông người, nơi công cộng, đi xa nhà một mình, đi lại một mình'],
+    ['phob_social','Sợ bị người khác chú ý / đánh giá trong nhóm nhỏ (ăn, nói trước người khác…)'],
+    ['phob_specific','Sợ một đối tượng / tình huống đặc hiệu (độ cao, con vật, máu, tiêm, nơi kín…)'],
+    ['phob_avoid','Né tránh rõ rệt; lo âu chỉ xuất hiện trong (hoặc khi nghĩ tới) tình huống gây sợ'],
+    ['phob_insight','Nhận biết nỗi sợ là quá mức, vô lý; gây đau khổ đáng kể']]},
+  {g:'ocd', t:'Rối loạn ám ảnh nghi thức (F42)', src:'ICD-10 WHO', items:[
+    ['ocd_obs','Ý nghĩ / hình ảnh / xung động ám ảnh, lặp đi lặp lại, gây khó chịu'],
+    ['ocd_comp','Hành vi cưỡng chế / nghi thức lặp lại (rửa tay, kiểm tra, đếm, sắp xếp…)'],
+    ['ocd_own','Nhận biết là ý nghĩ của chính mình, vô lý; cố chống lại nhưng không được'],
+    ['ocd_2wk','Có mặt hầu hết các ngày ≥ 2 tuần liên tiếp; gây đau khổ / cản trở hoạt động']]},
+  {g:'ptsd', t:'Phản ứng stress cấp / Rối loạn stress sau sang chấn (F43.0, F43.1)', src:'ICD-10 WHO; LEC4', items:[
+    ['ptsd_event','Đã trải qua sự kiện có tính đe doạ hoặc thảm hoạ đặc biệt (hầu như ai cũng đau khổ)'],
+    ['ast_acute','Triệu chứng xuất hiện trong vài phút sau sự kiện, giảm dần trong 2–3 ngày'],
+    ['ptsd_reexp','Hồi tưởng xâm nhập, tái hiện (flashback), ác mộng về sự kiện'],
+    ['ptsd_avoid','Né tránh hoàn cảnh gợi nhớ sự kiện'],
+    ['ptsd_arousal','Tăng cảnh giác, giật mình quá mức, mất ngủ, khó tập trung, dễ cáu; hoặc không nhớ được một phần sự kiện'],
+    ['ptsd_6m','Khởi phát trong vòng 6 tháng sau sự kiện']]},
   {g:'adj', t:'Rối loạn sự thích ứng (F43.2)', src:'ICD-10 WHO; LEC4', items:[
     ['adj_stressor','Có biến đổi lớn trong cuộc sống / sự kiện gây stress xác định được (không phải thảm hoạ)'],
     ['adj_onset','Triệu chứng khởi phát trong vòng 1 tháng sau sự kiện'],
@@ -1123,6 +1148,15 @@ const MENTAL_SX = [
     ['adj_anx','Ưu thế: lo âu (lo lắng, căng thẳng)'],
     ['adj_emo','Ưu thế: cảm xúc khác (tức giận, cáu kỉnh, cảm giác không đương đầu được)'],
     ['adj_behav','Ưu thế: rối loạn hành vi (gây hấn, chống đối, vi phạm quy tắc)']]},
+  {g:'ed', t:'Chán ăn / ăn vô độ tâm thần (F50)', src:'BYT 2020 Bài 26; LEC9 (ICD-10)', items:[
+    ['an_weight','Cân nặng thấp hơn ≥ 15% cân nặng phải có (BMI ≤ 17,5) hoặc không đạt cân nặng phải có khi lớn'],
+    ['an_self','Sút cân tự gây ra: tránh "thức ăn gây béo", tự gây nôn, thuốc tẩy, tập luyện quá mức, thuốc chán ăn / lợi tiểu'],
+    ['an_body','Hình ảnh cơ thể méo mó: sợ béo dai dẳng như ý tưởng xâm phạm, tự đặt ngưỡng cân nặng thấp'],
+    ['an_endo','Rối loạn nội tiết: mất kinh (nữ), mất thích thú / khả năng tình dục (nam); dậy thì chậm / ngừng'],
+    ['bn_binge','Các đợt ăn quá nhiều tái diễn (≥ 2 lần/tuần trong 3 tháng), lượng lớn trong thời gian ngắn'],
+    ['bn_crave','Bận tâm dai dẳng về ăn uống, thèm ăn không cưỡng được'],
+    ['bn_comp','Chống tác dụng gây béo: tự gây nôn, tẩy ruột, nhịn đói xen kẽ, thuốc chán ăn / tuyến giáp / lợi tiểu, bỏ insulin'],
+    ['bn_fat','Tự cho là mình quá béo, sợ béo như ý tưởng xâm phạm']]},
   {g:'scoff', t:'Rối loạn ăn uống – thang SCOFF (mỗi câu "có" = 1 điểm; ≥ 2: nghi rối loạn ăn uống)', src:'LEC9; Morgan 1999', items:[
     ['scoff_s','Tự gây nôn vì thấy no khó chịu'],
     ['scoff_c','Lo mất kiểm soát lượng mình ăn'],
