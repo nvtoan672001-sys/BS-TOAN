@@ -1115,6 +1115,14 @@ const MENTAL_SX = [
     ['anx_motor','Căng thẳng vận động: bồn chồn, đứng ngồi không yên, đau căng đầu, run, không thư giãn được'],
     ['anx_auto','Triệu chứng thần kinh tự trị: vã mồ hôi, mạch nhanh, thở gấp, khô miệng, đánh trống ngực, sôi bụng, chóng mặt…'],
     ['anx_primary','Lo âu – sợ hãi là biểu hiện chính, nguyên phát']]},
+  {g:'adj', t:'Rối loạn sự thích ứng (F43.2)', src:'ICD-10 WHO; LEC4', items:[
+    ['adj_stressor','Có biến đổi lớn trong cuộc sống / sự kiện gây stress xác định được (không phải thảm hoạ)'],
+    ['adj_onset','Triệu chứng khởi phát trong vòng 1 tháng sau sự kiện'],
+    ['adj_impair','Đau khổ chủ quan, rối loạn cảm xúc cản trở hoạt động xã hội / công việc'],
+    ['adj_dep','Ưu thế: trầm cảm (buồn, mất hứng thú)'],
+    ['adj_anx','Ưu thế: lo âu (lo lắng, căng thẳng)'],
+    ['adj_emo','Ưu thế: cảm xúc khác (tức giận, cáu kỉnh, cảm giác không đương đầu được)'],
+    ['adj_behav','Ưu thế: rối loạn hành vi (gây hấn, chống đối, vi phạm quy tắc)']]},
   {g:'scoff', t:'Rối loạn ăn uống – thang SCOFF (mỗi câu "có" = 1 điểm; ≥ 2: nghi rối loạn ăn uống)', src:'LEC9; Morgan 1999', items:[
     ['scoff_s','Tự gây nôn vì thấy no khó chịu'],
     ['scoff_c','Lo mất kiểm soát lượng mình ăn'],

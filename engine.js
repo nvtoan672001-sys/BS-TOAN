@@ -791,6 +791,23 @@ function psyDx(p, v){
       add('F41.2', 'Bài 23', ['Có khí sắc giảm / mất hứng thú', 'Có biểu hiện lo âu', 'Chưa đủ nặng để chẩn đoán riêng trầm cảm'], mm, 'Nếu cả trầm cảm và lo âu đều đủ nặng thì ưu tiên chẩn đoán trầm cảm.');
     }
   }
+  // --- Rối loạn sự thích ứng (ICD-10 WHO F43.2; tài liệu BYT 2020 / LEC4 chỉ dẫn chẩn đoán theo ICD-10) ---
+  const adjStress = sx.has('adj_stressor') || excl.has('stress');
+  const aDep = sx.has('adj_dep'), aAnx = sx.has('adj_anx'), aEmo = sx.has('adj_emo'), aBeh = sx.has('adj_behav');
+  if(adjStress && (aDep || aAnx || aEmo || aBeh)){
+    const emo = aDep || aAnx || aEmo;
+    const code = aBeh && emo ? 'F43.25' : aBeh ? 'F43.24' : aDep && aAnx ? 'F43.22' : aDep && !aEmo ? (wk != null && wk > 4 ? 'F43.21' : 'F43.20') : 'F43.23';
+    const met = ['Có sự kiện / biến đổi lớn gây stress'].concat(sx.has('adj_onset') ? ['Khởi phát trong vòng 1 tháng sau sự kiện'] : [], sx.has('adj_impair') ? ['Đau khổ chủ quan, cản trở hoạt động xã hội / công việc'] : [],
+      [aDep && 'trầm cảm', aAnx && 'lo âu', aEmo && 'cảm xúc khác', aBeh && 'hành vi'].filter(Boolean).length ? ['Ưu thế: ' + [aDep && 'trầm cảm', aAnx && 'lo âu', aEmo && 'cảm xúc khác', aBeh && 'hành vi'].filter(Boolean).join(', ')] : []);
+    const miss = [];
+    if(!sx.has('adj_onset')) miss.push('Cần khởi phát trong vòng 1 tháng sau sự kiện stress');
+    if(!sx.has('adj_impair')) miss.push('Cần có đau khổ chủ quan / cản trở hoạt động xã hội, công việc');
+    if(depOk) miss.push('Đã đủ tiêu chuẩn giai đoạn trầm cảm (F32) — ICD-10 ưu tiên chẩn đoán trầm cảm');
+    if(code === 'F43.21' && wk > 104) miss.push(durTxt + ' — phản ứng trầm cảm kéo dài không quá 2 năm');
+    else if(code !== 'F43.21' && wk != null && wk > 26) miss.push(durTxt + ' — thường không quá 6 tháng (trừ phản ứng trầm cảm kéo dài) → xem lại chẩn đoán');
+    const note = code === 'F43.20' ? 'Phản ứng trầm cảm ngắn: không quá 1 tháng.' : code === 'F43.21' ? 'Phản ứng trầm cảm kéo dài: không quá 2 năm.' : 'Thường bắt đầu trong vòng 1 tháng sau sự kiện và không quá 6 tháng. Không đủ tiêu chuẩn một rối loạn cảm xúc / lo âu / hành vi riêng biệt.';
+    add(code, 'ICD-10', met, miss, note + ' Trắc nghiệm hỗ trợ (LEC4): ADNM-20, DASS, PSS.');
+  } else if(adjStress && !mood && !anxSx.length) todo.push('Có sự kiện gây stress: đánh giá biểu hiện ưu thế (trầm cảm / lo âu / cảm xúc khác / hành vi) ở mục "Rối loạn sự thích ứng" để định hướng F43.2.');
   // --- Cảnh báo, việc cần làm ---
   if(sx.has('dep_suicide')) alerts.push({lv: 3, t: 'Có ý tưởng / hành vi tự sát', m: 'Đánh giá nguy cơ tự sát ngay trong buổi khám (C-SSRS); cân nhắc nhập viện hoặc chuyển chuyên khoa tâm thần, không để bệnh nhân một mình, báo người nhà.'});
   if(depLv && !manSx && !hist.size) todo.push('Hỏi tiền sử hưng cảm / hưng cảm nhẹ (MDQ, HCL-32) trước khi kết luận trầm cảm đơn cực.');

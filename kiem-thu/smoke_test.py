@@ -592,6 +592,17 @@ def main():
             assert r['codes'] == [] and 'F32.1' in r['all'], 'có yếu tố do chất thì không được "đủ tiêu chuẩn"'
             r = pg.evaluate(DX, {'sx': ['dep_mood', 'anx_fear', 'anx_motor', 'anx_auto'], 'weeks': 8})
             assert 'F41.2' in r['codes'], r
+            # rối loạn sự thích ứng: chọn mã con theo biểu hiện ưu thế; thiếu khởi phát / suy giảm thì "Chưa đủ"
+            ADJ = "(o) => { const v = curV(); v.mental = Object.assign({sx: [], hist: [], excl: []}, o); return psyDx(curP(), v).sugs.filter(s => /^F43\\.2/.test(s.code)).map(s => [s.code, s.ok]); }"
+            base = ['adj_stressor', 'adj_onset', 'adj_impair']
+            assert pg.evaluate(ADJ, {'sx': base + ['adj_dep'], 'weeks': 3}) == [['F43.20', True]]
+            assert pg.evaluate(ADJ, {'sx': base + ['adj_dep'], 'weeks': 10}) == [['F43.21', True]]
+            assert pg.evaluate(ADJ, {'sx': base + ['adj_dep', 'adj_anx'], 'weeks': 6}) == [['F43.22', True]]
+            assert pg.evaluate(ADJ, {'sx': base + ['adj_anx'], 'weeks': 6}) == [['F43.23', True]]
+            assert pg.evaluate(ADJ, {'sx': base + ['adj_behav'], 'weeks': 6}) == [['F43.24', True]]
+            assert pg.evaluate(ADJ, {'sx': base + ['adj_emo', 'adj_behav'], 'weeks': 6}) == [['F43.25', True]]
+            assert pg.evaluate(ADJ, {'sx': ['adj_stressor', 'adj_anx'], 'weeks': 6}) == [['F43.23', False]], 'thiếu khởi phát / suy giảm -> Chưa đủ'
+            assert pg.evaluate(ADJ, {'sx': ['adj_anx'], 'weeks': 6}) == [], 'không có sự kiện stress -> không gợi ý F43.2'
             # giao diện: bảng kiểm ở bước 1 cập nhật tức thời, bước 3 hiện gợi ý và chọn được
             pg.evaluate("() => { curV().mental = {sx: [], hist: [], excl: []}; S.mOpen = {}; renderMain(true); }")
             if not pg.is_visible('input[data-v="dep_mood"]'): pg.click('[data-act="mentalToggle"]')
