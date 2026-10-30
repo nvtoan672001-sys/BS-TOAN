@@ -1165,7 +1165,8 @@ const LABS = [
 
 // Công cụ nguy cơ tim mạch trực tuyến (VNHA 2026 mục 7.1.2; link do bác sĩ cung cấp)
 const CV_LINKS = [['CAREME – Yêu lấy mình', 'https://caremeyeulayminh.com/khao-sat'], ['PREVENT-CVD (AHA)', 'https://professional.heart.org/en/guidelines-and-statements/prevent-calculator'],
-  ['SCORE2 (40–69 tuổi, MDCalc)', 'https://www.mdcalc.com/calc/10499/systematic-coronary-risk-evaluation-score2'], ['SCORE2-OP (≥ 70 tuổi, MDCalc)', 'https://www.mdcalc.com/calc/10503/score2-older-persons-score2-op']];
+  ['SCORE2 (40–69 tuổi, MDCalc)', 'https://www.mdcalc.com/calc/10499/systematic-coronary-risk-evaluation-score2'], ['SCORE2-OP (≥ 70 tuổi, MDCalc)', 'https://www.mdcalc.com/calc/10503/score2-older-persons-score2-op'],
+  ['SCORE2-Diabetes (MDCalc)', 'https://www.mdcalc.com/calc/10510/score2-diabetes']];
 
 // SCORE2-Asia Pacific — VNHA 2026 Hình PL1 (vùng nguy cơ cao): % nguy cơ tim mạch 10 năm (tử vong và không tử vong)
 // SCORE2_AP[giới 'F'|'M'][0 không hút / 1 hút][tuổi 40-44…65-69][HATT 100-119,120-139,140-159,160-179][non-HDL 3,0-3,9…6,0-6,9 mmol/L]
