@@ -713,7 +713,7 @@ function cvRisk(p, v){
   // SCORE2-AP
   let score = null, scoreNote = '';
   if(est.length || dm || (egfr != null && egfr < 60) || (acr != null && acr >= 3)) scoreNote = 'Đã có bệnh tim mạch / đái tháo đường / bệnh thận mạn (eGFR < 60 hoặc ACR ≥ 3 mg/mmol) → xếp ngay nguy cơ cao / rất cao, không cần tính SCORE2.';
-  else if(a == null || a < 40 || a > 69) scoreNote = 'SCORE2-AP chỉ áp dụng 40–69 tuổi' + (a != null && a >= 70 ? ' (≥ 70 tuổi dùng SCORE2-OP).' : '.');
+  else if(a == null || a < 40 || a > 69) scoreNote = 'SCORE2-AP chỉ áp dụng 40–69 tuổi' + (a != null && a >= 70 ? ' (≥ 70 tuổi dùng SCORE2-OP — nút MDCalc bên dưới; chọn vùng nguy cơ cao).' : '.');
   else if(!s) scoreNote = 'Cần HA tâm thu.';
   else if(tc == null || hdl == null) scoreNote = 'Cần cholesterol toàn phần và HDL-C để tính non-HDL.';
   else {
@@ -722,8 +722,12 @@ function cvRisk(p, v){
     if(s >= 180 || s < 100 || nh < 3 || nh >= 7) scoreNote = 'Giá trị ngoài khoảng của bảng — đã lấy ô gần nhất.';
     scoreNote = `non-HDL ${fmtN(nh, 1)} mmol/L. ` + scoreNote;
   }
+  // Chỉ số để nhập PREVENT-CVD (30–79 tuổi): cholesterol, HDL đổi sang mg/dL
+  const lm = ctx.longMeds || [], onTag = tg => lm.some(m => m.tags && m.tags.has(tg));
+  const prevent = {age: a, sex: p.sex, sbp: s, tcMg: tc != null ? Math.round(tc * 38.67) : null, hdlMg: hdl != null ? Math.round(hdl * 38.67) : null, egfr, bmi: bmi != null ? Math.round(bmi * 10) / 10 : null,
+    dm, smoke, statin: onTag('statin'), bpMed: lm.some(m => htnGroup(m.drug) || (m.tags && ['acei','arb','beta_blocker','ccb','diuretic','thiazide'].some(x => m.tags.has(x)))), acrMgG: acr != null ? Math.round(acr * 8.84) : null, a1c};
   const band = score == null ? '' : score < 5 ? '< 5%' : score < 10 ? '5–10%' : score < 20 ? '10–20%' : score < 30 ? '20–30%' : '≥ 30%';
-  return {level, bp, rf, hmod, ckm12, ckm3, est, dm, score, band, scoreNote};
+  return {level, bp, rf, hmod, ckm12, ckm3, est, dm, score, band, scoreNote, prevent};
 }
 function checkAll(p, v, entries){
   const ctx = ctxOf(p, v);

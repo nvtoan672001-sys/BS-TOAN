@@ -524,6 +524,8 @@ def main():
             pg.evaluate("() => { renalOf = window._rOf; }")
             pg.evaluate("go({name: 'visit', pid: curP().id, vid: curV().id, step: 1})"); pg.wait_for_timeout(300)
             assert 'VNHA 2026' in pg.inner_text('[data-live="cvrisk"]'), 'thẻ Nguy cơ tim mạch phải hiện ở bước 1'
+            assert pg.locator('[data-live="cvrisk"] a[href*="caremeyeulayminh.com"]').count() == 1 and pg.locator('[data-live="cvrisk"] a[href*="prevent-calculator"]').count() == 1 and pg.locator('[data-live="cvrisk"] a[href*="mdcalc.com"]').count() == 2
+            assert 'Chỉ số để nhập PREVENT-CVD' in pg.inner_text('[data-live="cvrisk"]')
             # mang thai (ô hồ sơ / tiền sử ghi) -> chặn toàn bộ nhóm thần kinh – tâm thần; thuốc nhóm khác không bị chặn
             PB = "(id) => drugBlockReasons(curP(), curV(), drugById(id)).filter(r => /^đang mang thai/.test(r)).length"
             pg0 = pg.evaluate("() => JSON.stringify({conds: curP().conds, note: curP().condNote, hpi: curV().hpi, reason: curV().reason, orders: curV().orders})")
