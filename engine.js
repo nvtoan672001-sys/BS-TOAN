@@ -249,7 +249,15 @@ function egfrCKDEPI(cr, age, sex){ const scr = cr / 88.4, f = sex === 'Nữ', k 
 function crclCG(cr, age, w, sex){ const scr = cr / 88.4; return (140 - age) * w / (72 * scr) * (sex === 'Nữ' ? 0.85 : 1); }
 const EGFR_LABEL = {G1: 'bình thường hoặc cao', G2: 'giảm nhẹ', G3a: 'giảm nhẹ – vừa', G3b: 'giảm vừa – nặng', G4: 'giảm nặng', G5: 'suy thận'};   // KDIGO
 function ckdStage(e){ if(e == null) return ''; if(e >= 90) return 'G1'; if(e >= 60) return 'G2'; if(e >= 45) return 'G3a'; if(e >= 30) return 'G3b'; if(e >= 15) return 'G4'; return 'G5'; }
-function bpClass(s, d){ s = num(s); d = num(d); if(!s || !d) return ''; if(s >= 180 || d >= 110) return 'Tăng huyết áp độ 3'; if(s >= 160 || d >= 100) return 'Tăng huyết áp độ 2'; if(s >= 140 || d >= 90) return 'Tăng huyết áp độ 1'; if(s >= 130 || d >= 85) return 'Bình thường cao'; return 'Bình thường'; }
+// Phân độ huyết áp phòng khám người trưởng thành — VNHA 2026 Bảng 3.2 (hai chỉ số khác mức → lấy mức cao hơn; không áp dụng cho thai phụ).
+// ≥ 180 và/hoặc ≥ 110: đánh giá ngay tổn thương cơ quan đích cấp (Bảng 3.1).
+function bpClass(s, d){ s = num(s); d = num(d); if(!s || !d) return '';
+  const urg = s >= 180 || d >= 110 ? ' — ≥ 180/110: đánh giá ngay tổn thương cơ quan đích' : '';
+  if(s >= 160 || d >= 100) return 'Tăng huyết áp độ 2' + (d < 90 ? ' (tâm thu đơn độc)' : '') + urg;
+  if(s >= 140 || d >= 90) return 'Tăng huyết áp độ 1' + (s >= 140 && d < 90 ? ' (tâm thu đơn độc)' : '');
+  if(s >= 130 || d >= 80) return 'Tiền tăng huyết áp';
+  if(s >= 120) return 'Huyết áp bình thường cao';
+  return 'Huyết áp bình thường'; }
 
 function renalOf(p){
   const c = [];

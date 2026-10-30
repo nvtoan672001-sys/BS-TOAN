@@ -375,6 +375,7 @@ def main():
             assert pg.evaluate("() => ['F43.8','F43.9','F43.22','F44.5','F45.3','F48.0','F62.0'].every(c => ICD.some(x => x[0] === c))"), 'thiếu mã ICD rối loạn liên quan stress'
             assert pg.evaluate("() => ['cortisol','acth'].every(k => LABS.some(x => x[0] === 'Máu' && x[1] === k))"), 'thiếu cortisol / ACTH'
             assert pg.evaluate("() => ['progest','fsh','lh','prl','sa_tc'].every(k => LABS.some(x => x[1] === k)) && LABS.find(x => x[1] === 'testo')[3] === 'ng/dL'"), 'thiếu hormon sinh dục / siêu âm tử cung'
+            assert pg.evaluate("() => [[118, 78], [125, 78], [135, 82], [150, 85], [165, 102], [185, 95]].map(([s, d]) => bpClass(s, d))") == ['Huyết áp bình thường', 'Huyết áp bình thường cao', 'Tiền tăng huyết áp', 'Tăng huyết áp độ 1 (tâm thu đơn độc)', 'Tăng huyết áp độ 2', 'Tăng huyết áp độ 2 — ≥ 180/110: đánh giá ngay tổn thương cơ quan đích'], 'phân độ huyết áp theo VNHA 2026'
             assert pg.evaluate("() => [['pss', 20], ['pcptsd5', 4]].map(([k, v]) => scaleResult(k, v).t)") == ['Stress cảm nhận vừa', 'Dương tính — đánh giá thêm bằng PCL-5 / CAPS-5']
             assert pg.evaluate("() => [['gad7', 12], ['gad2', 3], ['phq4_d', 1], ['phq9', 20], ['mmse', 23], ['moca', 27]].map(([k, v]) => (scaleResult(k, v) || {}).t)") == ['Lo âu vừa', 'Dương tính — làm GAD-7', 'Âm tính', 'Trầm cảm nặng', 'Suy giảm nhận thức (< 24; đối chiếu trình độ học vấn)', 'Bình thường']
             assert pg.evaluate("() => Object.keys(SCALE_BANDS).every(k => LABS.some(x => x[1] === k))"), 'SCALE_BANDS có key không có trong LABS'
