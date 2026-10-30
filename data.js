@@ -1155,6 +1155,10 @@ const LABS = [
   ['Trắc nghiệm tâm lý','vanderbilt','Tăng động giảm chú ý Vanderbilt','','Gợi ý ADHD: ≥ 6/9 mục giảm chú ý hoặc ≥ 6/9 mục tăng động – xung động (điểm 2–3) kèm suy giảm chức năng','t'],
   ['Trắc nghiệm tâm lý','asq','ASQ (sàng lọc tự sát 10–24 tuổi)','','"Có" ở bất kỳ câu 1–4 → dương tính; câu 5 "có" → nguy cơ cấp, đánh giá ngay','t'],
   ['Trắc nghiệm tâm lý','asex','ASEX (trải nghiệm tình dục Arizona)','/30','Rối loạn chức năng tình dục: tổng ≥ 19, hoặc 1 mục ≥ 5, hoặc ≥ 3 mục ≥ 4 (tham khảo)','n'],
+  ['Trắc nghiệm tâm lý','bssc_m','BSSC – nam (Brief Sexual Symptom Checklist)','','Sàng lọc 4 câu về 3 tháng qua (LEC6): ghi các vấn đề tình dục bệnh nhân xác nhận và mức độ phiền lòng','t'],
+  ['Trắc nghiệm tâm lý','bssc_f','BSSC – nữ (Brief Sexual Symptom Checklist)','','Sàng lọc 4 câu về 3 tháng qua (LEC6): ghi các vấn đề tình dục bệnh nhân xác nhận và mức độ phiền lòng','t'],
+  ['Trắc nghiệm tâm lý','scs_m','SCS – nam (Sexual Complaints Screener)','','Sàng lọc 17 câu về 6 tháng qua, dùng cả khi khó khăn mức độ nhẹ (ISSM 2004; LEC6): ghi các than phiền','t'],
+  ['Trắc nghiệm tâm lý','scs_f','SCS – nữ (Sexual Complaints Screener)','','Sàng lọc 17 câu về 6 tháng qua, dùng cả khi khó khăn mức độ nhẹ (ISSM 2004; LEC6): ghi các than phiền','t'],
   ['Trắc nghiệm tâm lý','iief5','IIEF-5 (chức năng cương)','/25','22–25 bình thường; 17–21 nhẹ; 12–16 nhẹ–vừa; 8–11 vừa; 5–7 nặng (tham khảo)','n'],
   ['Trắc nghiệm tâm lý','sdq_sex','Sexual Dysfunction Questionnaire (SDQ)','','Ghi điểm và kết luận','t'],
 ];
