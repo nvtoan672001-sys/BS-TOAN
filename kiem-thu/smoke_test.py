@@ -613,12 +613,13 @@ def main():
             assert pg.evaluate(ADJ, {'sx': ['adj_anx'], 'weeks': 6}) == [], 'không có sự kiện stress -> không gợi ý F43.2'
             # lo âu khác + ăn uống: gợi ý mã đúng, đủ / chưa đủ
             SG = "(o) => { const v = curV(); v.mental = Object.assign({sx: [], hist: [], excl: []}, o); return psyDx(curP(), v).sugs.map(s => [s.code, s.ok]); }"
-            assert ['F41.0', True] in pg.evaluate(SG, {'sx': ['pan_attacks', 'pan_sx', 'pan_month'], 'weeks': 6})
-            assert ['F41.0', False] in pg.evaluate(SG, {'sx': ['pan_attacks', 'pan_sx', 'pan_month', 'phob_agora'], 'weeks': 6})
-            assert ['F40.1', True] in pg.evaluate(SG, {'sx': ['phob_social', 'phob_avoid', 'phob_insight'], 'weeks': 6})
-            assert ['F42.2', True] in pg.evaluate(SG, {'sx': ['ocd_obs', 'ocd_comp', 'ocd_own', 'ocd_2wk'], 'weeks': 6})
+            assert ['F41.0', True] in pg.evaluate(SG, {'sx': ['pan_attacks', 'pan_sx', 'pan_excl'], 'weeks': 6})
+            assert ['F41.0', False] in pg.evaluate(SG, {'sx': ['pan_attacks', 'pan_sx', 'pan_excl', 'phob_agora'], 'weeks': 6})
+            assert ['F40.1', True] in pg.evaluate(SG, {'sx': ['phob_social', 'phob_sx', 'phob_avoid', 'phob_insight', 'phob_excl'], 'weeks': 6})
+            assert ['F42.2', True] in pg.evaluate(SG, {'sx': ['ocd_obs', 'ocd_comp', 'ocd_own', 'ocd_2wk', 'ocd_impair'], 'weeks': 6})
             assert ['F42.1', False] in pg.evaluate(SG, {'sx': ['ocd_comp'], 'weeks': 6})
-            assert ['F43.1', True] in pg.evaluate(SG, {'sx': ['ptsd_event', 'ptsd_reexp', 'ptsd_arousal', 'ptsd_6m'], 'weeks': 10})
+            assert ['F43.1', True] in pg.evaluate(SG, {'sx': ['ptsd_event', 'ptsd_reexp', 'ptsd_avoid', 'ptsd_arousal', 'ptsd_6m'], 'weeks': 10})
+            assert ['F43.1', False] in pg.evaluate(SG, {'sx': ['ptsd_event', 'ptsd_reexp', 'ptsd_arousal', 'ptsd_6m'], 'weeks': 10}), 'sách: né tránh là bắt buộc'
             assert ['F43.0', True] in pg.evaluate(SG, {'sx': ['ptsd_event', 'ast_acute'], 'weeks': 0})
             assert ['F50.0', True] in pg.evaluate(SG, {'sx': ['an_weight', 'an_self', 'an_body', 'an_endo'], 'weeks': 20})
             assert ['F50.1', False] in pg.evaluate(SG, {'sx': ['an_weight', 'an_self', 'an_body'], 'weeks': 20})

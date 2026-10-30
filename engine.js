@@ -797,27 +797,29 @@ function psyDx(p, v){
   const need = (g, ks) => ks.filter(k => !has(k)).map(k => 'Chưa có: ' + lab(g, k));
   const phobAny = has('phob_agora') || has('phob_social') || has('phob_specific');
   if(has('pan_attacks')){
-    const miss = need('panic', ['pan_sx', 'pan_month']);
-    if(phobAny) miss.push('Cơn hoảng sợ xảy ra trong tình huống ám ảnh sợ → ưu tiên chẩn đoán ám ảnh sợ (F40)');
-    if(depOk) miss.push('Đã đủ tiêu chuẩn trầm cảm — ICD-10: không chẩn đoán hoảng sợ là chính khi có trầm cảm');
-    add('F41.0', 'ICD-10', ['Cơn hoảng sợ tái diễn, không dự đoán trước'].concat(['pan_sx', 'pan_month'].filter(has).map(k => lab('panic', k))), miss, 'Loại trừ bệnh tim mạch, cường giáp, hạ đường huyết, do chất (cà phê, amphetamin, cai rượu / benzodiazepin).');
+    const miss = need('panic', ['pan_sx', 'pan_excl']);
+    if(phobAny) miss.push('Cơn hoảng sợ gắn với tình huống ám ảnh sợ → xem ám ảnh sợ khoảng trống có rối loạn hoảng sợ (F40.01)');
+    if(depOk) miss.push('Đang đủ tiêu chuẩn trầm cảm — loại trừ cơn hoảng sợ do rối loạn khí sắc (F30–F39)');
+    add('F41.0', 'ICD-10 (bản VN)', ['Cơn hoảng sợ tái diễn, tự phát, không dự đoán trước'].concat(['pan_sx', 'pan_excl'].filter(has).map(k => lab('panic', k))), miss, 'Mức độ: F41.00 trung bình — ≥ 4 cơn trong 4 tuần; F41.01 nặng — ≥ 4 cơn mỗi tuần trong 4 tuần. Loại trừ bệnh tim mạch, cường giáp, hạ đường huyết, do chất (cà phê, amphetamin, cai rượu / benzodiazepin).');
   }
   if(phobAny){
-    const base = need('phob', ['phob_avoid', 'phob_insight']);
-    if(has('phob_agora')) add('F40.0', 'ICD-10', ['Sợ ≥ 2 tình huống: đông người, nơi công cộng, xa nhà, đi một mình'].concat(['phob_avoid', 'phob_insight'].filter(has).map(k => lab('phob', k))), base, has('pan_attacks') ? 'Có kèm cơn hoảng sợ.' : '');
-    if(has('phob_social')) add('F40.1', 'ICD-10', ['Sợ bị chú ý / đánh giá trong nhóm nhỏ'].concat(['phob_avoid', 'phob_insight'].filter(has).map(k => lab('phob', k))), base, '');
-    if(has('phob_specific')) add('F40.2', 'ICD-10', ['Sợ đối tượng / tình huống đặc hiệu'].concat(['phob_avoid', 'phob_insight'].filter(has).map(k => lab('phob', k))), base, '');
+    const pk = ['phob_sx', 'phob_avoid', 'phob_insight', 'phob_excl'], base = need('phob', pk), pmet = pk.filter(has).map(k => lab('phob', k));
+    if(has('phob_agora')) add('F40.0', 'ICD-10 (bản VN)', ['Sợ / né tránh ≥ 2 tình huống: đám đông, nơi công cộng, đi một mình, đi xa nhà'].concat(pmet), base, has('pan_attacks') ? 'Có kèm cơn hoảng sợ → F40.01 (có rối loạn hoảng sợ).' : 'Không có cơn hoảng sợ → F40.00.');
+    if(has('phob_social')) add('F40.1', 'ICD-10 (bản VN)', ['Sợ / né tránh trở thành trung tâm chú ý, sợ bị sỉ nhục'].concat(pmet), base, '');
+    if(has('phob_specific')) add('F40.2', 'ICD-10 (bản VN)', ['Sợ / né tránh đồ vật, tình huống cụ thể'].concat(pmet), base, 'Dưới nhóm: loài vật, hiện tượng thiên nhiên, tiêm – máu – bị thương, tình huống (thang máy, đường hầm), loại khác.');
   }
   if(has('ocd_obs') || has('ocd_comp')){
     const code = has('ocd_obs') && has('ocd_comp') ? 'F42.2' : has('ocd_obs') ? 'F42.0' : 'F42.1';
-    const miss = need('ocd', ['ocd_own', 'ocd_2wk']);
-    add(code, 'ICD-10', ['ocd_obs', 'ocd_comp', 'ocd_own', 'ocd_2wk'].filter(has).map(k => lab('ocd', k)), miss, depOk ? 'Có trầm cảm kèm theo: ICD-10 ưu tiên rối loạn xuất hiện trước; nếu cùng lúc thường chẩn đoán trầm cảm.' : '');
+    const miss = need('ocd', ['ocd_2wk', 'ocd_own', 'ocd_impair']);
+    if(depOk) miss.push('Đang đủ tiêu chuẩn trầm cảm — loại trừ ám ảnh / nghi thức là hậu quả của rối loạn khí sắc (F30–F39)');
+    if(c.psy) miss.push('Có triệu chứng loạn thần — loại trừ tâm thần phân liệt và rối loạn liên quan (F20–F29)');
+    add(code, 'ICD-10 (bản VN)', ['ocd_obs', 'ocd_comp', 'ocd_2wk', 'ocd_own', 'ocd_impair'].filter(has).map(k => lab('ocd', k)), miss, '');
   }
   if(has('ptsd_event')){
-    if(has('ast_acute')) add('F43.0', 'ICD-10', ['Sự kiện đe doạ / thảm hoạ đặc biệt', 'Triệu chứng xuất hiện vài phút sau sự kiện, giảm trong 2–3 ngày'], [], 'Nếu triệu chứng kéo dài hoặc xuất hiện muộn → đánh giá rối loạn stress sau sang chấn (F43.1).');
+    if(has('ast_acute')) add('F43.0', 'ICD-10 (bản VN)', ['Tác nhân stress đặc biệt về tâm thần / cơ thể', lab('ptsd', 'ast_acute')], [], 'Mức độ: F43.00 nhẹ — có triệu chứng lo âu lan toả (B–D của F41.1); F43.01 trung bình — thêm 2 triệu chứng (cách ly xã hội, thu hẹp chú ý, rối loạn định hướng, cáu giận, tuyệt vọng, tăng hoạt động vô mục đích, buồn rầu quá mức); F43.02 nặng — thêm 4 triệu chứng hoặc sững sờ phân ly. Loại trừ: đang có rối loạn tâm thần khác (trừ F41.1, F60), hoặc giai đoạn rối loạn khác kết thúc < 3 tháng.');
     if(['ptsd_reexp', 'ptsd_avoid', 'ptsd_arousal'].some(has)){
-      const miss = need('ptsd', ['ptsd_reexp', 'ptsd_arousal', 'ptsd_6m']);
-      add('F43.1', 'ICD-10; LEC4', ['Sự kiện đe doạ / thảm hoạ đặc biệt'].concat(['ptsd_reexp', 'ptsd_avoid', 'ptsd_arousal', 'ptsd_6m'].filter(has).map(k => lab('ptsd', k))), miss, (has('ptsd_avoid') ? '' : 'Né tránh thường có nhưng không bắt buộc. ') + 'Trắc nghiệm hỗ trợ: PC-PTSD-5 (sàng lọc), PCL-5, CAPS-5 (phỏng vấn chẩn đoán), SPRINT-E.');
+      const miss = need('ptsd', ['ptsd_reexp', 'ptsd_avoid', 'ptsd_arousal', 'ptsd_6m']);
+      add('F43.1', 'ICD-10 (bản VN); LEC4', ['Sự kiện đe doạ / thảm hoạ đặc biệt'].concat(['ptsd_reexp', 'ptsd_avoid', 'ptsd_arousal', 'ptsd_6m'].filter(has).map(k => lab('ptsd', k))), miss, 'Cần đủ B (hồi tưởng), C (né tránh), D (quên một phần hoặc ≥ 2 dấu hiệu tăng nhạy cảm) trong vòng 6 tháng. Trắc nghiệm hỗ trợ: PC-PTSD-5 (sàng lọc), PCL-5, CAPS-5 (phỏng vấn chẩn đoán), SPRINT-E.');
     }
   }
   // --- Chán ăn / ăn vô độ tâm thần (BYT 2020 Bài 26 theo ICD-10; LEC9 handout ICD-10 F50.2) ---
@@ -940,7 +942,7 @@ function psyDx(p, v){
     if(code === 'F43.21' && wk > 104) miss.push(durTxt + ' — phản ứng trầm cảm kéo dài không quá 2 năm');
     else if(code !== 'F43.21' && wk != null && wk > 26) miss.push(durTxt + ' — thường không quá 6 tháng (trừ phản ứng trầm cảm kéo dài) → xem lại chẩn đoán');
     const note = code === 'F43.20' ? 'Phản ứng trầm cảm ngắn: không quá 1 tháng.' : code === 'F43.21' ? 'Phản ứng trầm cảm kéo dài: không quá 2 năm.' : 'Thường bắt đầu trong vòng 1 tháng sau sự kiện và không quá 6 tháng. Không đủ tiêu chuẩn một rối loạn cảm xúc / lo âu / hành vi riêng biệt.';
-    add(code, 'ICD-10', met, miss, note + ' Trắc nghiệm hỗ trợ (LEC4): ADNM-20, PSS-10, DASS-21.');
+    add(code, 'ICD-10 (bản VN)', met, miss, note + ' Trắc nghiệm hỗ trợ (LEC4): ADNM-20, PSS-10, DASS-21.');
   } else if(adjStress && !mood && !anxSx.length) todo.push('Có sự kiện gây stress: đánh giá biểu hiện ưu thế (trầm cảm / lo âu / cảm xúc khác / hành vi) ở mục "Rối loạn sự thích ứng" để định hướng F43.2.');
   // --- Cảnh báo, việc cần làm ---
   if(sx.has('dep_suicide')) alerts.push({lv: 3, t: 'Có ý tưởng / hành vi tự sát', m: 'Đánh giá nguy cơ tự sát ngay trong buổi khám (C-SSRS); cân nhắc nhập viện hoặc chuyển chuyên khoa tâm thần, không để bệnh nhân một mình, báo người nhà.'});

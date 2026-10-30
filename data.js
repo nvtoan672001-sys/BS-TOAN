@@ -1212,28 +1212,31 @@ const MENTAL_SX = [
     ['anx_motor','Căng thẳng vận động: bồn chồn, đứng ngồi không yên, đau căng đầu, run, không thư giãn được'],
     ['anx_auto','Triệu chứng thần kinh tự trị: vã mồ hôi, mạch nhanh, thở gấp, khô miệng, đánh trống ngực, sôi bụng, chóng mặt…'],
     ['anx_primary','Lo âu – sợ hãi là biểu hiện chính, nguyên phát']]},
-  {g:'panic', t:'Rối loạn hoảng sợ (F41.0)', src:'ICD-10 WHO', items:[
-    ['pan_attacks','Các cơn lo âu nặng (hoảng sợ) tái diễn, không giới hạn ở tình huống nào, không dự đoán trước được'],
-    ['pan_sx','Trong cơn: khởi phát đột ngột, đánh trống ngực, đau ngực, nghẹt thở, chóng mặt, cảm giác không thực; sợ chết / mất kiểm soát / phát điên'],
-    ['pan_month','Nhiều cơn nặng trong khoảng 1 tháng; giữa các cơn tương đối không lo âu']]},
-  {g:'phob', t:'Rối loạn lo âu ám ảnh sợ (F40)', src:'ICD-10 WHO', items:[
-    ['phob_agora','Sợ ≥ 2 tình huống: nơi đông người, nơi công cộng, đi xa nhà một mình, đi lại một mình'],
-    ['phob_social','Sợ bị người khác chú ý / đánh giá trong nhóm nhỏ (ăn, nói trước người khác…)'],
-    ['phob_specific','Sợ một đối tượng / tình huống đặc hiệu (độ cao, con vật, máu, tiêm, nơi kín…)'],
-    ['phob_avoid','Né tránh rõ rệt; lo âu chỉ xuất hiện trong (hoặc khi nghĩ tới) tình huống gây sợ'],
-    ['phob_insight','Nhận biết nỗi sợ là quá mức, vô lý; gây đau khổ đáng kể']]},
-  {g:'ocd', t:'Rối loạn ám ảnh nghi thức (F42)', src:'ICD-10 WHO', items:[
+  {g:'panic', t:'Rối loạn hoảng sợ (F41.0)', src:'ICD-10 (bản VN) tr. 114–115', items:[
+    ['pan_attacks','Các cơn hoảng sợ tái diễn, không gắn với tình huống / đồ vật nhất định, xảy ra tự phát, không dự đoán trước'],
+    ['pan_sx','Cơn: sợ hãi ghê gớm, khởi phát đột ngột, đạt đỉnh trong vài phút; ≥ 4 triệu chứng, trong đó ≥ 1 triệu chứng thần kinh thực vật (hồi hộp, vã mồ hôi, run, khô miệng)'],
+    ['pan_excl','Không do bệnh cơ thể, rối loạn thực tổn, tâm thần phân liệt, rối loạn khí sắc hoặc rối loạn dạng cơ thể']]},
+  {g:'phob', t:'Rối loạn lo âu ám ảnh sợ (F40)', src:'ICD-10 (bản VN) tr. 111–114', items:[
+    ['phob_agora','Sợ / né tránh ≥ 2 tình huống: đám đông, nơi công cộng, đi lại một mình, đi xa nhà'],
+    ['phob_social','Sợ / né tránh trở thành trung tâm chú ý, sợ cư xử bối rối, sỉ nhục (ăn, nói nơi công cộng, nhóm nhỏ)'],
+    ['phob_specific','Sợ / né tránh một đồ vật, tình huống cụ thể (con vật, độ cao, sấm, nơi kín, máu, tiêm, nha khoa…)'],
+    ['phob_sx','Trong tình huống gây sợ có ≥ 2 triệu chứng lo âu cùng lúc (≥ 1 triệu chứng thần kinh thực vật); sợ xã hội: kèm đỏ mặt / run, sợ nôn hoặc mót tiểu – đại tiện'],
+    ['phob_avoid','Triệu chứng chỉ giới hạn hoặc nổi trội trong (hoặc khi nghĩ tới) tình huống gây sợ'],
+    ['phob_insight','Suy kiệt cảm xúc do né tránh / lo âu; nhận thấy nỗi sợ là quá đáng, không hợp lý'],
+    ['phob_excl','Không do hoang tưởng, ảo giác, rối loạn thực tổn, tâm thần phân liệt, rối loạn khí sắc, ám ảnh nghi thức, niềm tin văn hoá']]},
+  {g:'ocd', t:'Rối loạn ám ảnh nghi thức (F42)', src:'ICD-10 (bản VN) tr. 117–118', items:[
     ['ocd_obs','Ý nghĩ / hình ảnh / xung động ám ảnh, lặp đi lặp lại, gây khó chịu'],
-    ['ocd_comp','Hành vi cưỡng chế / nghi thức lặp lại (rửa tay, kiểm tra, đếm, sắp xếp…)'],
-    ['ocd_own','Nhận biết là ý nghĩ của chính mình, vô lý; cố chống lại nhưng không được'],
-    ['ocd_2wk','Có mặt hầu hết các ngày ≥ 2 tuần liên tiếp; gây đau khổ / cản trở hoạt động']]},
-  {g:'ptsd', t:'Phản ứng stress cấp / Rối loạn stress sau sang chấn (F43.0, F43.1)', src:'ICD-10 WHO; LEC4', items:[
-    ['ptsd_event','Đã trải qua sự kiện có tính đe doạ hoặc thảm hoạ đặc biệt (hầu như ai cũng đau khổ)'],
-    ['ast_acute','Triệu chứng xuất hiện trong vài phút sau sự kiện, giảm dần trong 2–3 ngày'],
-    ['ptsd_reexp','Hồi tưởng xâm nhập, tái hiện (flashback), ác mộng về sự kiện'],
-    ['ptsd_avoid','Né tránh hoàn cảnh gợi nhớ sự kiện'],
-    ['ptsd_arousal','Tăng cảnh giác, giật mình quá mức, mất ngủ, khó tập trung, dễ cáu; hoặc không nhớ được một phần sự kiện'],
-    ['ptsd_6m','Khởi phát trong vòng 6 tháng sau sự kiện']]},
+    ['ocd_comp','Hành vi nghi thức lặp lại (rửa tay, kiểm tra, đếm, sắp xếp…)'],
+    ['ocd_2wk','Có mặt hầu hết các ngày trong ≥ 2 tuần'],
+    ['ocd_own','Nhận là xuất phát từ tâm trí mình; thấy quá mức, vô lý; cố cưỡng lại không thành; thực hiện không thấy dễ chịu'],
+    ['ocd_impair','Gây suy sụp hoặc rối loạn hoạt động cá nhân, xã hội (thường do mất thời gian)']]},
+  {g:'ptsd', t:'Phản ứng stress cấp / Rối loạn stress sau sang chấn (F43.0, F43.1)', src:'ICD-10 (bản VN) tr. 118–120; LEC4', items:[
+    ['ptsd_event','Tiếp xúc với sự kiện / tình huống đe doạ hoặc thảm hoạ đặc biệt (gây đau khổ cho hầu hết mọi người)'],
+    ['ast_acute','Stress cấp: triệu chứng khởi phát trong vòng 1 giờ; bắt đầu giảm sau ≤ 8 giờ (≤ 48 giờ nếu tác nhân còn tiếp diễn)'],
+    ['ptsd_reexp','Hồi tưởng xâm nhập, ký ức sống động, giấc mơ tái diễn, đau khổ khi gặp hoàn cảnh gợi nhớ'],
+    ['ptsd_avoid','Tránh né (hoặc thích tránh né) hoàn cảnh giống / liên quan sang chấn'],
+    ['ptsd_arousal','Không nhớ lại được một phần sự kiện; HOẶC ≥ 2: khó ngủ, cáu kỉnh / nóng giận, khó tập trung, tăng cảnh giác, giật mình quá mức'],
+    ['ptsd_6m','Các triệu chứng xuất hiện trong vòng 6 tháng sau sự kiện']]},
   {g:'diss', t:'Rối loạn phân ly / cơ thể hoá (F44, F45.0)', src:'BYT 2020 Bài 24, 25; ICD-10 (bản VN)', items:[
     ['dis_sx','Triệu chứng phân ly / chuyển di (quên, trốn nhà, sững sờ, liệt, run, mất đứng – mất đi, co giật, mất cảm giác…)'],
     ['dis_noorg','Không có bằng chứng bệnh cơ thể giải thích được các triệu chứng'],
@@ -1242,7 +1245,7 @@ const MENTAL_SX = [
     ['som_visits','Đi khám nhiều nơi (≥ 3 lần) / làm nhiều xét nghiệm vì triệu chứng'],
     ['som_refuse','Dai dẳng không chấp nhận lời trấn an của bác sĩ là không có nguyên nhân thực thể'],
     ['som_6sx','≥ 6 triệu chứng cơ thể thuộc ≥ 2 nhóm (tiêu hoá, tim mạch, tiết niệu – sinh dục, da – đau)']]},
-  {g:'adj', t:'Rối loạn sự thích ứng (F43.2)', src:'ICD-10 WHO; LEC4', items:[
+  {g:'adj', t:'Rối loạn sự thích ứng (F43.2)', src:'ICD-10 (bản VN) tr. 120–121; LEC4', items:[
     ['adj_stressor','Có biến đổi lớn trong cuộc sống / sự kiện gây stress xác định được (không phải thảm hoạ)'],
     ['adj_onset','Triệu chứng khởi phát trong vòng 1 tháng sau sự kiện'],
     ['adj_impair','Đau khổ chủ quan, rối loạn cảm xúc cản trở hoạt động xã hội / công việc'],
