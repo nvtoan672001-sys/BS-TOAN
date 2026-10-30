@@ -186,7 +186,7 @@ def main():
             r = pg.evaluate("""async () => { const d = S.drugs.find(x => x.id === 'tiane12'); d.p = 9999; delete d.preg; d.warn = 'cũ';
                 await Store.put('drugs', d); S.settings.seedUpdated = []; await saveSettings(); await loadAll();
                 const e = S.drugs.find(x => x.id === 'tiane12'); return {p: e.p, preg: e.preg && e.preg.lv, warn: e.warn, ver: S.settings.seedUpdated}; }""")
-            assert r['p'] == 9999 and r['preg'] == 3 and r['warn'] != 'cũ' and r['ver'] == ['stahl-2026-10', 'moi-2026-10'], r
+            assert r['p'] == 9999 and r['preg'] == 3 and r['warn'] != 'cũ' and r['ver'] == ['stahl-2026-10', 'moi-2026-10', 'tha-abcd-2026-10-30'], r
             assert pg.evaluate("S.drugs.find(x => x.id === 'quet100n').lact.lv") == 1, 'quetiapin cho con bú phải theo LactMed (mức lưu ý)'
 
             # 6g. Có chẩn đoán mà chưa có thuốc -> không sang được bước 4, trừ khi chọn lý do "Không kê đơn"
@@ -488,6 +488,25 @@ def main():
                 pg.evaluate("(a) => { const p = curP(); p.dob = ''; p.birthYear = Number(curV().date.slice(0, 4)) - a; }", age)
                 assert pg.evaluate(AGB, 'diaz5') == exp, (age, exp)
             pg.evaluate("(s) => { const p = curP(), o = JSON.parse(s); p.dob = o.dob; p.birthYear = o.by; }", ag0)
+            # thuốc THA nhóm A–D: chống chỉ định -> chặn, thận trọng -> cảnh báo (VNHA 2026 Bảng 10.5)
+            HB = "(id) => drugBlockReasons(curP(), curV(), drugById(id)).filter(r => /VNHA 2026/.test(r)).length"
+            HC = "(id) => checkAll(curP(), curV(), [{line: {id: 'L_h', drugId: id}, drug: drugById(id)}]).items.filter(w => w.kind === 'Thận trọng (VNHA 2026)').length"
+            h0 = pg.evaluate("() => JSON.stringify({conds: curP().conds, note: curP().condNote, sex: curP().sex, vit: curV().vitals, orders: curV().orders, hpi: curV().hpi})")
+            pg.evaluate("() => { const p = curP(), v = curV(); p.conds = p.conds.filter(k => !['asthma','heart_failure','gout','diabetes','pregnant'].includes(k)); p.condNote = ''; v.hpi = ''; v.vitals = {...v.vitals, pulse: 72}; v.orders = v.orders.filter(o => !['na','k','bhcg'].includes(o.key)); }")
+            assert [pg.evaluate(HB, x) for x in ['telmi40', 'meto50', 'nife30', 'hctz25']] == [0, 0, 0, 0]
+            pg.evaluate("() => { curP().condNote = 'Tiền sử phù mạch khi dùng captopril'; }")
+            assert pg.evaluate(HB, 'lisi10') == 1 and pg.evaluate(HB, 'telmi40') == 0, 'phù mạch chỉ chống chỉ định ức chế men chuyển'
+            pg.evaluate("() => { curP().condNote = 'Đang mang thai 12 tuần'; }")
+            assert [pg.evaluate(HB, x) for x in ['telmi40', 'peri5', 'hctz25', 'nife30']] == [1, 1, 1, 0], 'mang thai: chặn A và D, không chặn nifedipin'
+            pg.evaluate("() => { const p = curP(); p.condNote = ''; p.conds.push('asthma'); }")
+            assert pg.evaluate(HB, 'carve625') == 1 and pg.evaluate(HB, 'meto50') == 0 and pg.evaluate(HC, 'meto50') == 1, 'hen: chặn chẹn beta không chọn lọc, chọn lọc chỉ thận trọng'
+            pg.evaluate("() => { const p = curP(); p.conds = p.conds.filter(k => k !== 'asthma'); curV().vitals.pulse = 45; }")
+            assert pg.evaluate(HB, 'biso25') == 1, 'mạch < 50 phải chặn chẹn beta'
+            pg.evaluate("() => { curV().vitals.pulse = 72; curP().conds.push('heart_failure'); }")
+            assert pg.evaluate(HB, 'dilti60') == 1 and pg.evaluate(HB, 'amlo5') == 0 and pg.evaluate(HC, 'amlo5') == 1
+            pg.evaluate("() => { const p = curP(); p.conds = p.conds.filter(k => k !== 'heart_failure'); curV().orders.push({id: 'o_k_h', key: 'k', name: 'Kali', unit: 'mmol/L', ref: '', type: 'n', value: 2.8, flag: '', note: ''}); }")
+            assert pg.evaluate(HB, 'inda15') == 1, 'K < 3 phải chặn lợi tiểu thiazid'
+            pg.evaluate("(s) => { const p = curP(), v = curV(), o = JSON.parse(s); p.conds = o.conds; p.condNote = o.note; p.sex = o.sex; v.vitals = o.vit; v.orders = o.orders; v.hpi = o.hpi; }", h0)
             # mang thai (ô hồ sơ / tiền sử ghi) -> chặn toàn bộ nhóm thần kinh – tâm thần; thuốc nhóm khác không bị chặn
             PB = "(id) => drugBlockReasons(curP(), curV(), drugById(id)).filter(r => /^đang mang thai/.test(r)).length"
             pg0 = pg.evaluate("() => JSON.stringify({conds: curP().conds, note: curP().condNote, hpi: curV().hpi, reason: curV().reason, orders: curV().orders})")

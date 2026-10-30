@@ -939,7 +939,9 @@ const SEED_ADDED = ['gavis10',
   'sert50f','escit10n','fluox20n','fluox20f','parox20n','parox20f','venla75n','venla75f','dulox30n','dulox30f','mirta30n','mirta30f','tiane12','sulpi50',
   'broma6','loraz1','alpra05n','alpra05f','clona2','etifo50','zopi7n','zopi7f','olan10n','olan10f','quet100n','quet100f','risp2n','risp2f','arip10n','arip10f','amis200',
   'valp500n','valp500f','carba200n','carba200f','oxca300','lamo50n','lamo50f','gaba300n','gaba300f','done5n','done5f','riva3','gala8',
-  'agome25', 'fluvo100', 'pregab75', 'propra40', 'piracetam', 'ginkgo', 'vinpocetin', 'cholalf', 'nicergolin', 'silymarin'];
+  'agome25', 'fluvo100', 'pregab75', 'propra40', 'piracetam', 'ginkgo', 'vinpocetin', 'cholalf', 'nicergolin', 'silymarin',
+  // thuốc tăng huyết áp nhóm A, B, C, D theo VNHA 2026 (2026-10-30)
+  'lisi10', 'rami5', 'capto25', 'telmi40', 'valsa80', 'irbe150', 'meto50', 'nebi5', 'carve625', 'ateno50', 'nife30', 'lerca10', 'felo5', 'dilti60', 'hctz25'];
 async function addNewSeedDrugs(){
   const done = S.settings.seedAdded || [], todo = SEED_ADDED.filter(id => !done.includes(id));
   if(!todo.length) return;
@@ -948,7 +950,8 @@ async function addNewSeedDrugs(){
 }
 // Cập nhật nội dung lâm sàng của thuốc mẫu đã phát hành (một lần mỗi đợt), GIỮ NGUYÊN tên, giá, đơn vị bác sĩ đã sửa
 const SEED_UPDATES = [{ver: 'stahl-2026-10', ids: SEED_ADDED.slice(1)},   // 44 thuốc tâm thần, đối chiếu Stahl's Prescriber's Guide
-  {ver: 'moi-2026-10', ids: SEED_ADDED.slice(1)}];                          // ưu tiên khuyến cáo mới hơn Stahl 2004 (LactMed, FDA/EMA, SmPC)
+  {ver: 'moi-2026-10', ids: SEED_ADDED.slice(1)},
+  {ver: 'tha-abcd-2026-10-30', ids: ['amlo5', 'inda15']}];                          // ưu tiên khuyến cáo mới hơn Stahl 2004 (LactMed, FDA/EMA, SmPC)
 const SEED_CLIN = ['tags', 'how', 'ae', 'warn', 'pro', 'con', 'renal', 'hep', 'old', 'preg', 'lact', 'cond'];
 async function updateSeedDrugs(){
   const done = S.settings.seedUpdated || [], todo = SEED_UPDATES.filter(u => !done.includes(u.ver));

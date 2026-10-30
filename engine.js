@@ -511,6 +511,8 @@ function drugBlockReasons(p, v, d, ctx, line){
     if(['benh mach ngoai bien nang', 'benh dong mach ngoai bien nang', 'benh mach mau ngoai bien nang'].some(k => mentionsSymptom(p.condNote || '', k))) r.push('bệnh mạch ngoại biên nặng');
     if(r.length) out.push('propranolol: bệnh nền ' + r.join('; '));
   }
+  // Thuốc tăng huyết áp nhóm A, B, C, D: chống chỉ định theo VNHA 2026 (bác sĩ đặt 2026-10-30)
+  out.push(...htnBlockReasons(p, v, d, ctx));
   // Tích ô "Động kinh" ở hồ sơ nền → không kê SSRI (bác sĩ đặt 2026-10-25; chỉ theo ô tích, không theo ICD / chữ)
   if((p.conds || []).includes('epilepsy') && d && (d.cls === 'SSRI' || expandTags(d.tags).has('ssri'))) out.push('hồ sơ nền tích ô động kinh (SSRI có thể hạ ngưỡng co giật)');
   if(C.has('epilepsy')){
@@ -600,6 +602,69 @@ function scaleResult(key, value){
   const b = SCALE_BANDS[key], n = num(value); if(!b || n == null || n < 0) return null;
   const r = b.find(x => n <= x[0]); return r ? {t: r[1], lv: r[2]} : null;
 }
+// ---- Thuốc tăng huyết áp nhóm A (ức chế men chuyển / chẹn thụ thể), B (chẹn beta), C (chẹn kênh canxi), D (lợi tiểu thiazid / giống thiazid)
+// Chống chỉ định → chặn kê (bác sĩ đặt 2026-10-30); thận trọng → cảnh báo. Nguồn: Khuyến cáo VSH/VNHA 2026, Bảng 10.5 và mục 10.3, 15 (thai kỳ).
+function htnGroup(d){
+  if(!d) return ''; const tg = expandTags(d.tags), h = norm(d.hc || '');
+  if(tg.has('acei') || tg.has('arb')) return 'A';
+  if(tg.has('beta_blocker')) return 'B';
+  if(tg.has('ccb') || /dipin|diltiazem|verapamil/.test(h)) return 'C';
+  if(tg.has('thiazide') || /indapamid|thiazid|chlortalidon/.test(h)) return 'D';
+  return '';
+}
+const HTN_GNAME = {A: 'nhóm A (ức chế men chuyển / chẹn thụ thể angiotensin)', B: 'nhóm B (chẹn beta)', C: 'nhóm C (chẹn kênh canxi)', D: 'nhóm D (lợi tiểu thiazid / giống thiazid)'};
+function latestPulse(p, v){ const vs = [v].concat((p.visits || []).filter(x => x !== v).sort((a, b) => String(b.date).localeCompare(String(a.date)))).filter(Boolean); for(const x of vs){ const n = num((x.vitals || {}).pulse); if(n != null) return {n, current: x === v}; } return null; }
+function htnText(p, v){ return (p.condNote || '') + ' . ' + (p.allergyText || '') + ' . ' + ((v && v.hpi) || ''); }
+function htnBlockReasons(p, v, d, ctx){
+  const g = htnGroup(d); if(!g || !v) return [];
+  const C = (ctx || ctxOf(p, v)).conds, h = norm(d.hc || ''), t = htnText(p, v), out = [], say = k => mentionsSymptom(t, k);
+  const preg = pregnancyReason(p, v, ctx) || (['du dinh mang thai', 'ke hoach mang thai', 'muon co thai'].some(say) ? 'dự định mang thai' : '');
+  if(g === 'A'){
+    if(preg) out.push(`đang / dự định mang thai: ${preg} (ức chế men chuyển, chẹn thụ thể độc với thai)`);
+    if(['hep dong mach than 2 ben', 'hep dong mach than hai ben', 'than doc nhat', 'mot than', 'chi con mot than'].some(say)) out.push('hẹp động mạch thận 2 bên hoặc chỉ có 1 thận');
+    if(expandTags(d.tags).has('acei')){
+      if(['phu mach', 'phu quincke'].some(say)) out.push('tiền sử phù mạch (ức chế men chuyển)');
+      if(['loc huyet tuong', 'loc mau qua mang dac biet', 'mang an69'].some(say)) out.push('lọc huyết tương / lọc máu qua màng đặc biệt (ức chế men chuyển)');
+    }
+  }
+  if(g === 'B'){
+    if(C.has('asthma') && /propranolol|carvedilol|labetalol|nadolol/.test(h)) out.push('hen phế quản / COPD (chẹn beta không chọn lọc, chẹn alpha-beta)');
+    const pu = latestPulse(p, v);
+    if((pu && pu.n < 50) || ['nhip cham nang', 'block nhi that do 2', 'block nhi that do 3', 'block nhi that cap 2', 'block nhi that cap 3', 'hoi chung nut xoang'].some(say)) out.push('nhịp chậm nặng' + (pu && pu.n < 50 ? ` (mạch ${fmtN(pu.n)} l/ph)` : ''));
+    if(['u tuy thuong than', 'u te bao ua crom', 'pheochromocytoma'].some(say)) out.push('u tuỷ thượng thận chưa điều trị (không dùng chẹn beta đơn độc)');
+  }
+  if(g === 'C' && /diltiazem|verapamil/.test(h) && C.has('heart_failure')) out.push('suy tim (chẹn kênh canxi không DHP chống chỉ định trong suy tim phân suất tống máu giảm)');
+  if(g === 'D'){
+    if(preg) out.push(`đang / dự định mang thai: ${preg} (VNHA 2026: lợi tiểu chống chỉ định)`);
+    const na = latestOrder(p, v, 'na'), k = latestOrder(p, v, 'k');
+    if((na && num(na.o.value) < 130) || ['ha natri mau'].some(say)) out.push('hạ natri máu rõ rệt' + (na && num(na.o.value) < 130 ? ` (Na ${fmtN(num(na.o.value), 1)})` : ''));
+    if((k && num(k.o.value) < 3) || ['ha kali mau'].some(say)) out.push('hạ kali máu rõ rệt' + (k && num(k.o.value) < 3 ? ` (K ${fmtN(num(k.o.value), 1)})` : ''));
+  }
+  return out.length ? [`${HTN_GNAME[g]} chống chỉ định khi ${out.join('; ')} (VNHA 2026)`] : [];
+}
+function htnCautions(p, v, d, ctx){
+  const g = htnGroup(d); if(!g || !v) return [];
+  const C = (ctx || ctxOf(p, v)).conds, h = norm(d.hc || ''), t = htnText(p, v), out = [], say = k => mentionsSymptom(t, k);
+  if(g === 'A'){
+    if(say('hep dong mach than') && !['hep dong mach than 2 ben', 'hep dong mach than hai ben'].some(say)) out.push('hẹp động mạch thận');
+    const k = latestOrder(p, v, 'k'); if(k && num(k.o.value) > 5) out.push(`tăng kali máu (K ${fmtN(num(k.o.value), 1)})`);
+    if(expandTags(d.tags).has('acei') && ['loc mau', 'chay than nhan tao'].some(say)) out.push('đang lọc máu — kiểm tra loại màng lọc (chống chỉ định với màng đặc biệt)');
+  }
+  if(g === 'B'){
+    if(C.has('asthma') && !/propranolol|carvedilol|labetalol|nadolol/.test(h)) out.push('hen phế quản / COPD (chẹn beta chọn lọc β1: thận trọng)');
+    if(C.has('diabetes')) out.push('rối loạn dung nạp glucose / đái tháo đường');
+    const pu = latestPulse(p, v); if(pu && pu.n >= 50 && pu.n < 60) out.push(`mạch chậm ${fmtN(pu.n)} l/ph`);
+  }
+  if(g === 'C' && !/diltiazem|verapamil/.test(h)){
+    if(C.has('heart_failure')) out.push('suy tim (thận trọng khi suy tim mất bù)');
+    if(say('hep van dong mach chu')) out.push('hẹp van động mạch chủ nặng');
+  }
+  if(g === 'D'){
+    if(C.has('gout')) out.push('bệnh gút');
+    if(C.has('diabetes')) out.push('rối loạn dung nạp glucose / đái tháo đường');
+  }
+  return out;
+}
 function checkAll(p, v, entries){
   const ctx = ctxOf(p, v);
   entries = entries || (v.rx || []).map(l => ({line: l, drug: drugById(l.drugId)}));
@@ -613,6 +678,8 @@ function checkAll(p, v, entries){
       const block = drugBlockReasons(p, v, e.drug, ctx, e.line);
       if(block.length) items.push({lv: 3, kind: 'Quy tắc phòng khám', title: e.name, m: 'Không kê thuốc này vì ' + block.join('; ') + '. Chọn thuốc khác.', lines: [e.id]});
       const half = halfDoseReasons(p, v, e.drug, ctx);
+      const htnC = htnCautions(p, v, e.drug, ctx);
+      if(htnC.length) items.push({lv: 2, kind: 'Thận trọng (VNHA 2026)', title: `${e.name} — ${HTN_GNAME[htnGroup(e.drug)]}`, m: 'Thận trọng: ' + htnC.join('; ') + '.', lines: [e.id]});
       if(half.length) items.push({lv: 2, kind: 'Liều (quy tắc phòng khám)', title: `${e.name} — giảm ½ liều`, m: `Chẩn đoán trầm cảm kèm ${half.join(' và ')}: dùng ½ liều thông thường.`, lines: [e.id]});
       if(!isSsriSnri(e.drug)) continue;
       if(bip && !(e.drug.cond && e.drug.cond.bipolar && ctx.conds.has('bipolar'))) items.push({lv: 2, kind: 'Bệnh kèm', title: `${e.name} — Rối loạn cảm xúc lưỡng cực`, m: 'Tiền sử rối loạn lưỡng cực / hưng cảm: SSRI/SNRI có thể gây chuyển pha hưng cảm — chỉ dùng kèm thuốc chỉnh khí sắc, theo dõi sát (Stahl).', lines: [e.id]});
