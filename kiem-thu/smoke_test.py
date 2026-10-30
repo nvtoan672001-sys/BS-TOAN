@@ -374,6 +374,7 @@ def main():
             assert pg.evaluate("() => ['F40.8','F40.9','F41.3','F41.8','F06.4','F93.1','F93.2'].every(c => ICD.some(x => x[0] === c))"), 'thiếu mã ICD rối loạn lo âu'
             assert pg.evaluate("() => ['F43.8','F43.9','F43.22','F44.5','F45.3','F48.0','F62.0'].every(c => ICD.some(x => x[0] === c))"), 'thiếu mã ICD rối loạn liên quan stress'
             assert pg.evaluate("() => ['cortisol','acth'].every(k => LABS.some(x => x[0] === 'Máu' && x[1] === k))"), 'thiếu cortisol / ACTH'
+            assert pg.evaluate("() => ['progest','fsh','lh','prl','sa_tc'].every(k => LABS.some(x => x[1] === k)) && LABS.find(x => x[1] === 'testo')[3] === 'ng/dL'"), 'thiếu hormon sinh dục / siêu âm tử cung'
             assert pg.evaluate("() => [['gad7', 12], ['gad2', 3], ['phq4_d', 1], ['phq9', 20], ['mmse', 23], ['moca', 27]].map(([k, v]) => (scaleResult(k, v) || {}).t)") == ['Lo âu vừa', 'Dương tính — làm GAD-7', 'Âm tính', 'Trầm cảm nặng', 'Suy giảm nhận thức (< 24; đối chiếu trình độ học vấn)', 'Bình thường']
             assert pg.evaluate("() => Object.keys(SCALE_BANDS).every(k => LABS.some(x => x[1] === k))"), 'SCALE_BANDS có key không có trong LABS'
             # bộ chỉ định "Điện giải đồ (Na, K, Clo)": tích -> thêm 3 dòng Na, K, Clo; bỏ tích -> bỏ cả 3
@@ -629,12 +630,29 @@ def main():
             assert ['F52.0', False] in pg.evaluate(SG, {'sx': ['sex_libido', 'sxg_unable'], 'weeks': 30})
             assert ['F52.2', False] in pg.evaluate(SG, {'sx': ['sex_ed', 'dep_mood', 'dep_anhed', 'dep_conc', 'dep_sleep'] + gen, 'weeks': 30})
             assert ['F52.7', True] in pg.evaluate(SG, {'sx': ['sxg_hyper'], 'weeks': 30})
+            # nhóm bổ sung 2026-10-30
+            assert ['F00.1', True] in pg.evaluate(SG, {'sx': ['dem_mem', 'dem_cog', 'dem_func', 'dem_clear', 'dem_emo', 'dem_6m', 'dem_slow'], 'weeks': 40})
+            assert ['F01.0', True] in pg.evaluate(SG, {'sx': ['dem_mem', 'dem_cog', 'dem_func', 'dem_clear', 'dem_emo', 'dem_6m', 'dem_vasc', 'dem_step'], 'weeks': 40})
+            assert ['F05.0', True] in pg.evaluate(SG, {'sx': ['del_cons', 'del_cog', 'del_psymo', 'del_sleep', 'del_acute', 'del_cause'], 'weeks': 0})
+            assert ['F51.0', True] in pg.evaluate(SG, {'sx': ['ins_compl', 'ins_freq', 'slp_impair', 'slp_excl'], 'weeks': 6})
+            assert ['F10.2', True] in pg.evaluate(SG, {'sx': ['sud_alc', 'sud_crave', 'sud_control', 'sud_withdraw', 'sud_12m'], 'weeks': 20})
+            assert ['F17.1', False] in pg.evaluate(SG, {'sx': ['sud_tob', 'sud_harm'], 'weeks': 20})
+            assert ['F63.0', True] in pg.evaluate(SG, {'sx': ['gam_2ep', 'gam_cont', 'gam_urge', 'gam_preocc'], 'weeks': 60})
+            assert ['F91.3', True] in pg.evaluate(SG, {'sx': ['cd_odd', 'cd_pattern'], 'weeks': 30})
+            assert ['F44', True] in pg.evaluate(SG, {'sx': ['dis_sx', 'dis_noorg', 'dis_time'], 'weeks': 2})
+            assert ['F45.0', True] in pg.evaluate(SG, {'sx': ['som_2y', 'som_visits', 'som_refuse', 'som_6sx'], 'weeks': 110})
+            assert ['F90.0', True] in pg.evaluate(SG, {'sx': ['adhd_inatt', 'adhd_hyper', 'adhd_imp', 'adhd_7y', 'adhd_perv', 'adhd_impair'], 'weeks': 30})
+            assert ['F84.1', True] in pg.evaluate(SG, {'sx': ['asd_social', 'asd_comm'], 'weeks': 30})
             # giao diện: bảng kiểm ở bước 1 cập nhật tức thời, bước 3 hiện gợi ý và chọn được
             pg.evaluate("() => { curV().mental = {sx: [], hist: [], excl: []}; S.mOpen = {}; renderMain(true); }")
             if not pg.is_visible('input[data-v="dep_mood"]'): pg.click('[data-act="mentalToggle"]')
+            assert not pg.is_visible('input[data-v="dem_mem"]'), 'nhóm sa sút trí tuệ phải thu gọn khi chưa tích'
+            pg.click('details[data-g="dem"] > summary'); pg.wait_for_timeout(100)
+            assert pg.is_visible('input[data-v="dem_mem"]')
             for k in dep: pg.check(f'input[data-v="{k}"]')
             pg.fill('input[data-b="v.mental.weeks"]', '3'); pg.wait_for_timeout(200)
             assert '2/3 chính' in pg.inner_text('[data-live="mentalSum"]')
+            if not pg.is_visible('input[data-v="scoff_s"]'): pg.click('details[data-g="scoff"] > summary')
             pg.check('input[data-v="scoff_s"]'); pg.check('input[data-v="scoff_f1"]'); pg.wait_for_timeout(200)
             assert 'SCOFF = 2/5: nghi rối loạn ăn uống' in pg.inner_text('[data-live="mentalSum"]')
             pg.fill('textarea[data-b="v.mental.premorbid"]', 'Hướng nội, cầu toàn'); pg.wait_for_timeout(200)

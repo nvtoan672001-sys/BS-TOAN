@@ -374,9 +374,15 @@ function mentalCard(p, v){
   const open = mentalOpen(p, v), m = v.mental || {};
   const head = `<div class="ch"><h3>Khám tâm thần <span class="small muted">(không in lên phiếu bệnh nhân)</span></h3><button class="btn sm" data-act="mentalToggle">${open ? 'Thu gọn' : 'Mở bảng kiểm'}</button></div>`;
   if(!open) return `<div class="card">${head}<div class="small muted">Bảng kiểm triệu chứng trầm cảm, hưng cảm, lo âu theo BYT 2020 — dùng để gợi ý chẩn đoán ở bước 3.</div></div>`;
-  const grp = (t, src, body) => `<div class="mgrp"><span class="lbl">${esc(t)} <span class="tiny muted">BYT 2020, ${esc(src)}</span></span><div class="checks">${body}</div></div>`;
+  const srcTxt = src => /^Bài/.test(src) ? 'BYT 2020, ' + src : src;
+  const grp = (t, src, body) => `<div class="mgrp"><span class="lbl">${esc(t)} <span class="tiny muted">${esc(srcTxt(src))}</span></span><div class="checks">${body}</div></div>`;
+  const OPEN_G = ['dep_core', 'dep_common', 'dep_som', 'man_a', 'man_b', 'mix', 'psy', 'anx'], sxSet = new Set(m.sx || []);
+  const grpX = g => { const body = g.items.map(([k, l]) => CL('v.mental.sx', m.sx, k, l)).join('');
+    if(OPEN_G.includes(g.g)) return grp(g.t, g.src, body);
+    const n = g.items.filter(([k]) => sxSet.has(k)).length;
+    return `<details class="mgrp mdet" data-g="${g.g}"${n ? ' open' : ''}><summary><span class="lbl">${esc(g.t)}${n ? ` <span class="chip pri">${n}</span>` : ''} <span class="tiny muted">${esc(srcTxt(g.src))}</span></span></summary><div class="checks">${body}</div></details>`; };
   return `<div class="card">${head}<div data-live="mentalSum"></div>
-    ${MENTAL_SX.map(g => grp(g.t, g.src, g.items.map(([k, l]) => CL('v.mental.sx', m.sx, k, l)).join('')) + (g.g === 'dep_som' ? `<div class="mgrp">${CB('v.mental.severe', m.severe, '<b>Một số triệu chứng đặc biệt nặng</b> <span class="tiny muted">— điều kiện của trầm cảm nặng (BYT 2020, Bài 20); bác sĩ đánh giá</span>')}</div>` : '')).join('')}
+    ${MENTAL_SX.map(g => grpX(g) + (g.g === 'dep_som' ? `<div class="mgrp">${CB('v.mental.severe', m.severe, '<b>Một số triệu chứng đặc biệt nặng</b> <span class="tiny muted">— điều kiện của trầm cảm nặng (BYT 2020, Bài 20); bác sĩ đánh giá</span>')}</div>` : '')).join('')}
     <div class="g3 mgrp">${F('Thời gian kéo dài giai đoạn hiện tại', U('v.mental.weeks', m.weeks, 'tuần'))}<div class="field spanall"><label>Mức ảnh hưởng chức năng</label><div class="row">${MENTAL_IMPAIR.map(([k, l]) => RAD('v.mental.impair', m.impair, k, l)).join('')}</div></div></div>
     ${grp('Tiền sử giai đoạn khí sắc', 'Bài 19, 21', MENTAL_HIST.map(([k, l]) => CL('v.mental.hist', m.hist, k, l)).join(''))}
     ${grp('Yếu tố cần loại trừ', 'Bài 18–23', MENTAL_EXCL.map(([k, l]) => CL('v.mental.excl', m.excl, k, l)).join(''))}
@@ -398,7 +404,7 @@ function dxSugHTML(){
   let h = r.alerts.map(a => `<div class="w l${a.lv}"><div class="wt">${lvChip(a.lv)}${esc(a.t)}</div><div>${esc(a.m)}</div></div>`).join('');
   h += r.sugs.length ? r.sugs.map(s => `<div class="sug${s.ok ? ' ok' : ''}"><div class="wt"><span>${s.ok ? chip('Đủ tiêu chuẩn', 'ok') : chip('Chưa đủ', 'r1')} ${esc(s.code)} – ${esc(s.name)}</span>${cur === s.code ? chip('Đang chọn', 'pri') : `<button class="btn xs${s.ok ? ' pri' : ''}" data-act="dxPick" data-code="${esc(s.code)}">Chọn chẩn đoán này</button>`}</div>
     ${s.met.length ? `<div class="small"><b>Đã thỏa:</b> ${s.met.map(esc).join('; ')}</div>` : ''}${s.miss.length ? `<div class="small"><b>Còn thiếu / cần xem lại:</b><ul>${s.miss.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}${s.note ? `<div class="tiny muted">${esc(s.note)}</div>` : ''}<div class="tiny muted">Nguồn: BYT 2020 (QĐ 2058/QĐ-BYT), ${esc(s.src)}</div></div>`).join('')
-    : '<div class="small muted">Các triệu chứng đã ghi chưa gợi ý rối loạn nào trong các nhóm cảm xúc, lo âu, stress, ăn uống, tình dục (F30–F33, F40–F43, F50, F52).</div>';
+    : '<div class="small muted">Các triệu chứng đã ghi chưa gợi ý rối loạn nào trong các nhóm đã có bảng kiểm (F00–F05, F10, F17, F30–F33, F40–F45, F50–F52, F63, F70–F73, F84, F90–F91, F98).</div>';
   if(r.todo.length) h += `<div class="w l1" style="margin-top:8px"><div class="wt">Nên làm thêm</div>${r.todo.map(t => `<div>• ${esc(t)}</div>`).join('')}</div>`;
   return h + '<div class="tiny muted" style="margin-top:6px">Gợi ý dựa trên bảng kiểm, không thay thế đánh giá lâm sàng của bác sĩ.</div>';
 }

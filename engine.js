@@ -852,6 +852,79 @@ function psyDx(p, v){
   if(onDrug.length) sexWarn.push('Đang dùng ' + onDrug.join(', ') + ' — có thể do thuốc (tiêu chuẩn d)');
   SEX_CODES.filter(([k]) => has(k)).forEach(([k, code, note]) => add(code, 'LEC6', [lab('sex', k)].concat(sexMet), sexMiss.concat(sexWarn), note));
   if(has('sxg_hyper')) add('F52.7', 'LEC6', ['Ham muốn tình dục tăng quá mức, cấp thiết'], manSx || c.mix ? ['Đang có triệu chứng hưng cảm / hỗn hợp → tăng tình dục là triệu chứng của rối loạn cảm xúc'] : [], 'Thường gặp trong rối loạn cảm xúc (trầm cảm, hưng cảm, hỗn hợp) — LEC6.');
+  // ===== Nhóm bổ sung 2026-10-30: nhận thức, giấc ngủ, nghiện, hành vi, trẻ em, phân ly / cơ thể hoá =====
+  // Nguồn: BYT 2020 (Bài 1, 2, 4, 7, 24, 25, 27–31) và ICD-10 bản tiếng Việt "tiêu chuẩn chẩn đoán dành cho nghiên cứu" (thư mục Tâm thần)
+  const age = ageOf(p, v.date);
+  // Sa sút trí tuệ: G1 (trí nhớ + nhận thức khác), G2 (ý thức không u ám), G3 (kiểm soát cảm xúc / hành vi), G4 (≥ 6 tháng)
+  if(has('dem_mem') && has('dem_cog')){
+    const miss = need('dem', ['dem_clear', 'dem_emo', 'dem_6m']);
+    if(!has('dem_func')) miss.push('Chưa ảnh hưởng hoạt động hằng ngày → cân nhắc rối loạn nhận thức nhẹ (F06.7)');
+    let code = 'F03', note = 'Mức độ (ICD-10): nhẹ — chưa phụ thuộc người khác; trung bình — cần trợ giúp sinh hoạt; nặng — mất khả năng diễn đạt ý dễ hiểu.';
+    if(has('dem_vasc')){ code = has('dem_step') ? 'F01.0' : 'F01.9'; if(!has('dem_step')) note = 'Mạch máu: đối chiếu thể nhiều ổ nhồi máu (F01.1, khởi phát từ từ 3–6 tháng), dưới vỏ (F01.2, có tăng huyết áp), hỗn hợp (F01.3). ' + note; }
+    else if(has('dem_slow')) code = has('dem_early') ? 'F00.0' : 'F00.1';
+    else miss.push('Chưa xác định nguyên nhân: bệnh Alzheimer (khởi phát từ từ, không nguyên nhân khác) hay bệnh mạch máu não');
+    add(code, 'BYT 2020 Bài 1–2; ICD-10', ['Suy giảm trí nhớ', 'Suy giảm nhận thức khác'].concat(['dem_func', 'dem_clear', 'dem_emo', 'dem_6m'].filter(has).map(k => lab('dem', k))), miss, note + ' Làm MMSE / MoCA, CT / MRI sọ não, TSH, B12, đường máu.');
+  } else if(has('dem_mem') || has('dem_cog')) todo.push('Có suy giảm nhận thức: đánh giá đủ mục "Sa sút trí tuệ" và làm MMSE / MoCA.');
+  // Sảng: A–D đủ + khởi phát nhanh
+  if(['del_cons', 'del_cog', 'del_psymo', 'del_sleep'].some(has)){
+    const miss = need('del', ['del_cons', 'del_cog', 'del_psymo', 'del_sleep', 'del_acute', 'del_cause']);
+    add(has('dem_mem') && has('dem_cog') ? 'F05.1' : 'F05.0', 'BYT 2020 Bài 4; ICD-10', ['del_cons', 'del_cog', 'del_psymo', 'del_sleep', 'del_acute', 'del_cause'].filter(has).map(k => lab('del', k)), miss, 'Sảng là cấp cứu: tìm nguyên nhân (nhiễm trùng, rối loạn điện giải, hạ đường huyết, thuốc kháng cholinergic, cai rượu / benzodiazepin). Sảng do rượu / chất → F10–F19.');
+    if(has('del_cons')) alerts.push({lv: 3, t: 'Nghi sảng', m: 'Ý thức u ám, khởi phát cấp: đánh giá nguyên nhân thực tổn ngay (dấu sinh tồn, đường máu, điện giải, nhiễm trùng, thuốc); cân nhắc chuyển viện.'});
+  }
+  // Mất ngủ / ngủ nhiều không thực tổn
+  if(has('ins_compl')){
+    const miss = need('slp', ['ins_freq', 'slp_impair', 'slp_excl']);
+    if(depLv || anxSx.length) miss.push('Có triệu chứng trầm cảm / lo âu: mất ngủ có thể là triệu chứng — chẩn đoán rối loạn chính trước');
+    add('F51.0', 'BYT 2020 Bài 27; ICD-10', ['Khó vào giấc / khó duy trì / ngủ không ngon'].concat(['ins_freq', 'slp_impair', 'slp_excl'].filter(has).map(k => lab('slp', k))), miss, 'Đánh giá thêm PSQI, ISI; hỏi ngáy, ngưng thở (G47.3), chân không yên (G25.8).');
+  }
+  if(has('hyp_day')) add('F51.1', 'ICD-10', ['Buồn ngủ quá mức ban ngày'].concat(['hyp_nonarco', 'slp_impair', 'slp_excl'].filter(has).map(k => lab('slp', k))), need('slp', ['hyp_nonarco', 'slp_impair', 'slp_excl']), 'Có cơn ngủ rũ / mất trương lực đột ngột → G47.4; ngưng thở khi ngủ → G47.3.');
+  // Nghiện rượu / thuốc lá: hội chứng nghiện F1x.2 (≥ 3/6 trong 12 tháng); sử dụng gây hại F1x.1
+  const sudCore = ['sud_crave', 'sud_control', 'sud_withdraw', 'sud_toler', 'sud_neglect', 'sud_harm'], sudN = sudCore.filter(has).length;
+  if(sudN){
+    const risk = p.risk || {};
+    const subs = [has('sud_alc') || (!has('sud_tob') && ['some', 'heavy'].includes(risk.alcohol)) ? 'F10' : null, has('sud_tob') || (!has('sud_alc') && risk.smoke === 'current') ? 'F17' : null].filter(Boolean);
+    if(!subs.length) todo.push('Có biểu hiện nghiện: chọn chất (rượu bia / thuốc lá) ở mục "Nghiện rượu / thuốc lá".');
+    subs.forEach(s => {
+      const nm = s === 'F10' ? 'rượu' : 'thuốc lá';
+      const met = [`${sudN}/6 tiêu chuẩn hội chứng nghiện (cần ≥ 3)`].concat(sudCore.filter(has).map(k => lab('sud', k)));
+      if(sudN >= 3) add(s + '.2', 'ICD-10 F1x.2; LEC8', met, has('sud_12m') ? [] : ['Cần các biểu hiện cùng có ≥ 1 tháng hoặc lặp lại trong 12 tháng'], s === 'F10' ? 'Đánh giá AUDIT; có hội chứng cai → F10.3 (theo dõi CIWA-Ar), cai có sảng → F10.4 (cấp cứu). Bổ sung thiamin.' : 'Đánh giá mức độ lệ thuộc nicotin; tư vấn cai, liệu pháp thay thế nicotin.');
+      else if(has('sud_harm')) add(s + '.1', 'ICD-10 F1x.1', ['Sử dụng ' + nm + ' gây tổn hại cơ thể / tâm thần'], [`Mới ${sudN}/6 tiêu chuẩn nghiện — chưa đủ hội chứng nghiện (≥ 3)`], 'Sử dụng gây hại: tổn hại rõ, kéo dài ≥ 1 tháng hoặc lặp lại trong 12 tháng.');
+    });
+  }
+  // Nghiện hành vi
+  if(['gam_2ep', 'gam_cont', 'gam_urge', 'gam_preocc'].some(has)) add('F63.0', 'ICD-10 F63.0', ['gam_2ep', 'gam_cont', 'gam_urge', 'gam_preocc'].filter(has).map(k => lab('gam', k)), need('gam', ['gam_2ep', 'gam_cont', 'gam_urge', 'gam_preocc']), 'Loại trừ đánh bạc trong giai đoạn hưng cảm, rối loạn nhân cách chống đối xã hội.');
+  if(has('game_net')) add('F63.8', 'ICD-10 F63.8', [lab('gam', 'game_net')], [], 'ICD-10 xếp nghiện trò chơi điện tử / internet vào "rối loạn thói quen và xung động khác"; loại trừ hưng cảm, ADHD, trầm cảm đi kèm.');
+  // Rối loạn hành vi (F91) / thách thức chống đối (F91.3)
+  const cdSerious = ['cd_aggr', 'cd_destr', 'cd_theft', 'cd_rules'].filter(has);
+  if(has('cd_pattern') && cdSerious.length){
+    const code = has('cd_family') ? 'F91.0' : has('cd_peer') ? 'F91.1' : 'F91.2';
+    const miss = []; if(age != null && age >= 18) miss.push('Bệnh nhân ≥ 18 tuổi → đánh giá rối loạn nhân cách chống đối xã hội (F60.2)');
+    if(depLv) miss.push('Có triệu chứng trầm cảm đủ tiêu chuẩn → rối loạn hành vi trầm cảm (F92.0)');
+    add(code, 'ICD-10 F91; LEC11', [lab('cond', 'cd_pattern')].concat(cdSerious.map(k => lab('cond', k))), miss, (age != null && age < 10 ? 'Loại khởi phát ở trẻ em (trước 10 tuổi). ' : '') + 'Loại trừ tâm thần phân liệt, hưng cảm, rối loạn phát triển lan toả, tăng động (có cả tăng động → F90.1).');
+  } else if(has('cd_odd')) add('F91.3', 'ICD-10 F91.3; LEC11', [lab('cond', 'cd_odd')], has('cd_pattern') ? [] : ['Cần kéo dài ≥ 6 tháng'], 'Không có hành vi gây hấn / vi phạm nghiêm trọng (nếu có → F91.0–F91.2). Thường gặp kèm ADHD.');
+  // Trẻ em: ADHD (G1–G6), tự kỷ, chậm phát triển tâm thần (IQ), đái dầm, ỉa bậy
+  if(['adhd_inatt', 'adhd_hyper', 'adhd_imp'].some(has)){
+    const miss = need('kid', ['adhd_inatt', 'adhd_hyper', 'adhd_imp', 'adhd_7y', 'adhd_perv', 'adhd_impair']);
+    if(['asd_social', 'asd_comm', 'asd_rrb'].some(has)) miss.push('Có biểu hiện tự kỷ → ICD-10 không chẩn đoán tăng động khi có rối loạn phát triển lan toả (F84)');
+    add(has('cd_pattern') && cdSerious.length ? 'F90.1' : 'F90.0', 'BYT 2020 Bài 30; ICD-10 F90', ['adhd_inatt', 'adhd_hyper', 'adhd_imp', 'adhd_7y', 'adhd_perv', 'adhd_impair'].filter(has).map(k => lab('kid', k)), miss, 'Trắc nghiệm hỗ trợ: Vanderbilt. Loại trừ hưng cảm, trầm cảm, lo âu.');
+  }
+  if(['asd_social', 'asd_comm', 'asd_rrb'].some(has)) add(['asd_before3', 'asd_social', 'asd_comm', 'asd_rrb'].every(has) ? 'F84.0' : 'F84.1', 'BYT 2020 Bài 29; ICD-10 F84.0', ['asd_before3', 'asd_social', 'asd_comm', 'asd_rrb'].filter(has).map(k => lab('kid', k)), [], ['asd_before3', 'asd_social', 'asd_comm', 'asd_rrb'].every(has) ? 'Trắc nghiệm hỗ trợ: M-CHAT-R, CARS, ADOS.' : 'Chưa đủ cả 4 nhóm (khởi phát < 3 tuổi, xã hội, giao tiếp, hành vi định hình) → tự kỷ không điển hình (F84.1). Trắc nghiệm hỗ trợ: M-CHAT-R, CARS.');
+  const iq = orderNum(v, 'wechsler');
+  if(iq != null && iq < 70){
+    const code = iq >= 50 ? 'F70' : iq >= 35 ? 'F71' : iq >= 20 ? 'F72' : 'F73';
+    add(code, 'BYT 2020 Bài 28; ICD-10 F70–F79', [`IQ (Wechsler) = ${fmtN(iq)}`].concat(has('id_adapt') ? [lab('kid', 'id_adapt')] : []), has('id_adapt') ? [] : ['Cần đánh giá giảm năng lực thích ứng xã hội'], 'Bảng ICD-10: nhẹ IQ 50–69 (tuổi tâm thần 9–< 12), vừa 35–49 (6–< 9), nặng 20–34 (3–< 6), trầm trọng < 20 (< 3 tuổi).');
+  }
+  if(has('enu_wet')){
+    const miss = need('kid', ['elim_excl']); if(age == null || age < 5) miss.push('Cần tuổi ≥ 5' + (age != null ? ` (hiện ${age} tuổi)` : ''));
+    add('F98.0', 'BYT 2020 Bài 31; ICD-10 F98.0', [lab('kid', 'enu_wet')].concat(has('elim_excl') ? [lab('kid', 'elim_excl')] : []), miss, 'Mã con: F98.00 chỉ ban đêm, F98.01 chỉ ban ngày, F98.02 cả ngày và đêm. Làm tổng phân tích nước tiểu, siêu âm hệ tiết niệu.');
+  }
+  if(has('enc_soil')){
+    const miss = need('kid', ['elim_excl']); if(age == null || age < 4) miss.push('Cần tuổi ≥ 4' + (age != null ? ` (hiện ${age} tuổi)` : ''));
+    add('F98.1', 'ICD-10 F98.1', [lab('kid', 'enc_soil')].concat(has('elim_excl') ? [lab('kid', 'elim_excl')] : []), miss, 'Loại trừ táo bón mạn, phình đại tràng, bệnh thần kinh.');
+  }
+  // Phân ly (F44) / cơ thể hoá (F45.0)
+  if(has('dis_sx')) add('F44', 'BYT 2020 Bài 24; ICD-10 F44', [lab('diss', 'dis_sx')].concat(['dis_noorg', 'dis_time'].filter(has).map(k => lab('diss', k))), need('diss', ['dis_noorg', 'dis_time']), 'Chọn mã con theo biểu hiện: quên F44.0, trốn nhà F44.1, sững sờ F44.2, vận động F44.4, co giật F44.5, mất cảm giác F44.6, hỗn hợp F44.7.');
+  if(has('som_2y')) add('F45.0', 'BYT 2020 Bài 25; ICD-10 F45.0', [lab('diss', 'som_2y')].concat(['som_visits', 'som_refuse', 'som_6sx'].filter(has).map(k => lab('diss', k))), need('diss', ['som_visits', 'som_refuse', 'som_6sx']), 'Chưa đủ 2 năm hoặc ít triệu chứng hơn → rối loạn dạng cơ thể không biệt định (F45.1). Loại trừ trầm cảm, lo âu, hoảng sợ.');
   // --- Rối loạn sự thích ứng (ICD-10 WHO F43.2; tài liệu BYT 2020 / LEC4 chỉ dẫn chẩn đoán theo ICD-10) ---
   const adjStress = sx.has('adj_stressor') || excl.has('stress');
   const aDep = sx.has('adj_dep'), aAnx = sx.has('adj_anx'), aEmo = sx.has('adj_emo'), aBeh = sx.has('adj_behav');

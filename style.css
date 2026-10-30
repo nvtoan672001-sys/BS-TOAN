@@ -275,3 +275,4 @@ table.t td.num input{padding:5px 4px}
 @media (min-width:821px){#sidebtn{display:none}}
 
 .dxcol{display:flex;flex-direction:column;gap:10px;min-width:0}
+.mdet>summary{cursor:pointer;list-style:none}.mdet>summary::-webkit-details-marker{display:none}.mdet>summary .lbl::before{content:'▸ ';color:var(--muted,#888)}.mdet[open]>summary .lbl::before{content:'▾ '}.mdet>summary .lbl{display:inline}
