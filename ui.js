@@ -84,6 +84,11 @@ const LIVE = {
   rxcost: el => { const l = curV().rx.find(x => x.id === el.dataset.id); return l ? money(rxCost(l)) : ''; },
   rxtotal: () => { const v = curV(); const t = (v.rx || []).reduce((a, l) => a + rxCost(l), 0); return `Tổng tiền thuốc (giá mẫu): <b>${money(t)}</b>`; },
   scale: el => { const o = curV().orders.find(x => x.id === el.dataset.id); if(!o) return ''; const r = scaleResult(o.key, o.value); return r ? chip(r.t, ['ok', 'r1', 'r2', 'r3'][r.lv]) : '<span class="small muted">Nhập tổng điểm để có kết luận.</span>'; },
+  cvrisk: () => { const p = curP(), v = curV(), r = cvRisk(p, v);
+    const lvl = r.level ? chip('VNHA 2026: nguy cơ ' + r.level.toLowerCase(), {Thấp: 'ok', 'Trung bình': 'r1', Cao: 'r3'}[r.level]) : `<span class="small muted">${r.bp == null ? 'Nhập huyết áp để phân tầng.' : 'HA < 130/80: bảng kiểm VNHA 2026 áp dụng từ tiền THA trở lên.'}</span>`;
+    const sc = r.score != null ? chip(`SCORE2-AP: ${r.score}% (${r.band}) nguy cơ tim mạch 10 năm`, r.score < 5 ? 'ok' : r.score < 10 ? 'r1' : r.score < 20 ? 'r2' : 'r3') : '';
+    const li = (t, a) => a.length ? `<div class="small"><b>${t}:</b> ${a.map(esc).join('; ')}</div>` : '';
+    return `<div class="row">${lvl} ${sc}</div>${li(`Yếu tố nguy cơ (${r.rf.length})`, r.rf)}${li('Tổn thương cơ quan đích', r.hmod)}${li('Tim – thận – chuyển hoá giai đoạn 1–2', r.ckm12)}${li('Tim – thận – chuyển hoá giai đoạn ≥ 3', r.ckm3)}${li('Bệnh nền nguy cơ cao', r.est.concat(r.dm ? ['Đái tháo đường'] : []))}${r.scoreNote ? `<div class="tiny muted">${esc(r.scoreNote)}</div>` : ''}<div class="tiny muted">Nguồn: Khuyến cáo VSH/VNHA 2026 — Hình 7.2 (bảng kiểm), Hình PL1 (SCORE2-Asia Pacific). Phối hợp đánh giá lâm sàng, không phiên giải nguy cơ đơn độc.</div>`; },
   egfr: el => { const p = curP(), v = curV(), o = v.orders.find(x => x.id === el.dataset.id); if(!o) return '';
     if(!num(o.value)) return '<span class="small muted">Nhập kết quả creatinin để tính.</span>';
     const e = egfrFromOrder(p, v, o); if(e == null) return '<span class="small muted">Cần ngày sinh / tuổi và giới của bệnh nhân để tính.</span>';
@@ -365,6 +370,7 @@ function step1(p, v){
     ${F('HA tâm thu', U('v.vitals.sbp', v.vitals.sbp, 'mmHg'))}${F('HA tâm trương', U('v.vitals.dbp', v.vitals.dbp, 'mmHg'))}${F('Mạch', U('v.vitals.pulse', v.vitals.pulse, 'l/ph'))}${F('Nhiệt độ', U('v.vitals.temp', v.vitals.temp, '°C'))}
     ${F('SpO₂', U('v.vitals.spo2', v.vitals.spo2, '%'))}${F('Cân nặng', U('v.vitals.weight', v.vitals.weight, 'kg'))}${F('Chiều cao', U('v.vitals.height', v.vitals.height, 'cm'))}${F('Vòng eo', U('v.vitals.waist', v.vitals.waist, 'cm'))}
   </div></div>
+  <div class="card"><h3>Nguy cơ tim mạch</h3><div data-live="cvrisk"></div></div>
   <div class="card"><h3>Khám lâm sàng</h3>${T('v.exam', v.exam, {rows: 4, ph: 'Khám bụng, tim phổi, khớp…'})}</div>
   ${mentalCard(p, v)}`;
 }

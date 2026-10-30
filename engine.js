@@ -673,6 +673,58 @@ function htnCautions(p, v, d, ctx){
   }
   return out;
 }
+// ---- Nguy cơ tim mạch (Khuyến cáo VSH/VNHA 2026, Phần VII) ----
+// 1) Bảng kiểm phân tầng VNHA 2026 (Hình 7.2): mức HA (tiền THA / độ 1 / độ 2) × yếu tố nguy cơ (Bảng 7.1), tổn thương cơ quan đích,
+//    hội chứng tim – thận – chuyển hoá (CKM). 2) SCORE2-Asia Pacific (Hình PL1): tra bảng % nguy cơ 10 năm, 40–69 tuổi.
+function labVal(p, v, k){ const r = latestOrder(p, v, k); return r ? num(r.o.value) : null; }
+function cvRisk(p, v){
+  const ctx = ctxOf(p, v), C = ctx.conds, a = ctx.age, male = p.sex === 'Nam', vt = v.vitals || {};
+  const s = num(vt.sbp), d = num(vt.dbp);
+  const ldl = labVal(p, v, 'ldl'), hdl = labVal(p, v, 'hdl'), tc = labVal(p, v, 'chol'), tg = labVal(p, v, 'tg'), glu = labVal(p, v, 'glu'), a1c = labVal(p, v, 'hba1c'), acr = labVal(p, v, 'acr');
+  const rn = renalOf(p), egfr = rn ? rn.egfr : null;
+  const smoke = (p.risk || {}).smoke === 'current';
+  const famT = norm(p.famNote || '');
+  const famCvd = /nhoi mau co tim|benh mach vanh|dot quy|tai bien mach mau nao|dot tu|dat stent|bac cau/.test(famT);
+  const rf = [];
+  if(a != null && (male ? a >= 60 : a >= 65)) rf.push(`Tuổi cao (${a})`);
+  if(male) rf.push('Giới nam');
+  if(smoke) rf.push('Hút thuốc lá');
+  if(ldl != null && ldl >= 3.4) rf.push(`LDL-C ${fmtN(ldl, 1)} mmol/L (≥ 3,4)`);
+  if(hdl != null && hdl < 1.0) rf.push(`HDL-C ${fmtN(hdl, 1)} mmol/L (< 1,0)`);
+  if(famCvd) rf.push('Tiền sử gia đình bệnh tim mạch (đối chiếu: nam < 55, nữ < 65 tuổi)');
+  const hmod = [];
+  const ecg = latestEcg ? latestEcg(p, v) : null, ecgT = norm((ecg && (ecg.text || '')) || '');
+  if(/day that trai|phi dai that trai|lvh/.test(ecgT)) hmod.push('Phì đại thất trái trên điện tim');
+  if(acr != null && acr >= 3 && acr <= 30) hmod.push(`Vi albumin niệu (ACR ${fmtN(acr, 1)} mg/mmol)`);
+  if(egfr != null && egfr >= 30 && egfr < 60) hmod.push(`eGFR ${fmtN(egfr)} (30–59)`);
+  const ckm12 = [], ckm3 = [];
+  const bmi = ctx.bmi, waist = num(vt.waist) ?? num(p.waist);
+  if((bmi != null && bmi >= 23) || (waist != null && waist >= (male ? 90 : 80))) ckm12.push('Thừa cân / béo phì hoặc béo trung tâm');
+  if((glu != null && glu >= 5.6 && glu < 7) || (a1c != null && a1c >= 5.7 && a1c < 6.5)) ckm12.push('Rối loạn dung nạp glucose / tiền đái tháo đường');
+  if(tg != null && tg >= 1.5) ckm12.push(`Triglycerid ${fmtN(tg, 1)} mmol/L (≥ 1,5)`);
+  if(egfr != null && egfr < 30) ckm3.push(`Bệnh thận mạn nguy cơ rất cao (eGFR ${fmtN(egfr)} < 30)`);
+  const est = ['cvd', 'heart_failure', 'af'].filter(k => C.has(k)).map(condLabel);
+  const dm = C.has('diabetes');
+  const bp = s && d ? (s >= 160 || d >= 100 ? 2 : s >= 140 || d >= 90 ? 1 : s >= 130 || d >= 80 ? 0 : -1) : null;
+  const high = rf.length >= 3 || hmod.length || ckm3.length || dm || est.length;
+  const mid = rf.length >= 1 || ckm12.length;
+  let level = null;
+  if(bp === 2) level = 'Cao'; else if(bp === 1) level = high ? 'Cao' : 'Trung bình'; else if(bp === 0) level = high ? 'Cao' : mid ? 'Trung bình' : 'Thấp';
+  // SCORE2-AP
+  let score = null, scoreNote = '';
+  if(est.length || dm || (egfr != null && egfr < 60) || (acr != null && acr >= 3)) scoreNote = 'Đã có bệnh tim mạch / đái tháo đường / bệnh thận mạn (eGFR < 60 hoặc ACR ≥ 3 mg/mmol) → xếp ngay nguy cơ cao / rất cao, không cần tính SCORE2.';
+  else if(a == null || a < 40 || a > 69) scoreNote = 'SCORE2-AP chỉ áp dụng 40–69 tuổi' + (a != null && a >= 70 ? ' (≥ 70 tuổi dùng SCORE2-OP).' : '.');
+  else if(!s) scoreNote = 'Cần HA tâm thu.';
+  else if(tc == null || hdl == null) scoreNote = 'Cần cholesterol toàn phần và HDL-C để tính non-HDL.';
+  else {
+    const nh = tc - hdl, ai = Math.min(5, Math.floor((a - 40) / 5)), si = s < 120 ? 0 : s < 140 ? 1 : s < 160 ? 2 : 3, ni = nh < 4 ? 0 : nh < 5 ? 1 : nh < 6 ? 2 : 3;
+    score = SCORE2_AP[male ? 'M' : 'F'][smoke ? 1 : 0][ai][si][ni];
+    if(s >= 180 || s < 100 || nh < 3 || nh >= 7) scoreNote = 'Giá trị ngoài khoảng của bảng — đã lấy ô gần nhất.';
+    scoreNote = `non-HDL ${fmtN(nh, 1)} mmol/L. ` + scoreNote;
+  }
+  const band = score == null ? '' : score < 5 ? '< 5%' : score < 10 ? '5–10%' : score < 20 ? '10–20%' : score < 30 ? '20–30%' : '≥ 30%';
+  return {level, bp, rf, hmod, ckm12, ckm3, est, dm, score, band, scoreNote};
+}
 function checkAll(p, v, entries){
   const ctx = ctxOf(p, v);
   entries = entries || (v.rx || []).map(l => ({line: l, drug: drugById(l.drugId)}));

@@ -509,6 +509,21 @@ def main():
             pg.evaluate("() => { const p = curP(); p.conds = p.conds.filter(k => k !== 'heart_failure'); curV().orders.push({id: 'o_k_h', key: 'k', name: 'Kali', unit: 'mmol/L', ref: '', type: 'n', value: 2.8, flag: '', note: ''}); }")
             assert pg.evaluate(HB, 'inda15') == 1, 'K < 3 phải chặn lợi tiểu thiazid'
             pg.evaluate("(s) => { const p = curP(), v = curV(), o = JSON.parse(s); p.conds = o.conds; p.condNote = o.note; p.sex = o.sex; v.vitals = o.vit; v.orders = o.orders; v.hpi = o.hpi; }", h0)
+            # nguy cơ tim mạch: bảng kiểm VNHA 2026 + SCORE2-AP
+            cv0 = pg.evaluate("() => JSON.stringify({conds: curP().conds, sex: curP().sex, dob: curP().dob || '', by: curP().birthYear ?? null, risk: curP().risk, fam: curP().famNote || '', vit: curV().vitals, orders: curV().orders, w: curP().weight, waist: curP().waist})")
+            pg.evaluate("() => { const p = curP(), v = curV(); p.conds = []; p.sex = 'Nữ'; p.dob = ''; p.birthYear = Number(v.date.slice(0, 4)) - 45; p.risk = {...(p.risk || {}), smoke: 'never'}; p.famNote = ''; p.weight = 50; p.waist = 70; v.vitals = {...v.vitals, sbp: 135, dbp: 82, weight: 50, height: 160, waist: 70}; v.orders = v.orders.filter(o => !['ldl','hdl','chol','tg','glu','hba1c','acr','creat'].includes(o.key)); }")
+            pg.evaluate("() => { window._rOf = renalOf; renalOf = () => null; }")   # bỏ eGFR của lượt khám cũ khi thử
+            assert pg.evaluate("() => cvRisk(curP(), curV()).level") == 'Thấp', 'tiền THA, không YTNC -> thấp'
+            pg.evaluate("() => { curV().vitals.sbp = 150; curV().vitals.dbp = 92; }")
+            assert pg.evaluate("() => cvRisk(curP(), curV()).level") == 'Trung bình'
+            pg.evaluate("() => { curP().conds = ['diabetes']; }")
+            assert pg.evaluate("() => cvRisk(curP(), curV()).level") == 'Cao', 'đái tháo đường -> cao'
+            pg.evaluate("() => { curP().conds = []; curV().orders.push({id: 'o_tc', key: 'chol', name: 'Cholesterol', unit: 'mmol/L', ref: '', type: 'n', value: 6.2, flag: '', note: ''}, {id: 'o_hdl', key: 'hdl', name: 'HDL', unit: 'mmol/L', ref: '', type: 'n', value: 1.3, flag: '', note: ''}); curP().risk.smoke = 'current'; }")
+            assert pg.evaluate("() => cvRisk(curP(), curV()).score") == 15, 'SCORE2-AP: nữ 45 tuổi hút thuốc, HATT 150, non-HDL 4,9 -> 15%'
+            pg.evaluate("(s) => { const p = curP(), v = curV(), o = JSON.parse(s); p.conds = o.conds; p.sex = o.sex; p.dob = o.dob; p.birthYear = o.by; p.risk = o.risk; p.famNote = o.fam; v.vitals = o.vit; v.orders = o.orders; p.weight = o.w; p.waist = o.waist; }", cv0)
+            pg.evaluate("() => { renalOf = window._rOf; }")
+            pg.evaluate("go({name: 'visit', pid: curP().id, vid: curV().id, step: 1})"); pg.wait_for_timeout(300)
+            assert 'VNHA 2026' in pg.inner_text('[data-live="cvrisk"]'), 'thẻ Nguy cơ tim mạch phải hiện ở bước 1'
             # mang thai (ô hồ sơ / tiền sử ghi) -> chặn toàn bộ nhóm thần kinh – tâm thần; thuốc nhóm khác không bị chặn
             PB = "(id) => drugBlockReasons(curP(), curV(), drugById(id)).filter(r => /^đang mang thai/.test(r)).length"
             pg0 = pg.evaluate("() => JSON.stringify({conds: curP().conds, note: curP().condNote, hpi: curV().hpi, reason: curV().reason, orders: curV().orders})")
