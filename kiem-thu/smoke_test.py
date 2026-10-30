@@ -622,6 +622,13 @@ def main():
             assert ['F50.1', False] in pg.evaluate(SG, {'sx': ['an_weight', 'an_self', 'an_body'], 'weeks': 20})
             assert ['F50.2', True] in pg.evaluate(SG, {'sx': ['bn_binge', 'bn_crave', 'bn_comp', 'bn_fat'], 'weeks': 20})
             assert not any(c.startswith('F50') for c, _ in pg.evaluate(SG, {'sx': ['scoff_s'], 'weeks': 2}))
+            # rối loạn chức năng tình dục F52 (LEC6): đủ tiêu chuẩn chung -> đủ; thiếu -> chưa đủ; có trầm cảm -> chưa đủ (phân biệt)
+            gen = ['sxg_unable', 'sxg_freq', 'sxg_6m', 'sxg_excl']
+            assert ['F52.4', True] in pg.evaluate(SG, {'sx': ['sex_pe'] + gen, 'weeks': 30})
+            assert ['F52.10', True] in pg.evaluate(SG, {'sx': ['sex_aversion'] + gen, 'weeks': 30})
+            assert ['F52.0', False] in pg.evaluate(SG, {'sx': ['sex_libido', 'sxg_unable'], 'weeks': 30})
+            assert ['F52.2', False] in pg.evaluate(SG, {'sx': ['sex_ed', 'dep_mood', 'dep_anhed', 'dep_conc', 'dep_sleep'] + gen, 'weeks': 30})
+            assert ['F52.7', True] in pg.evaluate(SG, {'sx': ['sxg_hyper'], 'weeks': 30})
             # giao diện: bảng kiểm ở bước 1 cập nhật tức thời, bước 3 hiện gợi ý và chọn được
             pg.evaluate("() => { curV().mental = {sx: [], hist: [], excl: []}; S.mOpen = {}; renderMain(true); }")
             if not pg.is_visible('input[data-v="dep_mood"]'): pg.click('[data-act="mentalToggle"]')

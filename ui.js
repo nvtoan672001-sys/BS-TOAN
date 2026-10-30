@@ -398,7 +398,7 @@ function dxSugHTML(){
   let h = r.alerts.map(a => `<div class="w l${a.lv}"><div class="wt">${lvChip(a.lv)}${esc(a.t)}</div><div>${esc(a.m)}</div></div>`).join('');
   h += r.sugs.length ? r.sugs.map(s => `<div class="sug${s.ok ? ' ok' : ''}"><div class="wt"><span>${s.ok ? chip('Đủ tiêu chuẩn', 'ok') : chip('Chưa đủ', 'r1')} ${esc(s.code)} – ${esc(s.name)}</span>${cur === s.code ? chip('Đang chọn', 'pri') : `<button class="btn xs${s.ok ? ' pri' : ''}" data-act="dxPick" data-code="${esc(s.code)}">Chọn chẩn đoán này</button>`}</div>
     ${s.met.length ? `<div class="small"><b>Đã thỏa:</b> ${s.met.map(esc).join('; ')}</div>` : ''}${s.miss.length ? `<div class="small"><b>Còn thiếu / cần xem lại:</b><ul>${s.miss.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}${s.note ? `<div class="tiny muted">${esc(s.note)}</div>` : ''}<div class="tiny muted">Nguồn: BYT 2020 (QĐ 2058/QĐ-BYT), ${esc(s.src)}</div></div>`).join('')
-    : '<div class="small muted">Các triệu chứng đã ghi chưa gợi ý rối loạn nào trong các nhóm cảm xúc, lo âu, stress, ăn uống (F30–F33, F40–F43, F50).</div>';
+    : '<div class="small muted">Các triệu chứng đã ghi chưa gợi ý rối loạn nào trong các nhóm cảm xúc, lo âu, stress, ăn uống, tình dục (F30–F33, F40–F43, F50, F52).</div>';
   if(r.todo.length) h += `<div class="w l1" style="margin-top:8px"><div class="wt">Nên làm thêm</div>${r.todo.map(t => `<div>• ${esc(t)}</div>`).join('')}</div>`;
   return h + '<div class="tiny muted" style="margin-top:6px">Gợi ý dựa trên bảng kiểm, không thay thế đánh giá lâm sàng của bác sĩ.</div>';
 }

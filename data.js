@@ -890,12 +890,16 @@ const ICD = [
   // Loạn chức năng tình dục không thực tổn (LEC6)
   ['F52.0','Thiếu hoặc mất ham muốn tình dục',['sexual_dysf']],
   ['F52.1','Ghét sợ và thiếu thích thú tình dục',['sexual_dysf']],
+  ['F52.10','Ghét sợ tình dục',['sexual_dysf']],
+  ['F52.11','Thiếu thích thú tình dục',['sexual_dysf']],
   ['F52.2','Thất bại trong đáp ứng sinh dục (rối loạn cương)',['sexual_dysf']],
   ['F52.3','Loạn chức năng khoái cảm',['sexual_dysf']],
   ['F52.4','Phóng tinh sớm',['sexual_dysf']],
   ['F52.5','Co thắt âm đạo không thực tổn',['sexual_dysf']],
   ['F52.6','Đau khi giao hợp không thực tổn',['sexual_dysf']],
   ['F52.7','Xu hướng tình dục quá mức',['sexual_dysf']],
+  ['F52.8','Loạn chức năng tình dục khác, không do rối loạn hoặc bệnh thực tổn',['sexual_dysf']],
+  ['F52.9','Loạn chức năng tình dục không biệt định, không do rối loạn hoặc bệnh thực tổn',['sexual_dysf']],
   // Rối loạn ăn uống (LEC9, BYT Bài 26)
   ['F50.0','Chán ăn tâm thần',['anorexia']],
   ['F50.1','Chán ăn tâm thần không điển hình',['anorexia']],
@@ -1110,9 +1114,19 @@ const MENTAL_SX = [
     ['psy_stupor','Sững sờ']]},
   {g:'sex', t:'Rối loạn chức năng tình dục', src:'LEC6; F52', items:[
     ['sex_libido','Giảm / mất ham muốn tình dục (lãnh cảm)'],
-    ['sex_pain','Đau khi giao hợp'],
+    ['sex_aversion','Ghét sợ tình dục: căm ghét, sợ hãi, lo âu khiến né tránh quan hệ'],
+    ['sex_nopleasure','Thiếu thích thú: vẫn có cực khoái / phóng tinh nhưng không thấy hài lòng'],
+    ['sex_ed','Rối loạn cương dương (nam) / không tiết dịch âm đạo (nữ)'],
+    ['sex_orgasm','Rối loạn khoái dục: không có hoặc rất chậm có cực khoái'],
     ['sex_pe','Xuất tinh sớm'],
-    ['sex_ed','Rối loạn cương dương']]},
+    ['sex_vaginismus','Co thắt âm đạo cản trở giao hợp'],
+    ['sex_pain','Đau khi giao hợp']]},
+  {g:'sexdx', t:'Rối loạn tình dục – tiêu chuẩn chung F52 (LEC6)', src:'LEC6', items:[
+    ['sxg_unable','Không tham gia quan hệ tình dục như mong muốn'],
+    ['sxg_freq','Rối loạn xảy ra thường xuyên'],
+    ['sxg_6m','Tồn tại ít nhất 6 tháng'],
+    ['sxg_excl','Đã loại trừ do rối loạn tâm thần khác, bệnh cơ thể, thuốc điều trị'],
+    ['sxg_hyper','Xu hướng tình dục quá mức: ham muốn tăng cao, cấp thiết, bất chấp chuẩn mực']]},
   {g:'anx', t:'Lo âu', src:'Bài 22, 23', items:[
     ['anx_fear','Sợ hãi: lo lắng về bất hạnh tương lai, dễ cáu, khó tập trung'],
     ['anx_motor','Căng thẳng vận động: bồn chồn, đứng ngồi không yên, đau căng đầu, run, không thư giãn được'],

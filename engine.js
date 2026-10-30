@@ -839,6 +839,19 @@ function psyDx(p, v){
   }
   const scoffN = [...sx].filter(k => k.startsWith('scoff_')).length;
   if(scoffN >= 2 && anCnt < 2 && !has('bn_binge')) todo.push(`SCOFF = ${scoffN}/5: đánh giá mục "Chán ăn / ăn vô độ tâm thần" để định hướng F50.`);
+  // --- Rối loạn chức năng tình dục F52 (LEC6: tiêu chuẩn chung a–d + nguyên tắc chỉ đạo từng thể) ---
+  const SEX_CODES = [['sex_libido', 'F52.0', ''], ['sex_aversion', 'F52.10', 'Sự ghét sợ không phải hậu quả của lo âu do thất bại tình dục trước đó.'],
+    ['sex_nopleasure', 'F52.11', 'Không có sợ hãi / lo âu dai dẳng khi hoạt động tình dục.'], ['sex_ed', 'F52.2', 'Nam: không cương đủ để giao hợp; nữ: không làm trơn âm đạo.'],
+    ['sex_orgasm', 'F52.3', ''], ['sex_pe', 'F52.4', 'Phóng tinh trước hoặc trong vòng 15 giây từ khi bắt đầu giao hợp; không do lâu không hoạt động tình dục.'],
+    ['sex_vaginismus', 'F52.5', ''], ['sex_pain', 'F52.6', 'Không do co thắt / khô âm đạo; đau có nguồn gốc thực tổn phân loại theo nguyên nhân.']];
+  const sexGen = ['sxg_unable', 'sxg_freq', 'sxg_6m', 'sxg_excl'], sexMet = sexGen.filter(has).map(k => lab('sexdx', k)), sexMiss = need('sexdx', sexGen);
+  const sexWarn = [];
+  if(depLv) sexWarn.push('Có triệu chứng trầm cảm → rối loạn tình dục có thể là biểu hiện của trầm cảm (chẩn đoán phân biệt F32 — LEC6)');
+  if(anxSx.length) sexWarn.push('Có lo âu → phân biệt F41 (LEC6)');
+  const onDrug = ctxOf(p, v).longMeds.filter(lm => lm.tags.has('ssri') || lm.tags.has('snri')).map(lm => lm.short);
+  if(onDrug.length) sexWarn.push('Đang dùng ' + onDrug.join(', ') + ' — có thể do thuốc (tiêu chuẩn d)');
+  SEX_CODES.filter(([k]) => has(k)).forEach(([k, code, note]) => add(code, 'LEC6', [lab('sex', k)].concat(sexMet), sexMiss.concat(sexWarn), note));
+  if(has('sxg_hyper')) add('F52.7', 'LEC6', ['Ham muốn tình dục tăng quá mức, cấp thiết'], manSx || c.mix ? ['Đang có triệu chứng hưng cảm / hỗn hợp → tăng tình dục là triệu chứng của rối loạn cảm xúc'] : [], 'Thường gặp trong rối loạn cảm xúc (trầm cảm, hưng cảm, hỗn hợp) — LEC6.');
   // --- Rối loạn sự thích ứng (ICD-10 WHO F43.2; tài liệu BYT 2020 / LEC4 chỉ dẫn chẩn đoán theo ICD-10) ---
   const adjStress = sx.has('adj_stressor') || excl.has('stress');
   const aDep = sx.has('adj_dep'), aAnx = sx.has('adj_anx'), aEmo = sx.has('adj_emo'), aBeh = sx.has('adj_behav');
