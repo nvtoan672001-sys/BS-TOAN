@@ -817,7 +817,7 @@ function psyDx(p, v){
     if(has('ast_acute')) add('F43.0', 'ICD-10', ['Sự kiện đe doạ / thảm hoạ đặc biệt', 'Triệu chứng xuất hiện vài phút sau sự kiện, giảm trong 2–3 ngày'], [], 'Nếu triệu chứng kéo dài hoặc xuất hiện muộn → đánh giá rối loạn stress sau sang chấn (F43.1).');
     if(['ptsd_reexp', 'ptsd_avoid', 'ptsd_arousal'].some(has)){
       const miss = need('ptsd', ['ptsd_reexp', 'ptsd_arousal', 'ptsd_6m']);
-      add('F43.1', 'ICD-10; LEC4', ['Sự kiện đe doạ / thảm hoạ đặc biệt'].concat(['ptsd_reexp', 'ptsd_avoid', 'ptsd_arousal', 'ptsd_6m'].filter(has).map(k => lab('ptsd', k))), miss, (has('ptsd_avoid') ? '' : 'Né tránh thường có nhưng không bắt buộc. ') + 'Trắc nghiệm hỗ trợ (LEC4): PCL / PTSD Symptom Scale, SPRINT.');
+      add('F43.1', 'ICD-10; LEC4', ['Sự kiện đe doạ / thảm hoạ đặc biệt'].concat(['ptsd_reexp', 'ptsd_avoid', 'ptsd_arousal', 'ptsd_6m'].filter(has).map(k => lab('ptsd', k))), miss, (has('ptsd_avoid') ? '' : 'Né tránh thường có nhưng không bắt buộc. ') + 'Trắc nghiệm hỗ trợ: PC-PTSD-5 (sàng lọc), PCL-5, CAPS-5 (phỏng vấn chẩn đoán), SPRINT-E.');
     }
   }
   // --- Chán ăn / ăn vô độ tâm thần (BYT 2020 Bài 26 theo ICD-10; LEC9 handout ICD-10 F50.2) ---
@@ -940,7 +940,7 @@ function psyDx(p, v){
     if(code === 'F43.21' && wk > 104) miss.push(durTxt + ' — phản ứng trầm cảm kéo dài không quá 2 năm');
     else if(code !== 'F43.21' && wk != null && wk > 26) miss.push(durTxt + ' — thường không quá 6 tháng (trừ phản ứng trầm cảm kéo dài) → xem lại chẩn đoán');
     const note = code === 'F43.20' ? 'Phản ứng trầm cảm ngắn: không quá 1 tháng.' : code === 'F43.21' ? 'Phản ứng trầm cảm kéo dài: không quá 2 năm.' : 'Thường bắt đầu trong vòng 1 tháng sau sự kiện và không quá 6 tháng. Không đủ tiêu chuẩn một rối loạn cảm xúc / lo âu / hành vi riêng biệt.';
-    add(code, 'ICD-10', met, miss, note + ' Trắc nghiệm hỗ trợ (LEC4): ADNM-20, DASS, PSS.');
+    add(code, 'ICD-10', met, miss, note + ' Trắc nghiệm hỗ trợ (LEC4): ADNM-20, PSS-10, DASS-21.');
   } else if(adjStress && !mood && !anxSx.length) todo.push('Có sự kiện gây stress: đánh giá biểu hiện ưu thế (trầm cảm / lo âu / cảm xúc khác / hành vi) ở mục "Rối loạn sự thích ứng" để định hướng F43.2.');
   // --- Cảnh báo, việc cần làm ---
   if(sx.has('dep_suicide')) alerts.push({lv: 3, t: 'Có ý tưởng / hành vi tự sát', m: 'Đánh giá nguy cơ tự sát ngay trong buổi khám (C-SSRS); cân nhắc nhập viện hoặc chuyển chuyên khoa tâm thần, không để bệnh nhân một mình, báo người nhà.'});

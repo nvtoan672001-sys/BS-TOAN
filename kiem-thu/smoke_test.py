@@ -375,6 +375,7 @@ def main():
             assert pg.evaluate("() => ['F43.8','F43.9','F43.22','F44.5','F45.3','F48.0','F62.0'].every(c => ICD.some(x => x[0] === c))"), 'thiếu mã ICD rối loạn liên quan stress'
             assert pg.evaluate("() => ['cortisol','acth'].every(k => LABS.some(x => x[0] === 'Máu' && x[1] === k))"), 'thiếu cortisol / ACTH'
             assert pg.evaluate("() => ['progest','fsh','lh','prl','sa_tc'].every(k => LABS.some(x => x[1] === k)) && LABS.find(x => x[1] === 'testo')[3] === 'ng/dL'"), 'thiếu hormon sinh dục / siêu âm tử cung'
+            assert pg.evaluate("() => [['pss', 20], ['pcptsd5', 4]].map(([k, v]) => scaleResult(k, v).t)") == ['Stress cảm nhận vừa', 'Dương tính — đánh giá thêm bằng PCL-5 / CAPS-5']
             assert pg.evaluate("() => [['gad7', 12], ['gad2', 3], ['phq4_d', 1], ['phq9', 20], ['mmse', 23], ['moca', 27]].map(([k, v]) => (scaleResult(k, v) || {}).t)") == ['Lo âu vừa', 'Dương tính — làm GAD-7', 'Âm tính', 'Trầm cảm nặng', 'Suy giảm nhận thức (< 24; đối chiếu trình độ học vấn)', 'Bình thường']
             assert pg.evaluate("() => Object.keys(SCALE_BANDS).every(k => LABS.some(x => x[1] === k))"), 'SCALE_BANDS có key không có trong LABS'
             # bộ chỉ định "Điện giải đồ (Na, K, Clo)": tích -> thêm 3 dòng Na, K, Clo; bỏ tích -> bỏ cả 3
