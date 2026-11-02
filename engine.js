@@ -537,6 +537,25 @@ function drugBlockReasons(p, v, d, ctx, line){
     if(['benh mach ngoai bien nang', 'benh dong mach ngoai bien nang', 'benh mach mau ngoai bien nang'].some(k => mentionsSymptom(p.condNote || '', k))) r.push('bệnh mạch ngoại biên nặng');
     if(r.length) out.push('propranolol: bệnh nền ' + r.join('; '));
   }
+  // Sildenafil (bác sĩ đặt 2026-11-02): đang dùng nitroglycerin / isosorbid (nitrat — LEC6: chống chỉ định); tiền sử nhồi máu cơ tim, đột quỵ,
+  // rối loạn nhịp, suy tim, bệnh mạch vành; HA < 90/50 hoặc > 170/100 (sinh hiệu lượt khám này)
+  if(H.includes('sildenafil')){
+    const r = [], C2 = (ctx || ctxOf(p, v)), say = k => mentionsSymptom((p.condNote || '') + ' . ' + ((v && v.hpi) || ''), k);
+    const nitr = C2.longMeds.filter(m => m.tags.has('nitrate') || /nitroglycerin|isosorbid|nitrat|nitromint|imdur/.test(norm(m.name))).map(m => m.short)
+      .concat((v.rx || []).map(l => drugById(l.drugId)).filter(x => x && (expandTags(x.tags).has('nitrate') || /nitroglycerin|isosorbid/.test(norm(x.hc || '')))).map(x => x.n));
+    if(nitr.length || ['nitroglycerin', 'isosorbid', 'dang dung nitrat'].some(say)) r.push('đang dùng nitrat' + (nitr.length ? ` (${[...new Set(nitr)].join(', ')})` : '') + ' — tụt huyết áp đột ngột, có thể tử vong (LEC6)');
+    const hx = [];
+    if(['nhoi mau co tim', 'nmct'].some(say) || dxCodes(v).some(c => /^I2[12]/.test(c))) hx.push('nhồi máu cơ tim');
+    if(['dot quy', 'tai bien mach mau nao', 'nhoi mau nao', 'xuat huyet nao'].some(say) || dxCodes(v).some(c => /^I6[0-4]/.test(c))) hx.push('đột quỵ');
+    if(C2.conds.has('af') || ['roi loan nhip', 'rung nhi', 'ngoai tam thu', 'nhip nhanh'].some(say)) hx.push('rối loạn nhịp');
+    if(C2.conds.has('heart_failure') || say('suy tim')) hx.push('suy tim');
+    if(C2.conds.has('cvd') || ['benh mach vanh', 'dau that nguc', 'thieu mau co tim', 'dat stent'].some(say)) hx.push('bệnh mạch vành / đột quỵ');
+    if(hx.length) r.push('tiền sử ' + [...new Set(hx)].join(', '));
+    const s = num((v.vitals || {}).sbp), dd = num((v.vitals || {}).dbp);
+    if((s != null && s < 90) || (dd != null && dd < 50)) r.push(`huyết áp thấp ${s ?? '?'}/${dd ?? '?'} (< 90/50)`);
+    if((s != null && s > 170) || (dd != null && dd > 100)) r.push(`huyết áp cao ${s ?? '?'}/${dd ?? '?'} (> 170/100)`);
+    if(r.length) out.push('sildenafil: ' + r.join('; '));
+  }
   // Thuốc tăng huyết áp nhóm A, B, C, D: chống chỉ định theo VNHA 2026 (bác sĩ đặt 2026-10-30)
   out.push(...htnBlockReasons(p, v, d, ctx));
   // Tích ô "Động kinh" ở hồ sơ nền → không kê SSRI (bác sĩ đặt 2026-10-25; chỉ theo ô tích, không theo ICD / chữ)
