@@ -186,7 +186,7 @@ def main():
             r = pg.evaluate("""async () => { const d = S.drugs.find(x => x.id === 'tiane12'); d.p = 9999; delete d.preg; d.warn = 'cũ';
                 await Store.put('drugs', d); S.settings.seedUpdated = []; await saveSettings(); await loadAll();
                 const e = S.drugs.find(x => x.id === 'tiane12'); return {p: e.p, preg: e.preg && e.preg.lv, warn: e.warn, ver: S.settings.seedUpdated}; }""")
-            assert r['p'] == 9999 and r['preg'] == 3 and r['warn'] != 'cũ' and r['ver'] == ['stahl-2026-10', 'moi-2026-10', 'tha-abcd-2026-10-30', 'zolpidem-2026-11-02', 'trazodon-2026-11-02'], r
+            assert r['p'] == 9999 and r['preg'] == 3 and r['warn'] != 'cũ' and r['ver'] == ['stahl-2026-10', 'moi-2026-10', 'tha-abcd-2026-10-30', 'zolpidem-2026-11-02', 'trazodon-2026-11-02', 'mirtazapin-2026-11-02'], r
             assert pg.evaluate("S.drugs.find(x => x.id === 'quet100n').lact.lv") == 1, 'quetiapin cho con bú phải theo LactMed (mức lưu ý)'
 
             # 6g. Có chẩn đoán mà chưa có thuốc -> không sang được bước 4, trừ khi chọn lý do "Không kê đơn"
@@ -397,6 +397,9 @@ def main():
               return [B({}), B({condNote:'bệnh mạch vành đặt stent'}), B({condNote:'rung nhĩ'}), B({condNote:'suy gan'}), B({birthYear:2012}), B({birthYear:1955}), B({conds:['cvd']}),
                 TEMPLATES_SEED.some(t => t.id === 'adv_trazo' && t.tags.includes('tag:trazodone') && /rối loạn cương dương/.test(t.text))]; }""")
             assert tz == [False, True, True, True, True, True, True, True], 'quy tắc trazodon sai: ' + str(tz)
+            mz = pg.evaluate("""() => { const z = drugById('mirta30f'), v0 = {date:'2026-11-02', hpi:'', dx:{}, rx:[], vitals:{}}, B = p => { const q = {sex:'Nam', condNote:'', job:'', ...p}; return drugBlockReasons(q, v0, z, ctxOf(q, v0)).length > 0; };
+              return [B({}), B({job:'Tài xế taxi'}), B({job:'Giáo viên'}), B({weight:70, height:165}), /7,5–15 mg/.test(z.how)]; }""")
+            assert mz == [False, True, False, True, True], 'quy tắc mirtazapin sai: ' + str(mz)
             assert pg.evaluate("() => [[118, 78], [125, 78], [135, 82], [150, 85], [165, 102], [185, 95]].map(([s, d]) => bpClass(s, d))") == ['Huyết áp bình thường', 'Huyết áp bình thường cao', 'Tiền tăng huyết áp', 'Tăng huyết áp độ 1 (tâm thu đơn độc)', 'Tăng huyết áp độ 2', 'Tăng huyết áp độ 2 — ≥ 180/110: đánh giá ngay tổn thương cơ quan đích'], 'phân độ huyết áp theo VNHA 2026'
             assert pg.evaluate("() => [['pss', 20], ['pcptsd5', 4]].map(([k, v]) => scaleResult(k, v).t)") == ['Stress cảm nhận vừa', 'Dương tính — đánh giá thêm bằng PCL-5 / CAPS-5']
             assert pg.evaluate("() => [['gad7', 12], ['gad2', 3], ['phq4_d', 1], ['phq9', 20], ['mmse', 23], ['moca', 27]].map(([k, v]) => (scaleResult(k, v) || {}).t)") == ['Lo âu vừa', 'Dương tính — làm GAD-7', 'Âm tính', 'Trầm cảm nặng', 'Suy giảm nhận thức (< 24; đối chiếu trình độ học vấn)', 'Bình thường']

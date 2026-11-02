@@ -579,6 +579,8 @@ function drugBlockReasons(p, v, d, ctx, line){
   if(H.includes('paroxetin')){ const s = sexualConcern(p, v, ctx); if(s) out.push(s + ' (paroxetin gây rối loạn chức năng tình dục nhiều nhất nhóm SSRI)'); }
   // Hút thuốc lá HOẶC béo phì (BMI ≥ 25) → không kê mirtazapin, paroxetin, olanzapin (bác sĩ đặt 2026-10-25; tăng cân, rối loạn chuyển hoá)
   if(['mirtazapin', 'paroxetin', 'olanzapin'].some(x => H.includes(x))){ const r = smokeObeseReasons(p, v); if(r.length) out.push(r.join('; ') + ' (thuốc gây tăng cân, rối loạn chuyển hoá)'); }
+  // Mirtazapin: nghề nghiệp lái xe → không kê (bác sĩ đặt 2026-11-02; an thần, buồn ngủ ban ngày)
+  if(H.includes('mirtazapin') && ['lai xe', 'tai xe', 'xe om', 'taxi', 'xe tai', 'xe khach', 'giao hang'].some(k => mentionsSymptom(p.job || '', k))) out.push(`nghề nghiệp lái xe (${p.job}) — mirtazapin gây an thần, buồn ngủ ban ngày`);
   // Venlafaxin: bệnh nền tăng huyết áp → không kê (bác sĩ đặt 2026-10-25; venlafaxin làm tăng huyết áp phụ thuộc liều)
   if(norm(d.hc || '').includes('venlafaxin') && (ctx || ctxOf(p, v)).conds.has('htn')) out.push('bệnh nền tăng huyết áp (venlafaxin làm tăng huyết áp phụ thuộc liều)');
   // Tuổi > 65 hoặc < 18 → không kê thuốc chống trầm cảm 3 vòng (TCA) và paroxetin (bác sĩ đặt 2026-10-25)

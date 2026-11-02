@@ -966,7 +966,8 @@ const SEED_UPDATES = [{ver: 'stahl-2026-10', ids: SEED_ADDED.slice(1)},   // 44 
   {ver: 'moi-2026-10', ids: SEED_ADDED.slice(1)},
   {ver: 'tha-abcd-2026-10-30', ids: ['amlo5', 'inda15']},
   {ver: 'zolpidem-2026-11-02', ids: ['zolpi10', 'zopi7n', 'zopi7f']},
-  {ver: 'trazodon-2026-11-02', ids: ['trazo50']}];                          // ưu tiên khuyến cáo mới hơn Stahl 2004 (LactMed, FDA/EMA, SmPC)
+  {ver: 'trazodon-2026-11-02', ids: ['trazo50']},
+  {ver: 'mirtazapin-2026-11-02', ids: ['mirta30n', 'mirta30f']}];                          // ưu tiên khuyến cáo mới hơn Stahl 2004 (LactMed, FDA/EMA, SmPC)
 const SEED_CLIN = ['tags', 'how', 'ae', 'warn', 'pro', 'con', 'renal', 'hep', 'old', 'preg', 'lact', 'cond'];
 async function updateSeedDrugs(){
   const done = S.settings.seedUpdated || [], todo = SEED_UPDATES.filter(u => !done.includes(u.ver));
