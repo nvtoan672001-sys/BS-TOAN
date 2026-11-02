@@ -305,7 +305,9 @@ function ctxOf(p, v){
   if((p.activity || 'sedentary') === 'sedentary') conds.add('sedentary');
   if(v && qtcLong(p, v)) conds.add('qt_long');
   if(v && ((v.mental || {}).sx || []).includes('sex_ed')) conds.add('erectile_dysf');   // khám tâm thần tích rối loạn cương dương
-  if(v && ((v.mental || {}).sx || []).includes('sex_pe')) conds.add('premature_ejac');  // khám tâm thần tích xuất tinh sớm   // điện tim mô tả QTc dài → cảnh báo mọi thuốc kéo dài QT
+  if(v && ((v.mental || {}).sx || []).includes('sex_pe')) conds.add('premature_ejac');  // khám tâm thần tích xuất tinh sớm
+  if(v && ((v.mental || {}).sx || []).some(k => k.startsWith('sex_'))) conds.add('sexual_dysf');   // khám tâm thần có rối loạn chức năng tình dục
+  if(conds.has('sexual_dysf') && p.sex === 'Nữ') conds.add('sexual_dysf_f');   // điện tim mô tả QTc dài → cảnh báo mọi thuốc kéo dài QT
   const renal = renalOf(p);
   const longMeds = (p.meds || []).map(resolveMed).filter(Boolean);
   const longTags = new Set(); longMeds.forEach(m => m.tags.forEach(t => longTags.add(t)));

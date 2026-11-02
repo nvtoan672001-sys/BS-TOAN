@@ -31,7 +31,7 @@ const CONDS = [
   {k:'parkinson', t:'Bệnh Parkinson'},
   {k:'sexual_dysf', t:'Rối loạn / lo ngại chức năng tình dục'},
 ];
-const COND_EXTRA = {elderly:'Người cao tuổi (≥ 65)', alcohol:'Có uống rượu bia', alcohol_heavy:'Uống rượu nhiều', obese:'Thừa cân / béo phì', sedentary:'Ít vận động', child:'Dưới 18 tuổi', anorexia:'Chán ăn tâm thần (F50.0 / F50.1)', bulimia:'Ăn vô độ tâm thần (F50.2 / F50.3)', erectile_dysf:'Rối loạn cương dương (F52.2 / N48.4)', premature_ejac:'Xuất tinh sớm (F52.4)', insomnia:'Mất ngủ (G47.0 / F51.0)', orthostatic:'Hạ huyết áp tư thế (I95.1)', 'tag:anticoag':'Đang dùng thuốc chống đông'};
+const COND_EXTRA = {elderly:'Người cao tuổi (≥ 65)', alcohol:'Có uống rượu bia', alcohol_heavy:'Uống rượu nhiều', obese:'Thừa cân / béo phì', sedentary:'Ít vận động', child:'Dưới 18 tuổi', anorexia:'Chán ăn tâm thần (F50.0 / F50.1)', bulimia:'Ăn vô độ tâm thần (F50.2 / F50.3)', erectile_dysf:'Rối loạn cương dương (F52.2 / N48.4)', premature_ejac:'Xuất tinh sớm (F52.4)', sexual_dysf_f:'Nữ có rối loạn chức năng tình dục', insomnia:'Mất ngủ (G47.0 / F51.0)', orthostatic:'Hạ huyết áp tư thế (I95.1)', 'tag:anticoag':'Đang dùng thuốc chống đông'};
 
 const ALLERGY = [
   {k:'penicillin', t:'Penicillin / Amoxicilin', hit:{penicillin:3, cephalosporin:1}},
@@ -1468,6 +1468,8 @@ const TEMPLATES_SEED = [
  {id:'adv_viagra', cat:'advice', title:'Dùng Viagra (sildenafil)', tags:['sexual_dysf','tag:pde5'], text:'Ăn ít dầu mỡ.\nTái khám lại ngay lập tức khi: mất thị lực đột ngột, cương kéo dài > 1 giờ.'},
  {id:'adv_ed', cat:'advice', title:'Rối loạn cương dương', tags:['erectile_dysf'], text:'Luyện tập giao tiếp. Xoá bỏ mâu thuẫn giữa cặp đôi, ám ảnh, lo sợ. Thực hiện liệu pháp nhận thức hành vi, liệu pháp Masters và Johnson (1970).'},
  {id:'adv_pe', cat:'advice', title:'Xuất tinh sớm', tags:['premature_ejac'], text:'Luyện tập giao tiếp. Xoá bỏ mâu thuẫn giữa cặp đôi, ám ảnh, lo sợ. Luyện tập cơ vùng chậu (Kegel), luyện tập kỹ thuật dừng – bắt đầu (stop-start, Semans) và kỹ thuật bóp (squeeze, Masters & Johnson).'},
+ {id:'adv_sex_f', cat:'advice', title:'Rối loạn tình dục ở nữ', tags:['sexual_dysf_f'], text:'Xoá bỏ mặc cảm tự ti, tích cực với cơ thể bản thân. Tập cơ vùng chậu (Kegel), tập đối phó stress. Thực hiện liệu pháp nhận thức hành vi, liệu pháp Masters và Johnson (1970).'},
+ {id:'adv_relax', cat:'advice', title:'Liệu pháp thư giãn', tags:['sexual_dysf'], text:'Tập thư giãn cơ tiến triển Jacobson. Kỹ thuật thư giãn Benson – Henry.'},
  {id:'adv_general', cat:'advice', title:'Lời dặn chung', tags:[], text:'Uống thuốc đúng giờ, đủ liều; không tự ý ngừng thuốc. Mang theo phiếu này và các kết quả xét nghiệm khi tái khám.'},
 ];
 const TPL_CATS = {diet:'Dinh dưỡng', exercise:'Hoạt động thể lực', rehab:'Phục hồi chức năng', tcm:'Y học cổ truyền', psych:'Tâm lý', return:'Dấu hiệu cần quay lại ngay', advice:'Lời dặn đơn thuốc'};
