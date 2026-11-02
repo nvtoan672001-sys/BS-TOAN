@@ -31,7 +31,7 @@ const CONDS = [
   {k:'parkinson', t:'Bệnh Parkinson'},
   {k:'sexual_dysf', t:'Rối loạn / lo ngại chức năng tình dục'},
 ];
-const COND_EXTRA = {elderly:'Người cao tuổi (≥ 65)', alcohol:'Có uống rượu bia', alcohol_heavy:'Uống rượu nhiều', obese:'Thừa cân / béo phì', sedentary:'Ít vận động', child:'Dưới 18 tuổi', anorexia:'Chán ăn tâm thần (F50.0 / F50.1)', bulimia:'Ăn vô độ tâm thần (F50.2 / F50.3)', erectile_dysf:'Rối loạn cương dương (F52.2 / N48.4)', insomnia:'Mất ngủ (G47.0 / F51.0)', orthostatic:'Hạ huyết áp tư thế (I95.1)', 'tag:anticoag':'Đang dùng thuốc chống đông'};
+const COND_EXTRA = {elderly:'Người cao tuổi (≥ 65)', alcohol:'Có uống rượu bia', alcohol_heavy:'Uống rượu nhiều', obese:'Thừa cân / béo phì', sedentary:'Ít vận động', child:'Dưới 18 tuổi', anorexia:'Chán ăn tâm thần (F50.0 / F50.1)', bulimia:'Ăn vô độ tâm thần (F50.2 / F50.3)', erectile_dysf:'Rối loạn cương dương (F52.2 / N48.4)', premature_ejac:'Xuất tinh sớm (F52.4)', insomnia:'Mất ngủ (G47.0 / F51.0)', orthostatic:'Hạ huyết áp tư thế (I95.1)', 'tag:anticoag':'Đang dùng thuốc chống đông'};
 
 const ALLERGY = [
   {k:'penicillin', t:'Penicillin / Amoxicilin', hit:{penicillin:3, cephalosporin:1}},
@@ -989,7 +989,7 @@ const ICD = [
   ['F52.2','Thất bại trong đáp ứng sinh dục (rối loạn cương)',['sexual_dysf','erectile_dysf']],
   ['N48.4','Rối loạn cương dương do nguyên nhân thực tổn',['sexual_dysf','erectile_dysf']],
   ['F52.3','Loạn chức năng khoái cảm',['sexual_dysf']],
-  ['F52.4','Phóng tinh sớm',['sexual_dysf']],
+  ['F52.4','Phóng tinh sớm',['sexual_dysf','premature_ejac']],
   ['F52.5','Co thắt âm đạo không thực tổn',['sexual_dysf']],
   ['F52.6','Đau khi giao hợp không thực tổn',['sexual_dysf']],
   ['F52.7','Xu hướng tình dục quá mức',['sexual_dysf']],
@@ -1467,6 +1467,7 @@ const TEMPLATES_SEED = [
  {id:'adv_psych', cat:'advice', title:'Tâm bệnh', tags:['depression','bipolar','insomnia','anorexia','bulimia','tag:ssri','tag:snri'], text:'Uống thuốc đúng giờ, đủ liều; không tự ý ngừng thuốc. Tránh mang thai trong thời gian sử dụng thuốc. Báo bác sĩ ngay lập tức khi xuất hiện triệu chứng bất thường (nôn, tiêu chảy, đau bụng, vàng da, rối loạn ý thức, co giật, sốt cao, mẩn ngứa, đau ngực, khó thở, đau đầu, chóng mặt, yếu liệt, tê bì tay chân…) hoặc tác dụng phụ khi sử dụng thuốc khác. Mang theo phiếu này và các kết quả xét nghiệm khi tái khám.\nĂn chế độ ăn Địa Trung Hải, thức ăn mềm, dễ tiêu; giảm đường, giảm ngọt; tránh chất kích thích; uống đủ nước; tránh nước ép bưởi.\nLập lịch hoạt động có niềm vui và có mục đích, tăng dần mức độ. Hoạt động thể lực 30–45 phút/ngày × 3–5 ngày/tuần.\nĐi ngủ và thức dậy vào giờ cố định, ngủ đủ 8–9 giờ/ngày. Ra nắng vào buổi sáng. Tập luyện cách thích nghi, đối phó với stress.'},
  {id:'adv_viagra', cat:'advice', title:'Dùng Viagra (sildenafil)', tags:['sexual_dysf','tag:pde5'], text:'Ăn ít dầu mỡ.\nTái khám lại ngay lập tức khi: mất thị lực đột ngột, cương kéo dài > 1 giờ.'},
  {id:'adv_ed', cat:'advice', title:'Rối loạn cương dương', tags:['erectile_dysf'], text:'Luyện tập giao tiếp. Xoá bỏ mâu thuẫn giữa cặp đôi, ám ảnh, lo sợ. Thực hiện liệu pháp nhận thức hành vi, liệu pháp Masters và Johnson (1970).'},
+ {id:'adv_pe', cat:'advice', title:'Xuất tinh sớm', tags:['premature_ejac'], text:'Luyện tập giao tiếp. Xoá bỏ mâu thuẫn giữa cặp đôi, ám ảnh, lo sợ. Luyện tập cơ vùng chậu (Kegel), luyện tập kỹ thuật dừng – bắt đầu (stop-start, Semans) và kỹ thuật bóp (squeeze, Masters & Johnson).'},
  {id:'adv_general', cat:'advice', title:'Lời dặn chung', tags:[], text:'Uống thuốc đúng giờ, đủ liều; không tự ý ngừng thuốc. Mang theo phiếu này và các kết quả xét nghiệm khi tái khám.'},
 ];
 const TPL_CATS = {diet:'Dinh dưỡng', exercise:'Hoạt động thể lực', rehab:'Phục hồi chức năng', tcm:'Y học cổ truyền', psych:'Tâm lý', return:'Dấu hiệu cần quay lại ngay', advice:'Lời dặn đơn thuốc'};
