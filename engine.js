@@ -303,7 +303,8 @@ function ctxOf(p, v){
   const alc = p.risk && p.risk.alcohol; if(alc === 'some' || alc === 'heavy') conds.add('alcohol'); if(alc === 'heavy') conds.add('alcohol_heavy');
   const bmi = bmiOf(p.weight, p.height); if(bmi != null && bmi >= 23) conds.add('obese');
   if((p.activity || 'sedentary') === 'sedentary') conds.add('sedentary');
-  if(v && qtcLong(p, v)) conds.add('qt_long');   // điện tim mô tả QTc dài → cảnh báo mọi thuốc kéo dài QT
+  if(v && qtcLong(p, v)) conds.add('qt_long');
+  if(v && ((v.mental || {}).sx || []).includes('sex_ed')) conds.add('erectile_dysf');   // khám tâm thần tích rối loạn cương dương   // điện tim mô tả QTc dài → cảnh báo mọi thuốc kéo dài QT
   const renal = renalOf(p);
   const longMeds = (p.meds || []).map(resolveMed).filter(Boolean);
   const longTags = new Set(); longMeds.forEach(m => m.tags.forEach(t => longTags.add(t)));
