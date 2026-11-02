@@ -733,7 +733,8 @@ def main():
             assert ['F51.5', True] in pg.evaluate(SG, {'sx': ['nm_dream', 'slp_impair', 'slp_excl'], 'weeks': 6})
             assert ['G47.3', False] in pg.evaluate(SG, {'sx': ['osa_snore', 'osa_day'], 'weeks': 6}), 'chưa có AHI -> chưa đủ'
             assert ['G47.4', True] in pg.evaluate(SG, {'sx': ['nar_attack', 'nar_cata'], 'weeks': 20})
-            assert pg.evaluate("() => [scaleResult('ahi', 22).t, scaleResult('ess', 14).t]") == ['Ngưng thở khi ngủ mức trung bình', 'Buồn ngủ ban ngày quá mức (tham khảo)']
+            assert pg.evaluate("() => [scaleResult('ahi', 22).t, scaleResult('ess', 14).t]") == ['Ngưng thở khi ngủ mức trung bình', 'Buồn ngủ quá mức (ngưỡng > 10, tham khảo)']
+            assert pg.evaluate("() => FLAG_OPTS.ess") == ['Bình thường', 'Buồn ngủ quá mức']
             # giao diện: bảng kiểm ở bước 1 cập nhật tức thời, bước 3 hiện gợi ý và chọn được
             pg.evaluate("() => { curV().mental = {sx: [], hist: [], excl: []}; S.mOpen = {}; renderMain(true); }")
             if not pg.is_visible('input[data-v="dep_mood"]'): pg.click('[data-act="mentalToggle"]')
