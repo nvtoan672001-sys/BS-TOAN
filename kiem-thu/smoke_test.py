@@ -186,7 +186,7 @@ def main():
             r = pg.evaluate("""async () => { const d = S.drugs.find(x => x.id === 'tiane12'); d.p = 9999; delete d.preg; d.warn = 'cũ';
                 await Store.put('drugs', d); S.settings.seedUpdated = []; await saveSettings(); await loadAll();
                 const e = S.drugs.find(x => x.id === 'tiane12'); return {p: e.p, preg: e.preg && e.preg.lv, warn: e.warn, ver: S.settings.seedUpdated}; }""")
-            assert r['p'] == 9999 and r['preg'] == 3 and r['warn'] != 'cũ' and r['ver'] == ['stahl-2026-10', 'moi-2026-10', 'tha-abcd-2026-10-30', 'zolpidem-2026-11-02'], r
+            assert r['p'] == 9999 and r['preg'] == 3 and r['warn'] != 'cũ' and r['ver'] == ['stahl-2026-10', 'moi-2026-10', 'tha-abcd-2026-10-30', 'zolpidem-2026-11-02', 'trazodon-2026-11-02'], r
             assert pg.evaluate("S.drugs.find(x => x.id === 'quet100n').lact.lv") == 1, 'quetiapin cho con bú phải theo LactMed (mức lưu ý)'
 
             # 6g. Có chẩn đoán mà chưa có thuốc -> không sang được bước 4, trừ khi chọn lý do "Không kê đơn"
@@ -393,6 +393,10 @@ def main():
             zp = pg.evaluate("""() => { const z = drugById('zale10'), v0 = {date:'2026-11-02', hpi:'', dx:{}, rx:[]}, B = p => drugBlockReasons(p, v0, z, ctxOf(p, v0)).length > 0;
               return [!!z && z.g === 'neuro', B({sex:'Nam', condNote:''}), B({sex:'Nam', condNote:'suy gan do rượu'}), B({sex:'Nam', condNote:'không suy gan'})]; }""")
             assert zp == [True, False, True, False], 'quy tắc zaleplon sai: ' + str(zp)
+            tz = pg.evaluate("""() => { const z = drugById('trazo50'), v0 = {date:'2026-11-02', hpi:'', dx:{}, rx:[]}, B = p => drugBlockReasons({sex:'Nam', condNote:'', birthYear:1980, ...p}, v0, z, ctxOf({sex:'Nam', condNote:'', birthYear:1980, ...p}, v0)).length > 0;
+              return [B({}), B({condNote:'bệnh mạch vành đặt stent'}), B({condNote:'rung nhĩ'}), B({condNote:'suy gan'}), B({birthYear:2012}), B({birthYear:1955}), B({conds:['cvd']}),
+                TEMPLATES_SEED.some(t => t.id === 'adv_trazo' && t.tags.includes('tag:trazodone') && /rối loạn cương dương/.test(t.text))]; }""")
+            assert tz == [False, True, True, True, True, True, True, True], 'quy tắc trazodon sai: ' + str(tz)
             assert pg.evaluate("() => [[118, 78], [125, 78], [135, 82], [150, 85], [165, 102], [185, 95]].map(([s, d]) => bpClass(s, d))") == ['Huyết áp bình thường', 'Huyết áp bình thường cao', 'Tiền tăng huyết áp', 'Tăng huyết áp độ 1 (tâm thu đơn độc)', 'Tăng huyết áp độ 2', 'Tăng huyết áp độ 2 — ≥ 180/110: đánh giá ngay tổn thương cơ quan đích'], 'phân độ huyết áp theo VNHA 2026'
             assert pg.evaluate("() => [['pss', 20], ['pcptsd5', 4]].map(([k, v]) => scaleResult(k, v).t)") == ['Stress cảm nhận vừa', 'Dương tính — đánh giá thêm bằng PCL-5 / CAPS-5']
             assert pg.evaluate("() => [['gad7', 12], ['gad2', 3], ['phq4_d', 1], ['phq9', 20], ['mmse', 23], ['moca', 27]].map(([k, v]) => (scaleResult(k, v) || {}).t)") == ['Lo âu vừa', 'Dương tính — làm GAD-7', 'Âm tính', 'Trầm cảm nặng', 'Suy giảm nhận thức (< 24; đối chiếu trình độ học vấn)', 'Bình thường']

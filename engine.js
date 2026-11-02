@@ -639,6 +639,16 @@ function drugBlockReasons(p, v, d, ctx, line){
   if(norm(d.hc || '').includes('zopiclon') && mentionsSymptom((p.condNote || '') + ' . ' + ((v && v.hpi) || ''), 'chong mat')) out.push('zopiclon: tiền sử / bệnh sử ghi chóng mặt (nguy cơ té ngã)');
   // Zaleplon (bác sĩ đặt 2026-11-02): tiền sử ghi suy gan → không kê
   if(norm(d.hc || '').includes('zaleplon') && mentionsSymptom(p.condNote || '', 'suy gan')) out.push('zaleplon: tiền sử suy gan');
+  // Trazodon (bác sĩ đặt 2026-11-02): tiền sử bệnh mạch vành, rối loạn nhịp, suy gan; tuổi < 18 hoặc > 65 → không kê
+  if(norm(d.hc || '').includes('trazodon')){
+    const note = p.condNote || '', say = k => mentionsSymptom(note, k), r = [], a = ageOf(p, v.date);
+    if(C.has('cvd') || ['benh mach vanh', 'dau that nguc', 'thieu mau co tim', 'nhoi mau co tim', 'dat stent'].some(say)) r.push('tiền sử bệnh mạch vành');
+    if(C.has('af') || ['roi loan nhip', 'rung nhi', 'ngoai tam thu', 'nhip nhanh'].some(say)) r.push('tiền sử rối loạn nhịp');
+    if(say('suy gan')) r.push('suy gan');
+    if(a != null && a < 18) r.push(`${a} tuổi (< 18)`);
+    if(a != null && a > 65) r.push(`${a} tuổi (> 65)`);
+    if(r.length) out.push('trazodon: ' + r.join('; '));
+  }
   if(isAgomelatine(d)){
     const tx = transaminaseHigh(p, v); if(tx.length) out.push('men gan tăng > 3 lần: ' + tx.join(', '));
     const ci = cyp1a2InhNames(p, v, ctx); if(ci.length) out.push('đang dùng thuốc ức chế mạnh CYP1A2: ' + ci.join(', '));
