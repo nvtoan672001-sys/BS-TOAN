@@ -724,6 +724,14 @@ def main():
             assert ['F45.0', True] in pg.evaluate(SG, {'sx': ['som_2y', 'som_visits', 'som_refuse', 'som_6sx'], 'weeks': 110})
             assert ['F90.0', True] in pg.evaluate(SG, {'sx': ['adhd_inatt', 'adhd_hyper', 'adhd_imp', 'adhd_7y', 'adhd_perv', 'adhd_impair'], 'weeks': 30})
             assert ['F84.1', True] in pg.evaluate(SG, {'sx': ['asd_social', 'asd_comm'], 'weeks': 30})
+            # rối loạn giấc ngủ khác (ICD-10 bản VN F51.2–F51.5; LEC2 G47.3, G47.4)
+            assert ['F51.2', True] in pg.evaluate(SG, {'sx': ['cir_mismatch', 'slp_impair', 'slp_excl'], 'weeks': 6})
+            assert ['F51.3', True] in pg.evaluate(SG, {'sx': ['sw_walk', 'slp_excl'], 'weeks': 6})
+            assert ['F51.4', True] in pg.evaluate(SG, {'sx': ['nt_terror', 'slp_excl'], 'weeks': 6})
+            assert ['F51.5', True] in pg.evaluate(SG, {'sx': ['nm_dream', 'slp_impair', 'slp_excl'], 'weeks': 6})
+            assert ['G47.3', False] in pg.evaluate(SG, {'sx': ['osa_snore', 'osa_day'], 'weeks': 6}), 'chưa có AHI -> chưa đủ'
+            assert ['G47.4', True] in pg.evaluate(SG, {'sx': ['nar_attack', 'nar_cata'], 'weeks': 20})
+            assert pg.evaluate("() => [scaleResult('ahi', 22).t, scaleResult('ess', 14).t]") == ['Ngưng thở khi ngủ mức trung bình', 'Buồn ngủ ban ngày quá mức (tham khảo)']
             # giao diện: bảng kiểm ở bước 1 cập nhật tức thời, bước 3 hiện gợi ý và chọn được
             pg.evaluate("() => { curV().mental = {sx: [], hist: [], excl: []}; S.mOpen = {}; renderMain(true); }")
             if not pg.is_visible('input[data-v="dep_mood"]'): pg.click('[data-act="mentalToggle"]')

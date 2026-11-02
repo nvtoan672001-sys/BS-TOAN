@@ -1057,6 +1057,21 @@ function psyDx(p, v){
     if(depLv || anxSx.length) miss.push('Có triệu chứng trầm cảm / lo âu: mất ngủ có thể là triệu chứng — chẩn đoán rối loạn chính trước');
     add('F51.0', 'BYT 2020 Bài 27; ICD-10', ['Khó vào giấc / khó duy trì / ngủ không ngon'].concat(['ins_freq', 'slp_impair', 'slp_excl'].filter(has).map(k => lab('slp', k))), miss, 'Đánh giá thêm PSQI, ISI; hỏi ngáy, ngưng thở (G47.3), chân không yên (G25.8).');
   }
+  if(has('cir_mismatch')) add('F51.2', 'ICD-10 (bản VN) tr. 135', [lab('slp', 'cir_mismatch')].concat(['slp_impair', 'slp_excl'].filter(has).map(k => lab('slp', k))), need('slp', ['slp_impair', 'slp_excl']), 'Phân biệt rối loạn nhịp thức – ngủ thực tổn (G47.2): làm việc theo ca, lệch múi giờ, bệnh thần kinh.');
+  if(has('sw_walk')) add('F51.3', 'ICD-10 (bản VN) tr. 135', [lab('slp', 'sw_walk')].concat(has('slp_excl') ? [lab('slp', 'slp_excl')] : []), need('slp', ['slp_excl']), 'Loại trừ rối loạn tâm thần thực tổn (mất trí), động kinh. Sau cơn không có rối loạn hoạt động tâm thần, có thể lú lẫn ngắn.');
+  if(has('nt_terror')) add('F51.4', 'ICD-10 (bản VN) tr. 135–136', [lab('slp', 'nt_terror')].concat(has('slp_excl') ? [lab('slp', 'slp_excl')] : []), need('slp', ['slp_excl']), 'Phân biệt ác mộng (F51.5: tỉnh táo, nhớ rõ giấc mơ) và động kinh về đêm.');
+  if(has('nm_dream')){
+    const miss = need('slp', ['slp_impair', 'slp_excl']);
+    if(has('ptsd_event')) miss.push('Có sự kiện sang chấn → ác mộng có thể là triệu chứng của rối loạn stress sau sang chấn (F43.1)');
+    add('F51.5', 'ICD-10 (bản VN) tr. 136', [lab('slp', 'nm_dream')].concat(['slp_impair', 'slp_excl'].filter(has).map(k => lab('slp', k))), miss, '');
+  }
+  if(has('osa_snore') || has('osa_day')){
+    const ahi = orderNum(v, 'ahi'), sym = has('osa_snore') || has('osa_day');
+    const ok = ahi != null && (ahi >= 15 || (ahi >= 5 && sym));
+    const sev = ahi == null ? '' : ahi < 15 ? 'nhẹ' : ahi <= 30 ? 'trung bình' : 'nặng';
+    add('G47.3', 'LEC2 (DSM-5)', ['osa_snore', 'osa_day'].filter(has).map(k => lab('slp', k)).concat(ahi != null ? [`AHI ${fmtN(ahi, 1)} lần/giờ`] : []), ok ? [] : [ahi == null ? 'Cần đa ký giấc ngủ: AHI ≥ 5 kèm triệu chứng, hoặc AHI ≥ 15' : `AHI ${fmtN(ahi, 1)} < 5 — chưa đủ tiêu chuẩn`], (sev ? `Mức độ theo AHI: ${sev}. ` : '') + 'Đánh giá thêm thang Epworth; ngưng thở trung ương cần ≥ 5 cơn trung ương / giờ trên đa ký.');
+  }
+  if(has('nar_attack')) add('G47.4', 'LEC2 (DSM-5)', [lab('slp', 'nar_attack')].concat(has('nar_cata') ? [lab('slp', 'nar_cata')] : []), has('nar_cata') ? [] : ['Cần có cơn mất trương lực đột ngột (cataplexy), hoặc thiếu hypocretin-1 trong dịch não tuỷ, hoặc đa ký giấc ngủ / MSLT điển hình'], 'Phân biệt ngủ nhiều không thực tổn (F51.1), ngưng thở khi ngủ (G47.3).');
   if(has('hyp_day')) add('F51.1', 'ICD-10', ['Buồn ngủ quá mức ban ngày'].concat(['hyp_nonarco', 'slp_impair', 'slp_excl'].filter(has).map(k => lab('slp', k))), need('slp', ['hyp_nonarco', 'slp_impair', 'slp_excl']), 'Có cơn ngủ rũ / mất trương lực đột ngột → G47.4; ngưng thở khi ngủ → G47.3.');
   // Nghiện rượu / thuốc lá: hội chứng nghiện F1x.2 (≥ 3/6 trong 12 tháng); sử dụng gây hại F1x.1
   const sudCore = ['sud_crave', 'sud_control', 'sud_withdraw', 'sud_toler', 'sud_neglect', 'sud_harm'], sudN = sudCore.filter(has).length;
