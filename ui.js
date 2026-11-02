@@ -952,7 +952,9 @@ const SEED_ADDED = ['gavis10',
   'agome25', 'fluvo100', 'pregab75', 'propra40', 'piracetam', 'ginkgo', 'vinpocetin', 'cholalf', 'nicergolin', 'silymarin',
   // thuốc tăng huyết áp nhóm A, B, C, D theo VNHA 2026 (2026-10-30)
   'lisi10', 'rami5', 'capto25', 'telmi40', 'valsa80', 'irbe150', 'meto50', 'nebi5', 'carve625', 'ateno50', 'nife30', 'lerca10', 'felo5', 'dilti60', 'hctz25',
-  'silde50', 'tada20'];
+  'silde50', 'tada20',
+  // thuốc điều trị rối loạn giấc ngủ (BYT 2020 Bài 27, LEC2) — 2026-11-02
+  'zolpi10', 'melato3', 'doxep10', 'trazo50', 'hydro25'];
 async function addNewSeedDrugs(){
   const done = S.settings.seedAdded || [], todo = SEED_ADDED.filter(id => !done.includes(id));
   if(!todo.length) return;
