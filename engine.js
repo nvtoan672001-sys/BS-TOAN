@@ -537,9 +537,10 @@ function drugBlockReasons(p, v, d, ctx, line){
     if(['benh mach ngoai bien nang', 'benh dong mach ngoai bien nang', 'benh mach mau ngoai bien nang'].some(k => mentionsSymptom(p.condNote || '', k))) r.push('bệnh mạch ngoại biên nặng');
     if(r.length) out.push('propranolol: bệnh nền ' + r.join('; '));
   }
-  // Sildenafil (bác sĩ đặt 2026-11-02): đang dùng nitroglycerin / isosorbid (nitrat — LEC6: chống chỉ định); tiền sử nhồi máu cơ tim, đột quỵ,
+  // Sildenafil, tadalafil — nhóm ức chế PDE5 (bác sĩ đặt 2026-11-02; tadalafil cùng quy tắc): đang dùng nitroglycerin / isosorbid (nitrat — LEC6: chống chỉ định); tiền sử nhồi máu cơ tim, đột quỵ,
   // rối loạn nhịp, suy tim, bệnh mạch vành; HA < 90/50 hoặc > 170/100 (sinh hiệu lượt khám này)
-  if(H.includes('sildenafil')){
+  const pde5 = ['sildenafil', 'tadalafil'].find(x => H.includes(x)) || (expandTags(d.tags).has('pde5') ? norm(d.hc || 'pde5') : '');
+  if(pde5){
     const r = [], C2 = (ctx || ctxOf(p, v)), say = k => mentionsSymptom((p.condNote || '') + ' . ' + ((v && v.hpi) || ''), k);
     const nitr = C2.longMeds.filter(m => m.tags.has('nitrate') || /nitroglycerin|isosorbid|nitrat|nitromint|imdur/.test(norm(m.name))).map(m => m.short)
       .concat((v.rx || []).map(l => drugById(l.drugId)).filter(x => x && (expandTags(x.tags).has('nitrate') || /nitroglycerin|isosorbid/.test(norm(x.hc || '')))).map(x => x.n));
@@ -559,7 +560,7 @@ function drugBlockReasons(p, v, d, ctx, line){
     if(C2.age != null && C2.age < 18) r.push(`bệnh nhân ${C2.age} tuổi (< 18)`);
     const rn = renalOf(p);
     if(rn && ((rn.egfr != null && rn.egfr < 30) || (rn.crcl != null && rn.crcl < 30))) r.push(`chức năng thận giảm nặng (${[rn.egfr != null ? 'eGFR ≈ ' + fmtN(rn.egfr) : '', rn.crcl != null ? 'CrCl ≈ ' + fmtN(rn.crcl) : ''].filter(Boolean).join(', ')} — < 30)`);
-    if(r.length) out.push('sildenafil: ' + r.join('; '));
+    if(r.length) out.push(pde5 + ': ' + r.join('; '));
   }
   // Thuốc tăng huyết áp nhóm A, B, C, D: chống chỉ định theo VNHA 2026 (bác sĩ đặt 2026-10-30)
   out.push(...htnBlockReasons(p, v, d, ctx));
