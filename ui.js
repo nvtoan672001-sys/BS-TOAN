@@ -954,7 +954,7 @@ const SEED_ADDED = ['gavis10',
   'lisi10', 'rami5', 'capto25', 'telmi40', 'valsa80', 'irbe150', 'meto50', 'nebi5', 'carve625', 'ateno50', 'nife30', 'lerca10', 'felo5', 'dilti60', 'hctz25',
   'silde50', 'tada20',
   // thuốc điều trị rối loạn giấc ngủ (BYT 2020 Bài 27, LEC2) — 2026-11-02
-  'zolpi10', 'melato3', 'doxep10', 'trazo50', 'hydro25'];
+  'zolpi10', 'melato3', 'doxep10', 'trazo50', 'hydro25', 'zale10'];
 async function addNewSeedDrugs(){
   const done = S.settings.seedAdded || [], todo = SEED_ADDED.filter(id => !done.includes(id));
   if(!todo.length) return;
@@ -964,7 +964,8 @@ async function addNewSeedDrugs(){
 // Cập nhật nội dung lâm sàng của thuốc mẫu đã phát hành (một lần mỗi đợt), GIỮ NGUYÊN tên, giá, đơn vị bác sĩ đã sửa
 const SEED_UPDATES = [{ver: 'stahl-2026-10', ids: SEED_ADDED.slice(1)},   // 44 thuốc tâm thần, đối chiếu Stahl's Prescriber's Guide
   {ver: 'moi-2026-10', ids: SEED_ADDED.slice(1)},
-  {ver: 'tha-abcd-2026-10-30', ids: ['amlo5', 'inda15']}];                          // ưu tiên khuyến cáo mới hơn Stahl 2004 (LactMed, FDA/EMA, SmPC)
+  {ver: 'tha-abcd-2026-10-30', ids: ['amlo5', 'inda15']},
+  {ver: 'zolpidem-2026-11-02', ids: ['zolpi10', 'zopi7n', 'zopi7f']}];                          // ưu tiên khuyến cáo mới hơn Stahl 2004 (LactMed, FDA/EMA, SmPC)
 const SEED_CLIN = ['tags', 'how', 'ae', 'warn', 'pro', 'con', 'renal', 'hep', 'old', 'preg', 'lact', 'cond'];
 async function updateSeedDrugs(){
   const done = S.settings.seedUpdated || [], todo = SEED_UPDATES.filter(u => !done.includes(u.ver));

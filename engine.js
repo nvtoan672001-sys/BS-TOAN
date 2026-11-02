@@ -626,6 +626,19 @@ function drugBlockReasons(p, v, d, ctx, line){
     if(C.has('bph') || ['phi dai tien liet tuyen', 'phi dai tuyen tien liet', 'tang san tien liet tuyen'].some(k => mentionsSymptom(note, k))) out.push('hồ sơ nền phì đại tiền liệt tuyến (duloxetin có thể gây bí tiểu)');
     if(!C.has('liver') && ['benh gan man', 'suy gan', 'xo gan', 'viem gan man'].some(k => mentionsSymptom(note, k))) out.push('tiền sử ghi bệnh gan mạn / suy gan (duloxetin chống chỉ định khi bệnh gan)');
   }
+  // Zolpidem (bác sĩ đặt 2026-11-02): tiền sử hoặc bệnh sử ghi chóng mặt; tiền sử ghi suy gan, nhược cơ, ngưng thở khi ngủ (hoặc ICD G47.3) → không kê
+  if(norm(d.hc || '').includes('zolpidem')){
+    const note = p.condNote || '', hx = note + ' . ' + ((v && v.hpi) || ''), r = [];
+    if(['chong mat'].some(k => mentionsSymptom(hx, k))) r.push('tiền sử / bệnh sử ghi chóng mặt (nguy cơ té ngã)');
+    if(['suy gan'].some(k => mentionsSymptom(note, k))) r.push('suy gan');
+    if(['nhuoc co'].some(k => mentionsSymptom(note, k))) r.push('nhược cơ');
+    if(['ngung tho khi ngu', 'ngung tho luc ngu'].some(k => mentionsSymptom(note, k)) || dxCodes(v).some(c => /^G47\.3/.test(c))) r.push('ngưng thở khi ngủ (ức chế hô hấp)');
+    if(r.length) out.push('zolpidem: ' + r.join('; '));
+  }
+  // Zopiclon (bác sĩ đặt 2026-11-02): tiền sử hoặc bệnh sử ghi chóng mặt → không kê
+  if(norm(d.hc || '').includes('zopiclon') && mentionsSymptom((p.condNote || '') + ' . ' + ((v && v.hpi) || ''), 'chong mat')) out.push('zopiclon: tiền sử / bệnh sử ghi chóng mặt (nguy cơ té ngã)');
+  // Zaleplon (bác sĩ đặt 2026-11-02): tiền sử ghi suy gan → không kê
+  if(norm(d.hc || '').includes('zaleplon') && mentionsSymptom(p.condNote || '', 'suy gan')) out.push('zaleplon: tiền sử suy gan');
   if(isAgomelatine(d)){
     const tx = transaminaseHigh(p, v); if(tx.length) out.push('men gan tăng > 3 lần: ' + tx.join(', '));
     const ci = cyp1a2InhNames(p, v, ctx); if(ci.length) out.push('đang dùng thuốc ức chế mạnh CYP1A2: ' + ci.join(', '));
@@ -650,6 +663,22 @@ function halfDoseReasons(p, v, d, ctx){
   const out = [], a = ageOf(p, v.date);
   if((ctx || ctxOf(p, v)).conds.has('liver')) out.push('bệnh gan mạn / xơ gan');
   if(a != null && a >= 6 && a <= 12) out.push(`trẻ ${a} tuổi (6–12 tuổi)`);
+  return out;
+}
+// Zolpidem — lưu ý khởi đầu 5 mg (bác sĩ đặt 2026-11-02): > 65 tuổi hoặc BMI < 19. Chỉ cảnh báo, không chặn.
+function zolpidemLowStart(p, v, d){
+  if(!d || !v || !norm(d.hc || '').includes('zolpidem')) return [];
+  const out = [], a = ageOf(p, v.date), vt = v.vitals || {}, b = bmiOf(num(vt.weight) || p.weight, num(vt.height) || p.height);
+  if(a != null && a > 65) out.push(`${a} tuổi (> 65)`);
+  if(b != null && b < 19) out.push(`BMI ${fmtN(b, 1)} (< 19)`);
+  return out;
+}
+// Zopiclon — giảm ½ liều (bác sĩ đặt 2026-11-02): người cao tuổi (> 65 tuổi) hoặc suy gan (ô bệnh gan / tiền sử ghi suy gan). Chỉ cảnh báo.
+function zopicloneHalf(p, v, d, ctx){
+  if(!d || !v || !norm(d.hc || '').includes('zopiclon')) return [];
+  const out = [], a = ageOf(p, v.date);
+  if(a != null && a > 65) out.push(`người cao tuổi (${a} tuổi)`);
+  if((ctx || ctxOf(p, v)).conds.has('liver') || mentionsSymptom(p.condNote || '', 'suy gan')) out.push('suy gan');
   return out;
 }
 // Kết luận tổng điểm trắc nghiệm theo SCALE_BANDS; null nếu không có bảng hoặc chưa nhập / ngoài khoảng
@@ -791,6 +820,10 @@ function checkAll(p, v, entries){
       const half = halfDoseReasons(p, v, e.drug, ctx);
       const htnC = htnCautions(p, v, e.drug, ctx);
       if(htnC.length) items.push({lv: 2, kind: 'Thận trọng (VNHA 2026)', title: `${e.name} — ${HTN_GNAME[htnGroup(e.drug)]}`, m: 'Thận trọng: ' + htnC.join('; ') + '.', lines: [e.id]});
+      const zl = zolpidemLowStart(p, v, e.drug);
+      if(zl.length) items.push({lv: 2, kind: 'Liều (quy tắc phòng khám)', title: `${e.name} — khởi đầu 5 mg`, m: `${zl.join(', ')}: khởi đầu zolpidem 5 mg trước khi ngủ.`, lines: [e.id]});
+      const zh = zopicloneHalf(p, v, e.drug, ctx);
+      if(zh.length) items.push({lv: 2, kind: 'Liều (quy tắc phòng khám)', title: `${e.name} — giảm ½ liều`, m: `${zh.join(' và ')}: giảm ½ liều zopiclon (khởi đầu 3,75 mg trước khi ngủ).`, lines: [e.id]});
       if(half.length) items.push({lv: 2, kind: 'Liều (quy tắc phòng khám)', title: `${e.name} — giảm ½ liều`, m: `Chẩn đoán trầm cảm kèm ${half.join(' và ')}: dùng ½ liều thông thường.`, lines: [e.id]});
       if(!isSsriSnri(e.drug)) continue;
       if(bip && !(e.drug.cond && e.drug.cond.bipolar && ctx.conds.has('bipolar'))) items.push({lv: 2, kind: 'Bệnh kèm', title: `${e.name} — Rối loạn cảm xúc lưỡng cực`, m: 'Tiền sử rối loạn lưỡng cực / hưng cảm: SSRI/SNRI có thể gây chuyển pha hưng cảm — chỉ dùng kèm thuốc chỉnh khí sắc, theo dõi sát (Stahl).', lines: [e.id]});

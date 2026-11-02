@@ -186,7 +186,7 @@ def main():
             r = pg.evaluate("""async () => { const d = S.drugs.find(x => x.id === 'tiane12'); d.p = 9999; delete d.preg; d.warn = 'cũ';
                 await Store.put('drugs', d); S.settings.seedUpdated = []; await saveSettings(); await loadAll();
                 const e = S.drugs.find(x => x.id === 'tiane12'); return {p: e.p, preg: e.preg && e.preg.lv, warn: e.warn, ver: S.settings.seedUpdated}; }""")
-            assert r['p'] == 9999 and r['preg'] == 3 and r['warn'] != 'cũ' and r['ver'] == ['stahl-2026-10', 'moi-2026-10', 'tha-abcd-2026-10-30'], r
+            assert r['p'] == 9999 and r['preg'] == 3 and r['warn'] != 'cũ' and r['ver'] == ['stahl-2026-10', 'moi-2026-10', 'tha-abcd-2026-10-30', 'zolpidem-2026-11-02'], r
             assert pg.evaluate("S.drugs.find(x => x.id === 'quet100n').lact.lv") == 1, 'quetiapin cho con bú phải theo LactMed (mức lưu ý)'
 
             # 6g. Có chẩn đoán mà chưa có thuốc -> không sang được bước 4, trừ khi chọn lý do "Không kê đơn"
@@ -378,6 +378,21 @@ def main():
             assert pg.evaluate("() => ['bssc_m','bssc_f','scs_m','scs_f','asex','sdq_sex'].every(k => LABS.some(x => x[1] === k))"), 'thiếu test tình dục BSSC / SCS / ASEX / SDQ'
             assert pg.evaluate("() => ['zolpi10','melato3','doxep10','trazo50','hydro25'].every(id => { const d = drugById(id); return d && d.g === 'neuro' && /\\d/.test(d.how); })"), 'thiếu thuốc rối loạn giấc ngủ / liều'
             assert pg.evaluate("() => isTca(drugById('doxep10'))"), 'doxepin phải được nhận là thuốc 3 vòng'
+            zr = pg.evaluate("""() => { const z = drugById('zolpi10'), p0 = {sex:'Nam', condNote:''}, v0 = {date:'2026-11-02', hpi:'', dx:{}, rx:[]};
+              const B = (p, v) => drugBlockReasons(p, v, z, ctxOf(p, v)).length > 0;
+              return [B(p0, v0), B(p0, {...v0, hpi:'chóng mặt khi đứng'}), B(p0, {...v0, hpi:'không chóng mặt'}), B({...p0, condNote:'suy gan'}, v0),
+                B({...p0, condNote:'nhược cơ'}, v0), B({...p0, condNote:'ngưng thở khi ngủ'}, v0), B(p0, {...v0, dx:{icd:'G47.3'}}),
+                zolpidemLowStart({...p0, birthYear:1950}, v0, z).length > 0, zolpidemLowStart({...p0, weight:45, height:160}, v0, z).length > 0,
+                zolpidemLowStart({...p0, weight:60, height:160}, v0, z).length > 0]; }""")
+            assert zr == [False, True, False, True, True, True, True, True, True, False], 'quy tắc zolpidem sai: ' + str(zr)
+            zc = pg.evaluate("""() => { const z = drugById('zopi7n'), p0 = {sex:'Nam', condNote:''}, v0 = {date:'2026-11-02', hpi:'', dx:{}, rx:[]};
+              const B = (p, v) => drugBlockReasons(p, v, z, ctxOf(p, v)).length > 0;
+              return [B(p0, v0), B({...p0, condNote:'hay chóng mặt'}, v0), B(p0, {...v0, hpi:'chóng mặt'}), B(p0, {...v0, hpi:'không chóng mặt'}),
+                zopicloneHalf(p0, v0, z).length, zopicloneHalf({...p0, birthYear:1950}, v0, z).length, zopicloneHalf({...p0, condNote:'suy gan', birthYear:1950}, v0, z).length]; }""")
+            assert zc == [False, True, True, False, 0, 1, 2], 'quy tắc zopiclon sai: ' + str(zc)
+            zp = pg.evaluate("""() => { const z = drugById('zale10'), v0 = {date:'2026-11-02', hpi:'', dx:{}, rx:[]}, B = p => drugBlockReasons(p, v0, z, ctxOf(p, v0)).length > 0;
+              return [!!z && z.g === 'neuro', B({sex:'Nam', condNote:''}), B({sex:'Nam', condNote:'suy gan do rượu'}), B({sex:'Nam', condNote:'không suy gan'})]; }""")
+            assert zp == [True, False, True, False], 'quy tắc zaleplon sai: ' + str(zp)
             assert pg.evaluate("() => [[118, 78], [125, 78], [135, 82], [150, 85], [165, 102], [185, 95]].map(([s, d]) => bpClass(s, d))") == ['Huyết áp bình thường', 'Huyết áp bình thường cao', 'Tiền tăng huyết áp', 'Tăng huyết áp độ 1 (tâm thu đơn độc)', 'Tăng huyết áp độ 2', 'Tăng huyết áp độ 2 — ≥ 180/110: đánh giá ngay tổn thương cơ quan đích'], 'phân độ huyết áp theo VNHA 2026'
             assert pg.evaluate("() => [['pss', 20], ['pcptsd5', 4]].map(([k, v]) => scaleResult(k, v).t)") == ['Stress cảm nhận vừa', 'Dương tính — đánh giá thêm bằng PCL-5 / CAPS-5']
             assert pg.evaluate("() => [['gad7', 12], ['gad2', 3], ['phq4_d', 1], ['phq9', 20], ['mmse', 23], ['moca', 27]].map(([k, v]) => (scaleResult(k, v) || {}).t)") == ['Lo âu vừa', 'Dương tính — làm GAD-7', 'Âm tính', 'Trầm cảm nặng', 'Suy giảm nhận thức (< 24; đối chiếu trình độ học vấn)', 'Bình thường']
