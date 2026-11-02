@@ -1167,7 +1167,7 @@ const LABS = [
   ['Trắc nghiệm tâm lý','ciwa','CIWA-Ar (mức độ cai rượu)','/67','≤ 8 nhẹ; 9–15 vừa; ≥ 16 nặng — nguy cơ co giật, sảng (tham khảo)','n'],
   ['Trắc nghiệm tâm lý','isi','Chỉ số mức độ mất ngủ (ISI)','/28','0–7 không mất ngủ; 8–14 dưới ngưỡng; 15–21 vừa; 22–28 nặng','n'],
   ['Trắc nghiệm tâm lý','ess','Thang buồn ngủ Epworth (ESS)','/24','> 10 gợi ý buồn ngủ ban ngày quá mức (tham khảo)','n'],
-  ['Trắc nghiệm tâm lý','stopbang','STOP-BANG (sàng lọc ngưng thở khi ngủ)','/8','8 câu có / không (ngáy, mệt, ngừng thở, HA, BMI > 35, tuổi > 50, vòng cổ > 40 cm, nam): 0–2 nguy cơ thấp; 3–4 trung bình; 5–8 cao (tham khảo)','n'],
+  ['Trắc nghiệm tâm lý','stopbang','STOP-BANG (sàng lọc ngưng thở khi ngủ)','/8','8 câu có / không (ngáy, mệt, ngừng thở, HA, BMI > 35, tuổi > 50, vòng cổ > 40 cm, nam): 0–2 nguy cơ thấp; 3–4 trung bình; 5–8 cao (ngưỡng theo tác giả gốc Chung — tham khảo; VNHA 2026 khuyến cáo dùng để sàng lọc ngưng thở khi ngủ ở người THA)','n'],
   ['Trắc nghiệm tâm lý','minicog','Mini-Cog','/5','< 3 nghi suy giảm nhận thức (tham khảo)','n'],
   ['Trắc nghiệm tâm lý','gpcog','GPCOG (phần bệnh nhân)','/9','9 bình thường; 5–8 cần hỏi người nhà; 0–4 suy giảm nhận thức (tham khảo)','n'],
   ['Trắc nghiệm tâm lý','adascog','ADAS-Cog','/70','Điểm càng cao suy giảm càng nặng; dùng theo dõi diễn tiến','n'],
