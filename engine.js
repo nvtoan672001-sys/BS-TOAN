@@ -554,6 +554,10 @@ function drugBlockReasons(p, v, d, ctx, line){
     const s = num((v.vitals || {}).sbp), dd = num((v.vitals || {}).dbp);
     if((s != null && s < 90) || (dd != null && dd < 50)) r.push(`huyết áp thấp ${s ?? '?'}/${dd ?? '?'} (< 90/50)`);
     if((s != null && s > 170) || (dd != null && dd > 100)) r.push(`huyết áp cao ${s ?? '?'}/${dd ?? '?'} (> 170/100)`);
+    // Bác sĩ đặt thêm 2026-11-02: giới nữ; eGFR hoặc CrCl < 30
+    if(p.sex === 'Nữ') r.push('bệnh nhân nữ');
+    const rn = renalOf(p);
+    if(rn && ((rn.egfr != null && rn.egfr < 30) || (rn.crcl != null && rn.crcl < 30))) r.push(`chức năng thận giảm nặng (${[rn.egfr != null ? 'eGFR ≈ ' + fmtN(rn.egfr) : '', rn.crcl != null ? 'CrCl ≈ ' + fmtN(rn.crcl) : ''].filter(Boolean).join(', ')} — < 30)`);
     if(r.length) out.push('sildenafil: ' + r.join('; '));
   }
   // Thuốc tăng huyết áp nhóm A, B, C, D: chống chỉ định theo VNHA 2026 (bác sĩ đặt 2026-10-30)
