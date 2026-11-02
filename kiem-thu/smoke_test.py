@@ -452,14 +452,14 @@ def main():
             pg.evaluate("([s, a]) => { curP().condNote = s; curP().risk.alcohol = a; }", [rb0, al0])
             # tích ô đang cho con bú -> chặn mọi thuốc thần kinh – tâm thần; thuốc nhóm khác không bị chặn
             BB = "(id) => drugBlockReasons(curP(), curV(), drugById(id)).filter(r => /cho con bú/.test(r)).length"
-            bb0 = pg.evaluate("() => JSON.stringify({conds: curP().conds, note: curP().condNote, hpi: curV().hpi})")
+            bb0 = pg.evaluate("() => JSON.stringify({conds: curP().conds, note: curP().condNote, sex: curP().sex, hpi: curV().hpi})")
             pg.evaluate("() => { const p = curP(); p.conds = p.conds.filter(k => k !== 'breastfeeding'); p.condNote = ''; curV().hpi = ''; }")
             assert pg.evaluate(BB, 'sert50') == 0
-            pg.evaluate("() => { curP().conds.push('breastfeeding'); }")
+            pg.evaluate("() => { curP().conds.push('breastfeeding'); curP().sex = 'Nữ'; }")
             neuro_b = pg.evaluate("() => DRUGS_SEED.filter(d => d.g === 'neuro').map(d => d.id)")
             assert all(pg.evaluate(BB, x) == 1 for x in neuro_b), 'cho con bú phải chặn mọi thuốc thần kinh – tâm thần'
             assert pg.evaluate(BB, 'cipro500') == 0
-            pg.evaluate("(s) => { const p = curP(), o = JSON.parse(s); p.conds = o.conds; p.condNote = o.note; curV().hpi = o.hpi; }", bb0)
+            pg.evaluate("(s) => { const p = curP(), o = JSON.parse(s); p.conds = o.conds; p.condNote = o.note; p.sex = o.sex; curV().hpi = o.hpi; }", bb0)
             # pregabalin: tiền sử ghi không dung nạp galactose / thiếu lactase Lapp / kém hấp thu glucose – galactose -> chặn
             GB = "() => drugBlockReasons(curP(), curV(), drugById('pregab75')).filter(r => /galactose/.test(r)).length"
             assert pg.evaluate("() => { const d = drugById('pregab75'); return !!d && d.renal.length === 3 && /15–29: 25–150/.test(d.how); }"), 'thiếu pregabalin / liều theo thận'
@@ -498,7 +498,7 @@ def main():
             assert [pg.evaluate(HB, x) for x in ['telmi40', 'meto50', 'nife30', 'hctz25']] == [0, 0, 0, 0]
             pg.evaluate("() => { curP().condNote = 'Tiền sử phù mạch khi dùng captopril'; }")
             assert pg.evaluate(HB, 'lisi10') == 1 and pg.evaluate(HB, 'telmi40') == 0, 'phù mạch chỉ chống chỉ định ức chế men chuyển'
-            pg.evaluate("() => { curP().condNote = 'Đang mang thai 12 tuần'; }")
+            pg.evaluate("() => { curP().condNote = 'Đang mang thai 12 tuần'; curP().sex = 'Nữ'; }")
             assert [pg.evaluate(HB, x) for x in ['telmi40', 'peri5', 'hctz25', 'nife30']] == [1, 1, 1, 0], 'mang thai: chặn A và D, không chặn nifedipin'
             pg.evaluate("() => { const p = curP(); p.condNote = ''; p.conds.push('asthma'); }")
             assert pg.evaluate(HB, 'carve625') == 1 and pg.evaluate(HB, 'meto50') == 0 and pg.evaluate(HC, 'meto50') == 1, 'hen: chặn chẹn beta không chọn lọc, chọn lọc chỉ thận trọng'
@@ -526,16 +526,34 @@ def main():
             assert 'VNHA 2026' in pg.inner_text('[data-live="cvrisk"]'), 'thẻ Nguy cơ tim mạch phải hiện ở bước 1'
             assert pg.locator('[data-live="cvrisk"] a[href*="caremeyeulayminh.com"]').count() == 1 and pg.locator('[data-live="cvrisk"] a[href*="prevent-calculator"]').count() == 1 and pg.locator('[data-live="cvrisk"] a[href*="mdcalc.com"]').count() == 3
             assert 'Chỉ số để nhập PREVENT-CVD' in pg.inner_text('[data-live="cvrisk"]')
+            # sửa 2026-11-02: không tích ô mang thai thì không chặn nhầm vì câu tiền sử sản khoa / dự định / phòng tránh / β-hCG cũ đã sinh
+            pf0 = pg.evaluate("() => JSON.stringify({conds: curP().conds, note: curP().condNote, sex: curP().sex, hpi: curV().hpi, reason: curV().reason, orders: curV().orders})")
+            pg.evaluate("() => { const p = curP(), v = curV(); p.sex = 'Nữ'; p.conds = p.conds.filter(k => !['pregnant','breastfeeding'].includes(k)); v.hpi = ''; v.reason = ''; v.orders = v.orders.filter(o => o.key !== 'bhcg'); }")
+            for note in ['PARA 2002, mang thai 2 lần', 'Tránh mang thai khi dùng thuốc', 'Dự định mang thai năm sau', 'Lần mang thai trước bị tiền sản giật', 'Không mang thai', 'Chưa có thai', 'Sau mang thai bị trầm cảm']:
+                pg.evaluate("(s) => { curP().condNote = s; }", note)
+                assert pg.evaluate("() => pregnancyReason(curP(), curV())") == '', note
+            for note in ['Đang mang thai 10 tuần', 'Có thai 8 tuần', 'mang thai', 'Đang mang thai lần đầu']:
+                pg.evaluate("(s) => { curP().condNote = s; }", note)
+                assert pg.evaluate("() => pregnancyReason(curP(), curV())") != '', note
+            pg.evaluate("() => { const p = curP(), v = curV(); p.condNote = 'Sau sinh 3 tháng'; p.visits.find(x => x !== v).orders.push({id: 'o_hcg_old', key: 'bhcg', name: 'β-hCG', unit: 'mIU/mL', ref: '', type: 'n', value: 5000, flag: '', note: ''}); }")
+            assert pg.evaluate("() => pregnancyReason(curP(), curV())") == '', 'β-hCG cũ sau khi đã sinh không tính'
+            pg.evaluate("() => { curP().sex = 'Nam'; curP().condNote = 'mang thai'; }")
+            assert pg.evaluate("() => pregnancyReason(curP(), curV())") == '', 'bệnh nhân nam không bao giờ mang thai'
+            pg.evaluate("() => { const p = curP(); p.sex = 'Nữ'; p.conds = p.conds.filter(k => k !== 'breastfeeding'); }")
+            for note, exp in [('Đã cai sữa, thôi cho con bú', False), ('Trước đây cho con bú 12 tháng', False), ('Không cho con bú', False), ('Sinh con 3 tháng, đang cho con bú', True)]:
+                pg.evaluate("(s) => { curP().condNote = s; }", note)
+                assert pg.evaluate("() => breastfeeding(curP(), curV())") == exp, note
+            pg.evaluate("(s) => { const p = curP(), v = curV(), o = JSON.parse(s); p.conds = o.conds; p.condNote = o.note; p.sex = o.sex; v.hpi = o.hpi; v.reason = o.reason; v.orders = o.orders; p.visits.forEach(x => { if(x !== v) x.orders = (x.orders || []).filter(q => q.id !== 'o_hcg_old'); }); }", pf0)
             # mang thai (ô hồ sơ / tiền sử ghi) -> chặn toàn bộ nhóm thần kinh – tâm thần; thuốc nhóm khác không bị chặn
             PB = "(id) => drugBlockReasons(curP(), curV(), drugById(id)).filter(r => /^đang mang thai/.test(r)).length"
-            pg0 = pg.evaluate("() => JSON.stringify({conds: curP().conds, note: curP().condNote, hpi: curV().hpi, reason: curV().reason, orders: curV().orders})")
+            pg0 = pg.evaluate("() => JSON.stringify({conds: curP().conds, note: curP().condNote, sex: curP().sex, hpi: curV().hpi, reason: curV().reason, orders: curV().orders})")
             pg.evaluate("() => { const p = curP(), v = curV(); p.conds = p.conds.filter(k => k !== 'pregnant'); p.condNote = 'Đã từng mang thai 2 lần'; v.hpi = ''; v.reason = ''; v.orders = (v.orders || []).filter(o => o.key !== 'bhcg'); }")
             assert pg.evaluate(PB, 'sert50') == 0 and pg.evaluate(PB, 'gaba300n') == 0
-            pg.evaluate("() => { curP().condNote = 'Đang mang thai 10 tuần'; }")
+            pg.evaluate("() => { curP().condNote = 'Đang mang thai 10 tuần'; curP().sex = 'Nữ'; }")
             neuro = pg.evaluate("() => DRUGS_SEED.filter(d => d.g === 'neuro').map(d => d.id)")
             assert all(pg.evaluate(PB, x) == 1 for x in neuro), 'mang thai phải chặn mọi thuốc thần kinh – tâm thần'
             assert pg.evaluate(PB, 'tiane12') == 1 and pg.evaluate(PB, 'cipro500') == 0
-            pg.evaluate("(s) => { const p = curP(), v = curV(), o = JSON.parse(s); p.conds = o.conds; p.condNote = o.note; v.hpi = o.hpi; v.reason = o.reason; v.orders = o.orders; }", pg0)
+            pg.evaluate("(s) => { const p = curP(), v = curV(), o = JSON.parse(s); p.conds = o.conds; p.condNote = o.note; p.sex = o.sex; v.hpi = o.hpi; v.reason = o.reason; v.orders = o.orders; }", pg0)
             # chẩn đoán phụ có mã ICD riêng: bệnh nền lấy từ mã phụ; cảnh báo ½ liều sertralin nhận mã trầm cảm ở cột phụ
             d20 = pg.evaluate("() => JSON.stringify(curV().dx)")
             pg.evaluate("() => { curV().dx = {...curV().dx, main: 'Viêm dạ dày', icd: 'K29.7 – Viêm dạ dày, không đặc hiệu', icd2: 'G40.9 – Động kinh, không đặc hiệu', secondary: ''}; }")

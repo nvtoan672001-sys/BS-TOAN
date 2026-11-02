@@ -425,19 +425,37 @@ function cyp1a2InhNames(p, v, ctx){
 }
 // Đang cho con bú: ô bệnh nền "Đang cho con bú", hoặc phần tiền sử ghi "(đang) cho con bú", "nuôi con bằng sữa mẹ" (bỏ câu phủ định)
 function breastfeeding(p, v, ctx){
+  if(p.sex === 'Nam') return false;
   if((ctx || ctxOf(p, v)).conds.has('breastfeeding')) return true;
-  const t = (p.condNote || '') + ' . ' + ((v && v.hpi) || '');
+  // bỏ "đã / từng / trước đây / ngừng / cai … cho con bú" (sửa 2026-11-02 do chặn nhầm)
+  const t = (' ' + norm((p.condNote || '') + ' . ' + ((v && v.hpi) || '')).replace(/[^a-z0-9]+/g, ' ') + ' ')
+    .replace(/\b(da|tung|truoc|truoc day|ngung|ngung|thoi|cai sua|da cai sua)( \w+){0,2} (cho con bu|cho bu|nuoi con bang sua me)\b/g, ' ');
+  if(/\b(da cai sua|cai sua roi|thoi cho con bu|ngung cho con bu)\b/.test(t)) return false;
   return ['cho con bu', 'dang cho bu', 'nuoi con bang sua me'].some(k => mentionsSymptom(t, k));
 }
 // Đang mang thai: β-hCG mới nhất dương tính (> 5) trong 280 ngày gần đây, ô bệnh nền "Đang mang thai",
 // hoặc tiền sử / bệnh sử ghi "mang thai", "có thai" (bỏ câu phủ định). Trả về mô tả lý do hoặc ''.
+// Câu tiền sử / bệnh sử có nói ĐANG mang thai không. Bỏ (sửa 2026-11-02 do chặn nhầm):
+// tiền sử sản khoa ("đã / từng / trước / lần … mang thai", "mang thai 2 lần", "PARA"), dự định / phòng tránh ("tránh, dự định, kế hoạch, muốn … mang thai"),
+// "sau mang thai", và phủ định (mentionsSymptom bỏ "không / chưa / hết …").
+function pregnancyText(p, v){
+  let t = ' ' + norm((p.condNote || '') + ' . ' + ((v && v.hpi) || '') + ' . ' + ((v && v.reason) || '')).replace(/[^a-z0-9]+/g, ' ') + ' ';
+  const P = '(mang thai|co thai|co bau)';
+  t = t.replace(new RegExp(`\\b(da|tung|truoc|lan|sau|tranh|phong tranh|du dinh|ke hoach|muon|chuan bi|neu)( \\w+){0,2} ${P}\\b`, 'g'), ' ')
+       .replace(new RegExp(`\\b${P} \\d+ lan\\b`, 'g'), ' ');
+  return ['mang thai', 'co thai', 'co bau'].some(k => mentionsSymptom(t, k));
+}
+// Đã kết thúc thai kỳ (sinh, sảy, phá thai) — để không lấy β-hCG dương tính cũ
+function pregnancyEnded(p, v){
+  const t = norm((p.condNote || '') + ' . ' + ((v && v.hpi) || '') + ' . ' + ((v && v.reason) || ''));
+  return /\b(sau sinh|da sinh|sinh con|vua sinh|hau san|say thai|pha thai|dinh chi thai|nao hut thai|cho con bu|dang cho bu)\b/.test(t);
+}
 function pregnancyReason(p, v, ctx){
-  if((ctx || ctxOf(p, v)).conds.has('pregnant')) return 'tiền sử ghi đang mang thai';
-  // bỏ "đã / từng mang thai (… lần)" — tiền sử sản khoa, không phải đang mang thai
-  const t = norm((p.condNote || '') + ' . ' + ((v && v.hpi) || '') + ' . ' + ((v && v.reason) || '')).replace(/\b(da|tung)\s+(mang thai|co thai|co bau)\b/g, ' ');
-  if(['mang thai', 'co thai', 'dang co bau', 'co bau'].some(k => mentionsSymptom(t, k))) return 'tiền sử / bệnh sử ghi mang thai';
+  if(p.sex === 'Nam') return '';
+  if((ctx || ctxOf(p, v)).conds.has('pregnant')) return 'hồ sơ nền tích ô đang mang thai (hoặc chẩn đoán thai kỳ)';
+  if(pregnancyText(p, v)) return 'tiền sử / bệnh sử ghi đang mang thai';
   const r = bhcgLatest(p, v);
-  if(r && r.pos === true && (r.current || (v && v.date && r.date && daysBetween(r.date, v.date) <= 280))) return `β-hCG ${r.text}${r.current ? '' : ' (ngày ' + fmtDate(r.date) + ')'} > 5 mIU/mL`;
+  if(r && r.pos === true && (r.current || (v && v.date && r.date && daysBetween(r.date, v.date) <= 280 && !pregnancyEnded(p, v)))) return `β-hCG ${r.text}${r.current ? '' : ' (ngày ' + fmtDate(r.date) + ')'} > 5 mIU/mL`;
   return '';
 }
 // Rối loạn / lo ngại rối loạn tình dục: bệnh nền `sexual_dysf` (ô hồ sơ hoặc ICD F52.x), khám tâm thần nhóm `sex_*`,
