@@ -186,7 +186,7 @@ def main():
             r = pg.evaluate("""async () => { const d = S.drugs.find(x => x.id === 'tiane12'); d.p = 9999; delete d.preg; d.warn = 'cũ';
                 await Store.put('drugs', d); S.settings.seedUpdated = []; await saveSettings(); await loadAll();
                 const e = S.drugs.find(x => x.id === 'tiane12'); return {p: e.p, preg: e.preg && e.preg.lv, warn: e.warn, ver: S.settings.seedUpdated}; }""")
-            assert r['p'] == 9999 and r['preg'] == 3 and r['warn'] != 'cũ' and r['ver'] == ['stahl-2026-10', 'moi-2026-10', 'tha-abcd-2026-10-30', 'zolpidem-2026-11-02', 'trazodon-2026-11-02', 'mirtazapin-2026-11-02'], r
+            assert r['p'] == 9999 and r['preg'] == 3 and r['warn'] != 'cũ' and r['ver'] == ['stahl-2026-10', 'moi-2026-10', 'tha-abcd-2026-10-30', 'zolpidem-2026-11-02', 'trazodon-2026-11-02', 'mirtazapin-2026-11-02', 'tca-2026-11-02'], r
             assert pg.evaluate("S.drugs.find(x => x.id === 'quet100n').lact.lv") == 1, 'quetiapin cho con bú phải theo LactMed (mức lưu ý)'
 
             # 6g. Có chẩn đoán mà chưa có thuốc -> không sang được bước 4, trừ khi chọn lý do "Không kê đơn"
@@ -404,6 +404,12 @@ def main():
               const M = icd => tplMatches(t, ctxOf({sex:'Nam', condNote:''}, {date:'2026-11-02', dx:{icd}, rx:[]}));
               return [M('F51.0'), M('G47.3'), M('F51.5'), M('F32.1'), /20 phút/.test(t.text)]; }""")
             assert sa == [True, True, True, False, True], 'lời dặn rối loạn giấc ngủ sai: ' + str(sa)
+            assert pg.evaluate("() => ['amitri25','amitri25f','imipr25'].every(id => { const d = drugById(id); return d && isTca(d) && /25–300 mg/.test(d.how); })"), 'thiếu amitriptylin / imipramin'
+            ai = pg.evaluate("""() => { const v0 = {date:'2026-11-02', hpi:'', dx:{}, rx:[]};
+              const B = (id, p) => { const q = {sex:'Nam', condNote:'', birthYear:1980, ...p}; return drugBlockReasons(q, v0, drugById(id), ctxOf(q, v0)).length > 0; };
+              return [B('amitri25', {}), B('imipr25', {}), B('amitri25f', {condNote:'bệnh mạch vành'}), B('imipr25', {condNote:'rung nhĩ'}), B('imipr25', {conds:['bph']}),
+                B('amitri25', {condNote:'phì đại tiền liệt tuyến'}), B('imipr25', {birthYear:1955}), B('amitri25', {birthYear:1955})]; }""")
+            assert ai == [False, False, True, True, True, True, True, True], 'quy tắc amitriptylin / imipramin sai: ' + str(ai)
             assert pg.evaluate("() => [[118, 78], [125, 78], [135, 82], [150, 85], [165, 102], [185, 95]].map(([s, d]) => bpClass(s, d))") == ['Huyết áp bình thường', 'Huyết áp bình thường cao', 'Tiền tăng huyết áp', 'Tăng huyết áp độ 1 (tâm thu đơn độc)', 'Tăng huyết áp độ 2', 'Tăng huyết áp độ 2 — ≥ 180/110: đánh giá ngay tổn thương cơ quan đích'], 'phân độ huyết áp theo VNHA 2026'
             assert pg.evaluate("() => [['pss', 20], ['pcptsd5', 4]].map(([k, v]) => scaleResult(k, v).t)") == ['Stress cảm nhận vừa', 'Dương tính — đánh giá thêm bằng PCL-5 / CAPS-5']
             assert pg.evaluate("() => [['gad7', 12], ['gad2', 3], ['phq4_d', 1], ['phq9', 20], ['mmse', 23], ['moca', 27]].map(([k, v]) => (scaleResult(k, v) || {}).t)") == ['Lo âu vừa', 'Dương tính — làm GAD-7', 'Âm tính', 'Trầm cảm nặng', 'Suy giảm nhận thức (< 24; đối chiếu trình độ học vấn)', 'Bình thường']

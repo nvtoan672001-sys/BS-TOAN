@@ -583,6 +583,15 @@ function drugBlockReasons(p, v, d, ctx, line){
   if(H.includes('mirtazapin') && ['lai xe', 'tai xe', 'xe om', 'taxi', 'xe tai', 'xe khach', 'giao hang'].some(k => mentionsSymptom(p.job || '', k))) out.push(`nghề nghiệp lái xe (${p.job}) — mirtazapin gây an thần, buồn ngủ ban ngày`);
   // Venlafaxin: bệnh nền tăng huyết áp → không kê (bác sĩ đặt 2026-10-25; venlafaxin làm tăng huyết áp phụ thuộc liều)
   if(norm(d.hc || '').includes('venlafaxin') && (ctx || ctxOf(p, v)).conds.has('htn')) out.push('bệnh nền tăng huyết áp (venlafaxin làm tăng huyết áp phụ thuộc liều)');
+  // Amitriptylin, imipramin (bác sĩ đặt 2026-11-02): tiền sử bệnh mạch vành, rối loạn nhịp, phì đại tiền liệt tuyến (ô tích hoặc ghi chữ) → không kê
+  const tcaAI = ['amitriptylin', 'imipramin'].find(x => H.includes(x));
+  if(tcaAI){
+    const say = k => mentionsSymptom(p.condNote || '', k), r = [];
+    if(C.has('cvd') || ['benh mach vanh', 'dau that nguc', 'thieu mau co tim', 'nhoi mau co tim', 'dat stent'].some(say)) r.push('bệnh mạch vành');
+    if(C.has('af') || ['roi loan nhip', 'rung nhi', 'ngoai tam thu', 'nhip nhanh'].some(say)) r.push('rối loạn nhịp');
+    if(C.has('bph') || ['phi dai tien liet tuyen', 'phi dai tuyen tien liet', 'tang san tien liet tuyen'].some(say)) r.push('phì đại tiền liệt tuyến (bí tiểu)');
+    if(r.length) out.push(tcaAI + ': tiền sử ' + r.join('; '));
+  }
   // Tuổi > 65 hoặc < 18 → không kê thuốc chống trầm cảm 3 vòng (TCA) và paroxetin (bác sĩ đặt 2026-10-25)
   //  > 65: kháng cholinergic mạnh — tiêu chí Beers; < 18: TCA độc tim, nguy hiểm khi quá liều; paroxetin tăng ý tưởng tự sát ở vị thành niên
   const ageNow = (ctx || ctxOf(p, v)).age;
