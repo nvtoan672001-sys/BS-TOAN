@@ -1165,7 +1165,7 @@ const LABS = [
   ['Trắc nghiệm tâm lý','bfcrs','Căng trương lực Bush–Francis (BFCRS)','','Ghi điểm; ≥ 2 mục trong 14 mục sàng lọc gợi ý căng trương lực (tham khảo)','t'],
   ['Trắc nghiệm tâm lý','audit','AUDIT (rối loạn sử dụng rượu)','/40','0–7 nguy cơ thấp; 8–15 nguy cơ; 16–19 có hại; ≥ 20 nghi lệ thuộc (WHO)','n'],
   ['Trắc nghiệm tâm lý','ciwa','CIWA-Ar (mức độ cai rượu)','/67','≤ 8 nhẹ; 9–15 vừa; ≥ 16 nặng — nguy cơ co giật, sảng (tham khảo)','n'],
-  ['Trắc nghiệm tâm lý','isi','Chỉ số mức độ mất ngủ (ISI)','/28','0–7 không mất ngủ; 8–14 dưới ngưỡng; 15–21 vừa; 22–28 nặng','n'],
+  ['Trắc nghiệm tâm lý','isi','ISI – Chỉ số mức độ mất ngủ','/28','0–7 không mất ngủ; 8–14 dưới ngưỡng; 15–21 vừa; 22–28 nặng','n'],
   ['Trắc nghiệm tâm lý','ess','Thang buồn ngủ Epworth (ESS)','/24','> 10 gợi ý buồn ngủ ban ngày quá mức (tham khảo)','n'],
   ['Trắc nghiệm tâm lý','stopbang','STOP-BANG (sàng lọc ngưng thở khi ngủ)','/8','8 câu có / không (ngáy, mệt, ngừng thở, HA, BMI > 35, tuổi > 50, vòng cổ > 40 cm, nam): 0–2 nguy cơ thấp; 3–4 trung bình; 5–8 cao (ngưỡng theo tác giả gốc Chung — tham khảo; VNHA 2026 khuyến cáo dùng để sàng lọc ngưng thở khi ngủ ở người THA)','n'],
   ['Trắc nghiệm tâm lý','minicog','Mini-Cog','/5','< 3 nghi suy giảm nhận thức (tham khảo)','n'],
@@ -1207,7 +1207,7 @@ const LAB_PANELS = [{id: 'dgd', g: 'Máu', name: 'Điện giải đồ (Na, K, C
 
 // Lựa chọn ô "đánh giá" riêng theo key (bác sĩ đặt 2026-10-27); key khác dùng Bình thường / Cao / Thấp / Bất thường
 const DASS_FLAGS = ['Bình thường', 'Nhẹ', 'Vừa', 'Nặng', 'Rất nặng'];
-const FLAG_OPTS = {zung_a: ['Bình thường', 'Nhẹ – vừa', 'Nặng', 'Rất nặng'], psqi: ['Tốt', 'Kém'], dass_d: DASS_FLAGS, dass_a: DASS_FLAGS, dass_s: DASS_FLAGS, ess: ['Bình thường', 'Buồn ngủ quá mức']};
+const FLAG_OPTS = {zung_a: ['Bình thường', 'Nhẹ – vừa', 'Nặng', 'Rất nặng'], psqi: ['Tốt', 'Kém'], dass_d: DASS_FLAGS, dass_a: DASS_FLAGS, dass_s: DASS_FLAGS, ess: ['Bình thường', 'Buồn ngủ quá mức'], isi: ['Không mất ngủ', 'Dưới ngưỡng', 'Vừa', 'Nặng']};
 
 // Diễn giải tổng điểm trắc nghiệm (ô "Kết quả" ở bước 2 và trên phiếu): key → [[điểm tối đa của khoảng, kết luận, mức 0–3]].
 // Ngưỡng lấy từ cột tham chiếu đã có của từng thang; GAD-7, GAD-2, PHQ-4 theo phiếu trong thư mục Tâm thần (Spitzer 2006, Kroenke 2007).
