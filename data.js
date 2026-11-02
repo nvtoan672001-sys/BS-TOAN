@@ -31,7 +31,7 @@ const CONDS = [
   {k:'parkinson', t:'Bệnh Parkinson'},
   {k:'sexual_dysf', t:'Rối loạn / lo ngại chức năng tình dục'},
 ];
-const COND_EXTRA = {elderly:'Người cao tuổi (≥ 65)', alcohol:'Có uống rượu bia', alcohol_heavy:'Uống rượu nhiều', obese:'Thừa cân / béo phì', sedentary:'Ít vận động', child:'Dưới 18 tuổi', anorexia:'Chán ăn tâm thần (F50.0 / F50.1)', bulimia:'Ăn vô độ tâm thần (F50.2 / F50.3)', erectile_dysf:'Rối loạn cương dương (F52.2 / N48.4)', premature_ejac:'Xuất tinh sớm (F52.4)', sexual_dysf_f:'Nữ có rối loạn chức năng tình dục', insomnia:'Mất ngủ (G47.0 / F51.0)', orthostatic:'Hạ huyết áp tư thế (I95.1)', 'tag:anticoag':'Đang dùng thuốc chống đông'};
+const COND_EXTRA = {elderly:'Người cao tuổi (≥ 65)', alcohol:'Có uống rượu bia', alcohol_heavy:'Uống rượu nhiều', obese:'Thừa cân / béo phì', sedentary:'Ít vận động', child:'Dưới 18 tuổi', anorexia:'Chán ăn tâm thần (F50.0 / F50.1)', bulimia:'Ăn vô độ tâm thần (F50.2 / F50.3)', erectile_dysf:'Rối loạn cương dương (F52.2 / N48.4)', premature_ejac:'Xuất tinh sớm (F52.4)', sexual_dysf_f:'Nữ có rối loạn chức năng tình dục', insomnia:'Mất ngủ (G47.0 / F51.0)', sleep_dis:'Rối loạn giấc ngủ (F51.x / G47.x)', orthostatic:'Hạ huyết áp tư thế (I95.1)', 'tag:anticoag':'Đang dùng thuốc chống đông'};
 
 const ALLERGY = [
   {k:'penicillin', t:'Penicillin / Amoxicilin', hit:{penicillin:3, cephalosporin:1}},
@@ -877,7 +877,7 @@ const ICD = [
   ['F41.2','Rối loạn hỗn hợp lo âu và trầm cảm',['depression']],
   ['F34','Rối loạn khí sắc dai dẳng (khí sắc chu kỳ, loạn khí sắc)',['depression']],
   ['F38','Rối loạn khí sắc khác',[]],
-  ['G47.0','Mất ngủ',['insomnia']],
+  ['G47.0','Mất ngủ',['insomnia','sleep_dis']],
   // ---- Tâm thần bổ sung (ICD-10; mã có trong BYT 2020 / bài giảng LEC1–11 ở Desktop\Tâm thần, còn lại theo bài học tương ứng)
   // Rối loạn nhận thức (BYT Bài 1–5, LEC1)
   ['F00','Sa sút trí tuệ trong bệnh Alzheimer',['dementia']],
@@ -987,20 +987,20 @@ const ICD = [
   ['F48.9','Rối loạn tâm căn không biệt định',[]],
   ['F62.0','Biến đổi nhân cách lâu dài sau trải nghiệm thảm hoạ',[]],
   // Rối loạn giấc ngủ không thực tổn (LEC2, BYT Bài 27)
-  ['F51.0','Mất ngủ không thực tổn',['insomnia']],
-  ['F51.1','Ngủ nhiều không thực tổn',[]],
-  ['F51.2','Rối loạn nhịp thức – ngủ không thực tổn',[]],
-  ['F51.3','Miên hành (đi trong lúc ngủ)',[]],
-  ['F51.4','Hoảng sợ khi ngủ (hoảng sợ ban đêm)',[]],
-  ['F51.5','Ác mộng',[]],
-  ['G47.3','Ngưng thở khi ngủ',[]],
-  ['F51.8','Rối loạn giấc ngủ không thực tổn khác',[]],
-  ['F51.9','Rối loạn giấc ngủ không thực tổn, không biệt định',[]],
-  ['G47.1','Rối loạn ngủ nhiều (thực tổn)',[]],
-  ['G47.2','Rối loạn nhịp thức – ngủ (thực tổn)',[]],
-  ['G47.4','Chứng ngủ rũ và mất trương lực đột ngột',[]],
-  ['G47.8','Rối loạn giấc ngủ thực tổn khác',[]],
-  ['G47.9','Rối loạn giấc ngủ thực tổn, không biệt định',[]],
+  ['F51.0','Mất ngủ không thực tổn',['insomnia','sleep_dis']],
+  ['F51.1','Ngủ nhiều không thực tổn',['sleep_dis']],
+  ['F51.2','Rối loạn nhịp thức – ngủ không thực tổn',['sleep_dis']],
+  ['F51.3','Miên hành (đi trong lúc ngủ)',['sleep_dis']],
+  ['F51.4','Hoảng sợ khi ngủ (hoảng sợ ban đêm)',['sleep_dis']],
+  ['F51.5','Ác mộng',['sleep_dis']],
+  ['G47.3','Ngưng thở khi ngủ',['sleep_dis']],
+  ['F51.8','Rối loạn giấc ngủ không thực tổn khác',['sleep_dis']],
+  ['F51.9','Rối loạn giấc ngủ không thực tổn, không biệt định',['sleep_dis']],
+  ['G47.1','Rối loạn ngủ nhiều (thực tổn)',['sleep_dis']],
+  ['G47.2','Rối loạn nhịp thức – ngủ (thực tổn)',['sleep_dis']],
+  ['G47.4','Chứng ngủ rũ và mất trương lực đột ngột',['sleep_dis']],
+  ['G47.8','Rối loạn giấc ngủ thực tổn khác',['sleep_dis']],
+  ['G47.9','Rối loạn giấc ngủ thực tổn, không biệt định',['sleep_dis']],
   ['G25.8','Hội chứng chân không yên (và rối loạn vận động khác)',[]],
   // Loạn chức năng tình dục không thực tổn (LEC6)
   ['F52.0','Thiếu hoặc mất ham muốn tình dục',['sexual_dysf']],
@@ -1502,6 +1502,7 @@ const TEMPLATES_SEED = [
  {id:'adv_psych', cat:'advice', title:'Tâm bệnh', tags:['depression','bipolar','insomnia','anorexia','bulimia','tag:ssri','tag:snri'], text:'Uống thuốc đúng giờ, đủ liều; không tự ý ngừng thuốc. Tránh mang thai trong thời gian sử dụng thuốc. Báo bác sĩ ngay lập tức khi xuất hiện triệu chứng bất thường (nôn, tiêu chảy, đau bụng, vàng da, rối loạn ý thức, co giật, sốt cao, mẩn ngứa, đau ngực, khó thở, đau đầu, chóng mặt, yếu liệt, tê bì tay chân…) hoặc tác dụng phụ khi sử dụng thuốc khác. Mang theo phiếu này và các kết quả xét nghiệm khi tái khám.\nĂn chế độ ăn Địa Trung Hải, thức ăn mềm, dễ tiêu; giảm đường, giảm ngọt; tránh chất kích thích; uống đủ nước; tránh nước ép bưởi.\nLập lịch hoạt động có niềm vui và có mục đích, tăng dần mức độ. Hoạt động thể lực 30–45 phút/ngày × 3–5 ngày/tuần.\nĐi ngủ và thức dậy vào giờ cố định, ngủ đủ 8–9 giờ/ngày. Ra nắng vào buổi sáng. Tập luyện cách thích nghi, đối phó với stress.'},
  {id:'adv_viagra', cat:'advice', title:'Dùng Viagra (sildenafil)', tags:['sexual_dysf','tag:pde5'], text:'Ăn ít dầu mỡ.\nTái khám lại ngay lập tức khi: mất thị lực đột ngột, cương kéo dài > 1 giờ.'},
  {id:'adv_trazo', cat:'advice', title:'Dùng trazodon', tags:['tag:trazodone'], text:'Tái khám ngay lập tức khi: hồi hộp, đánh trống ngực, hụt hơi, khó thở, đau ngực, ngất, rối loạn cương dương.'},
+ {id:'adv_sleep', cat:'advice', title:'Rối loạn giấc ngủ', tags:['sleep_dis','insomnia'], text:'Bổ sung dinh dưỡng, vitamin nhóm B và khoáng chất. Chế độ ăn dễ tiêu hóa (mềm, nhiều xơ), đủ vitamin và khoáng chất (hoa quả…). Tránh chất kích thích như cà phê, rượu, trà, nước tăng lực, thuốc lá, uống đủ nước.\nChỉ đi ngủ khi buồn ngủ. Tập thức ngủ đúng giờ; hằng sáng thức dậy vào một giờ nhất định, không phụ thuộc thời lượng ngủ đêm trước. Ngày ngủ đủ 7–8 giờ.\nThiết lập chế độ tập luyện thể dục thể thao hằng ngày (không tập gắng sức sát giờ ngủ). Sử dụng kỹ thuật thư giãn như: giãn cơ tiến triển, hít thở sâu, thiền, nghe nhạc nhẹ trước ngủ.\nChỉ dùng giường để ngủ và sinh hoạt tình dục; không đọc, xem ti vi, dùng điện thoại, ăn trên giường. Nếu không ngủ được sau khoảng 20 phút, rời giường, sang phòng khác làm việc nhẹ nhàng, chỉ quay lại khi buồn ngủ; lặp lại nếu cần.\nTiếp xúc ánh nắng vào buổi sáng. Tránh các căng thẳng tâm lý mạnh trong cuộc sống. Thiết lập chế độ làm việc hợp lý.'},
  {id:'adv_ed', cat:'advice', title:'Rối loạn cương dương', tags:['erectile_dysf'], text:'Luyện tập giao tiếp. Xoá bỏ mâu thuẫn giữa cặp đôi, ám ảnh, lo sợ. Thực hiện liệu pháp nhận thức hành vi, liệu pháp Masters và Johnson (1970).'},
  {id:'adv_pe', cat:'advice', title:'Xuất tinh sớm', tags:['premature_ejac'], text:'Luyện tập giao tiếp. Xoá bỏ mâu thuẫn giữa cặp đôi, ám ảnh, lo sợ. Luyện tập cơ vùng chậu (Kegel), luyện tập kỹ thuật dừng – bắt đầu (stop-start, Semans) và kỹ thuật bóp (squeeze, Masters & Johnson).'},
  {id:'adv_sex_f', cat:'advice', title:'Rối loạn tình dục ở nữ', tags:['sexual_dysf_f'], text:'Xoá bỏ mặc cảm tự ti, tích cực với cơ thể bản thân. Tập cơ vùng chậu (Kegel), tập đối phó stress. Thực hiện liệu pháp nhận thức hành vi, liệu pháp Masters và Johnson (1970).'},

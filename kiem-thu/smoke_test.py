@@ -400,6 +400,10 @@ def main():
             mz = pg.evaluate("""() => { const z = drugById('mirta30f'), v0 = {date:'2026-11-02', hpi:'', dx:{}, rx:[], vitals:{}}, B = p => { const q = {sex:'Nam', condNote:'', job:'', ...p}; return drugBlockReasons(q, v0, z, ctxOf(q, v0)).length > 0; };
               return [B({}), B({job:'Tài xế taxi'}), B({job:'Giáo viên'}), B({weight:70, height:165}), /7,5–15 mg/.test(z.how)]; }""")
             assert mz == [False, True, False, True, True], 'quy tắc mirtazapin sai: ' + str(mz)
+            sa = pg.evaluate("""() => { const t = TEMPLATES_SEED.find(x => x.id === 'adv_sleep'); if(!t) return null;
+              const M = icd => tplMatches(t, ctxOf({sex:'Nam', condNote:''}, {date:'2026-11-02', dx:{icd}, rx:[]}));
+              return [M('F51.0'), M('G47.3'), M('F51.5'), M('F32.1'), /20 phút/.test(t.text)]; }""")
+            assert sa == [True, True, True, False, True], 'lời dặn rối loạn giấc ngủ sai: ' + str(sa)
             assert pg.evaluate("() => [[118, 78], [125, 78], [135, 82], [150, 85], [165, 102], [185, 95]].map(([s, d]) => bpClass(s, d))") == ['Huyết áp bình thường', 'Huyết áp bình thường cao', 'Tiền tăng huyết áp', 'Tăng huyết áp độ 1 (tâm thu đơn độc)', 'Tăng huyết áp độ 2', 'Tăng huyết áp độ 2 — ≥ 180/110: đánh giá ngay tổn thương cơ quan đích'], 'phân độ huyết áp theo VNHA 2026'
             assert pg.evaluate("() => [['pss', 20], ['pcptsd5', 4]].map(([k, v]) => scaleResult(k, v).t)") == ['Stress cảm nhận vừa', 'Dương tính — đánh giá thêm bằng PCL-5 / CAPS-5']
             assert pg.evaluate("() => [['gad7', 12], ['gad2', 3], ['phq4_d', 1], ['phq9', 20], ['mmse', 23], ['moca', 27]].map(([k, v]) => (scaleResult(k, v) || {}).t)") == ['Lo âu vừa', 'Dương tính — làm GAD-7', 'Âm tính', 'Trầm cảm nặng', 'Suy giảm nhận thức (< 24; đối chiếu trình độ học vấn)', 'Bình thường']
