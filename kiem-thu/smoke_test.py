@@ -547,7 +547,7 @@ def main():
             pg.evaluate("(s) => { const p = curP(), v = curV(), o = JSON.parse(s); p.conds = o.conds; p.condNote = o.note; p.sex = o.sex; v.hpi = o.hpi; v.reason = o.reason; v.orders = o.orders; p.visits.forEach(x => { if(x !== v) x.orders = (x.orders || []).filter(q => q.id !== 'o_hcg_old'); }); }", pf0)
             # sildenafil: nitrat, tiền sử tim mạch, HA < 90/50 hoặc > 170/100 -> chặn
             SB2 = "() => drugBlockReasons(curP(), curV(), drugById('silde50')).filter(r => /^sildenafil:/.test(r)).length"
-            sd0 = pg.evaluate("() => JSON.stringify({conds: curP().conds, note: curP().condNote, meds: curP().meds, vit: curV().vitals, hpi: curV().hpi, dx: curV().dx, sex: curP().sex})")
+            sd0 = pg.evaluate("() => JSON.stringify({conds: curP().conds, note: curP().condNote, meds: curP().meds, vit: curV().vitals, hpi: curV().hpi, dx: curV().dx, sex: curP().sex, dob: curP().dob || '', by: curP().birthYear ?? null})")
             pg.evaluate("() => { window._rOf2 = renalOf; renalOf = () => ({egfr: 75, crcl: 80}); }")
             pg.evaluate("() => { const p = curP(), v = curV(); p.sex = 'Nam'; p.conds = p.conds.filter(k => !['af','heart_failure','cvd'].includes(k)); p.condNote = ''; p.meds = []; v.hpi = ''; v.dx = {...v.dx, icd: '', icd2: ''}; v.vitals = {...v.vitals, sbp: 125, dbp: 78}; }")
             assert pg.evaluate(SB2) == 0
@@ -558,10 +558,11 @@ def main():
                           "() => { curV().vitals.sbp = 175; }",
                           "() => { curV().vitals.sbp = 125; curP().sex = 'Nữ'; }",
                           "() => { curP().sex = 'Nam'; renalOf = () => ({egfr: 25, crcl: 40}); }",
-                          "() => { renalOf = () => ({egfr: 45, crcl: 28}); }"]:
+                          "() => { renalOf = () => ({egfr: 45, crcl: 28}); }",
+                          "() => { renalOf = () => ({egfr: 75, crcl: 80}); const p = curP(); p.dob = ''; p.birthYear = Number(curV().date.slice(0, 4)) - 16; }"]:
                 pg.evaluate(setup)
                 assert pg.evaluate(SB2) == 1, setup
-            pg.evaluate("(s) => { const p = curP(), v = curV(), o = JSON.parse(s); p.conds = o.conds; p.condNote = o.note; p.meds = o.meds; v.vitals = o.vit; v.hpi = o.hpi; v.dx = o.dx; p.sex = o.sex; renalOf = window._rOf2; }", sd0)
+            pg.evaluate("(s) => { const p = curP(), v = curV(), o = JSON.parse(s); p.conds = o.conds; p.condNote = o.note; p.meds = o.meds; v.vitals = o.vit; v.hpi = o.hpi; v.dx = o.dx; p.sex = o.sex; p.dob = o.dob; p.birthYear = o.by; renalOf = window._rOf2; }", sd0)
             # mang thai (ô hồ sơ / tiền sử ghi) -> chặn toàn bộ nhóm thần kinh – tâm thần; thuốc nhóm khác không bị chặn
             PB = "(id) => drugBlockReasons(curP(), curV(), drugById(id)).filter(r => /^đang mang thai/.test(r)).length"
             pg0 = pg.evaluate("() => JSON.stringify({conds: curP().conds, note: curP().condNote, sex: curP().sex, hpi: curV().hpi, reason: curV().reason, orders: curV().orders})")
