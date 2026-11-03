@@ -32,3 +32,7 @@ Câu trả lời trò chuyện của notebook là tóm tắt AI, **không dùng 
 Mục lục BYT 2020: Bài 1–3 sa sút trí tuệ · 4 sảng · 5–6 do tổn thương não · 7–12 rượu, chất · 13–17 loạn thần · 18–21 khí sắc · 22–23 lo âu · 24 phân ly · 25 cơ thể hoá · 26 chán ăn · 27 mất ngủ không thực tổn · 28 chậm phát triển · 29–34 trẻ em · 35 động kinh.
 
 Đợt tiếp theo đã bàn với bác sĩ: mất ngủ (Bài 27), sa sút trí tuệ (Bài 1–3, MMSE/MoCA), rối loạn do rượu (Bài 7).
+
+## ICD-11 (2026-11-03)
+
+`Tâm thần/ICD-11.pdf` — WHO 2024, *Clinical descriptions and diagnostic requirements for ICD-11 mental, behavioural and neurodevelopmental disorders* (852 trang, có lớp chữ, trích bằng pypdf). Dùng mục "Essential (required) features" cho `ICD11_MAP` (data.js) và các ghi chú ICD-11 trong `psyDx`. `Tâm thần/ICD-10.pdf` — bản tiếng Anh ICD-10 *Diagnostic criteria for research* (WHO, bản scan nén CCITT, đọc bằng ảnh trang); nội dung trùng `ICD-10-nghiên-cứu-VN.pdf` nên app trích dẫn theo bản tiếng Việt.

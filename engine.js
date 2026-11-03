@@ -963,6 +963,7 @@ function psyDx(p, v){
   const wk = num(m.weeks), imp = m.impair || '', out = [], alerts = [], todo = [];
   const exclMiss = [...(excl.has('subst') ? ['Có liên quan sử dụng chất tác động tâm thần → xem xét rối loạn do chất (F10–F19)'] : []), ...(excl.has('organic') ? ['Có bệnh cơ thể / thực tổn → xem xét rối loạn tâm thần thực tổn (F00–F09)'] : [])];
   const add = (code, src, met, miss, note) => out.push({code, name: icdName(code), src, met, miss: miss.concat(exclMiss), note});
+  const i11x = {};   // ghi chú ICD-11 tính từ bảng kiểm, theo mã ICD-10 gợi ý (gộp vào s.i11 ở cuối hàm)
   const durTxt = wk == null ? 'Chưa nhập thời gian kéo dài' : `Thời gian kéo dài ${fmtN(wk)} tuần`;
   // --- Giai đoạn trầm cảm hiện tại (Bài 20) ---
   // Trầm cảm nặng (F32.2): 3/3 chính + ≥ 4 phổ biến VÀ "một số phải đặc biệt nặng" — bác sĩ xác nhận bằng ô m.severe
@@ -975,7 +976,17 @@ function psyDx(p, v){
   const depMiss = (wk == null || wk < 2 ? [durTxt + ' — cần ≥ 2 tuần'] : []).concat(c.psy && depLv && depLv !== 'severe' ? ['Có loạn thần nhưng chưa đủ trầm cảm nặng (3/3 chính + ≥ 4 phổ biến): đánh giá lại'] : []);
   const somNote = c.som >= 4 ? `Có hội chứng cơ thể (${c.som}/8 triệu chứng cơ thể)` : '';
   const sevNote = sevCount && !sevOk ? 'Đủ số lượng triệu chứng của trầm cảm NẶNG (3/3 chính + ≥ 4 phổ biến) nhưng đang xếp mức VỪA vì chưa xác nhận "một số triệu chứng đặc biệt nặng" (BYT 2020 Bài 20). Nếu đúng, đánh dấu ô này ở mục Khám tâm thần (bước 1).' : '';
-  const depNote = [somNote, sevNote].filter(Boolean).join(' ');
+  // Đối chiếu tiêu chuẩn nghiên cứu ICD-10 (bản VN tr. 102–104): nhẹ ≥ 2 chính + tổng ≥ 4; vừa ≥ 2 chính + tổng ≥ 6; nặng 3 chính + tổng ≥ 8
+  // (danh sách bổ sung C: tự tin, bị tội, tự sát, tập trung, tâm thần vận động, giấc ngủ, ăn uống). BYT 2020 (mô tả lâm sàng) dùng ngưỡng thấp hơn — app xếp mức theo BYT 2020.
+  const dcrTot = ['dep_mood', 'dep_anhed', 'dep_energy', 'dep_esteem', 'dep_guilt', 'dep_suicide', 'dep_conc', 'som_psychomotor', 'dep_sleep', 'dep_appetite'].filter(k => sx.has(k)).length;
+  const dcrLv = c.core >= 3 && dcrTot >= 8 ? 'severe' : c.core >= 2 && dcrTot >= 6 ? 'mod' : c.core >= 2 && dcrTot >= 4 ? 'mild' : '';
+  const LVN = {mild: 'nhẹ', mod: 'vừa', severe: 'nặng', '': 'chưa đủ'};
+  const dcrNote = depLv && dcrLv !== depLv ? `Theo tiêu chuẩn nghiên cứu ICD-10 (bản VN tr. 102–104): tổng ${dcrTot} triệu chứng → mức ${LVN[dcrLv]} (BYT 2020 xếp mức ${LVN[depLv]}).` : '';
+  // ICD-11 (6A70): ≥ 5/10 triệu chứng, ≥ 1 thuộc nhóm cảm xúc; tự ti HOẶC bị tội tính là 1
+  const i11Dep = ['dep_mood', 'dep_anhed', 'dep_conc', 'dep_pessim', 'dep_suicide', 'dep_sleep', 'dep_appetite', 'som_psychomotor', 'dep_energy'].filter(k => sx.has(k)).length + (sx.has('dep_esteem') || sx.has('dep_guilt') ? 1 : 0);
+  const i11DepOk = i11Dep >= 5 && (sx.has('dep_mood') || sx.has('dep_anhed')) && wk != null && wk >= 2;
+  const i11DepTxt = `Bảng kiểm: ${i11Dep}/10 triệu chứng → ${i11DepOk ? 'đủ' : 'CHƯA đủ'} giai đoạn trầm cảm theo ICD-11${i11DepOk ? '' : ' (cần ≥ 5, có khí sắc trầm hoặc mất hứng thú, ≥ 2 tuần)'}.`;
+  const depNote = [somNote, sevNote, dcrNote].filter(Boolean).join(' ');
   // --- Giai đoạn hưng cảm hiện tại (Bài 18) ---
   const manSx = c.manA && c.manB >= 3;
   const manFull = manSx && wk != null && wk >= 1 && (imp === 'marked' || imp === 'hosp');
@@ -987,12 +998,19 @@ function psyDx(p, v){
   if(manSx){
     const cur = manFull ? (c.psy ? '2' : '1') : hypo ? '0' : null;
     const mMiss = manFull || hypo ? [] : ['Chưa xác định: kéo dài ≥ 1 tuần và suy giảm chức năng rõ rệt (hưng cảm) hay không suy giảm rõ rệt (hưng cảm nhẹ)'];
-    if(pastAny) add('F31.' + (cur || '1'), 'Bài 19', manMet.concat(['Tiền sử có giai đoạn rối loạn cảm xúc']), mMiss, cur === '0' ? 'Hưng cảm nhẹ: anh đối chiếu thêm tiêu chuẩn chi tiết F30.0 của ICD-10 (BYT 2020 chỉ nêu phân mức).' : '');
-    else add('F30.' + (cur || '1'), 'Bài 18', manMet, mMiss, (cur === '0' ? 'Hưng cảm nhẹ: anh đối chiếu thêm tiêu chuẩn chi tiết F30.0 của ICD-10 (BYT 2020 chỉ nêu phân mức). ' : '') + 'Giai đoạn hưng cảm đã loại trừ thực tổn và do chất được coi là giai đoạn đầu của rối loạn lưỡng cực.');
+    // ICD-10 bản VN tr. 97: hưng cảm nhẹ kéo dài ≥ 4 ngày liên tiếp; hưng cảm cần ≥ 4 triệu chứng B nếu khí sắc chỉ dễ cáu
+    if(hypo && (wk == null || wk < 4 / 7)) mMiss.push(durTxt + ' — hưng cảm nhẹ cần ≥ 4 ngày liên tiếp');
+    const irrNote = c.manB === 3 && !hypo ? ' Nếu khí sắc chỉ dễ cáu kỉnh (không hưng phấn): ICD-10 cần ≥ 4 triệu chứng tiêu chuẩn B.' : '';
+    const curCode = pastAny ? 'F31.' + (cur || '1') : 'F30.' + (cur || '1');
+    i11x[curCode] = sx.has('man_act') ? '' : 'Bảng kiểm chưa có "Tăng hoạt động" — ICD-11 bắt buộc tăng hoạt động / năng lượng cùng với thay đổi khí sắc.';
+    const hypoNote = cur === '0' ? 'Hưng cảm nhẹ (ICD-10 bản VN tr. 97): ≥ 4 ngày liên tiếp, ≥ 3/7 dấu hiệu (tăng hoạt động, nói nhiều, khó tập trung, giảm nhu cầu ngủ, tăng tình dục, tiêu pha / liều lĩnh, tăng giao tiếp), có ảnh hưởng hoạt động hằng ngày.' : '';
+    if(pastAny) add(curCode, 'Bài 19', manMet.concat(['Tiền sử có giai đoạn rối loạn cảm xúc']), mMiss, hypoNote + irrNote);
+    else add(curCode, 'Bài 18', manMet, mMiss, hypoNote + irrNote + (cur === '0' ? ' ' : '') + 'Giai đoạn hưng cảm đã loại trừ thực tổn và do chất được coi là giai đoạn đầu của rối loạn lưỡng cực.');
   } else if(c.manA && c.manB) add('F30.1', 'Bài 18', ['Khí sắc tăng / dễ cáu bất thường'], [`Mới có ${c.manB}/9 triệu chứng tiêu chuẩn B — cần ≥ 3`], '');
   if(c.mix && !manSx){
-    if(pastMan) add('F31.6', 'Bài 19', ['Pha trộn / thay đổi nhanh triệu chứng hưng – trầm', 'Tiền sử có giai đoạn hưng cảm / hưng cảm nhẹ'], [], '');
-    else add('F31.6', 'Bài 19', ['Pha trộn / thay đổi nhanh triệu chứng hưng – trầm'], ['Cần tiền sử có giai đoạn hưng cảm hoặc hưng cảm nhẹ'], '');
+    // ICD-10 bản VN tr. 101: B — cả triệu chứng hưng và trầm nổi trội phần lớn thời gian ≥ 2 tuần; C — trước đây có ≥ 1 giai đoạn hưng cảm / hưng cảm nhẹ, trầm cảm hoặc hỗn hợp
+    const mixMiss = (wk == null || wk < 2 ? [durTxt + ' — cần ≥ 2 tuần (ICD-10 F31.6 B)'] : []).concat(pastAny ? [] : ['Cần tiền sử ≥ 1 giai đoạn rối loạn cảm xúc (hưng cảm / hưng cảm nhẹ, trầm cảm hoặc hỗn hợp)']);
+    add('F31.6', 'Bài 19; ICD-10 (bản VN) tr. 101', ['Pha trộn / thay đổi nhanh triệu chứng hưng – trầm'].concat(pastAny ? ['Tiền sử có giai đoạn rối loạn cảm xúc'] : []), mixMiss, '');
   }
   if(depLv && !manSx && !c.mix){
     if(pastMan){
@@ -1008,7 +1026,9 @@ function psyDx(p, v){
   }
   // --- Thuyên giảm ---
   if(!mood){
-    if(pastMan) add('F31.7', 'Bài 19', ['Hiện không có rối loạn cảm xúc đáng kể', 'Tiền sử có giai đoạn hưng cảm / hưng cảm nhẹ'], [], '');
+    // ICD-10 bản VN tr. 101: F31.7 B — ≥ 1 giai đoạn hưng cảm / hưng cảm nhẹ VÀ thêm ≥ 1 giai đoạn khác
+    if(pastMan) add('F31.7', 'Bài 19; ICD-10 (bản VN) tr. 101', ['Hiện không có rối loạn cảm xúc đáng kể', 'Tiền sử có giai đoạn hưng cảm / hưng cảm nhẹ'],
+      ['mania', 'hypomania', 'mixed', 'dep', 'dep2'].filter(k => hist.has(k)).length >= 2 || hist.has('dep2') ? [] : ['Cần thêm ≥ 1 giai đoạn rối loạn cảm xúc khác trong tiền sử (hưng cảm / hưng cảm nhẹ, trầm cảm, hỗn hợp)'], '');
     else if(hist.has('dep2')) add('F33.4', 'Bài 21', ['Hiện không đủ tiêu chuẩn giai đoạn trầm cảm', 'Trước đây đã đủ tiêu chuẩn trầm cảm tái diễn'], [], '');
   }
   // --- Lo âu (Bài 22, 23) ---
@@ -1202,9 +1222,33 @@ function psyDx(p, v){
     else if((tv != null && (tv < 0.4 || tv > 4)) || ['Cao', 'Thấp', 'BTh'].includes(tsh.flag)) alerts.push({lv: 2, t: 'TSH bất thường', m: 'Cần loại trừ rối loạn khí sắc / lo âu do bệnh tuyến giáp trước khi kết luận.'});
     if(manSx || c.psy) todo.push('Xét nghiệm nước tiểu tìm ma túy (loại trừ rối loạn do chất).');
   }
+  // --- Đối chiếu ICD-11 (ICD11_MAP + ghi chú tính từ bảng kiểm) ---
+  const vw2 = num(((v.vitals || {}).weight)) ?? num(p.weight), vh2 = num(((v.vitals || {}).height)) ?? num(p.height), bmi2 = bmiOf(vw2, vh2);
+  out.forEach(s => {
+    let x = i11x[s.code] || '';
+    if(!x && depLv && /^(F32\.[0-3]|F33\.[0-3]|F31\.[345])/.test(s.code)) x = i11DepTxt;
+    if(/^F43\.2/.test(s.code)) x = sx.has('adj_preocc') ? 'Có bận tâm về sự kiện (yêu cầu bắt buộc của ICD-11).' : 'Chưa đánh dấu "Bận tâm về sự kiện / hậu quả" — ICD-11 bắt buộc.';
+    if(/^F50\.[01]/.test(s.code)){
+      const lowW = (bmi2 != null && bmi2 < 18.5) || has('an_weight');
+      const ok11 = lowW && has('an_self') && has('an_body');
+      x = `${ok11 ? 'Đủ' : 'CHƯA đủ'} tiêu chuẩn ICD-11 (cân nặng thấp${bmi2 != null ? ` — BMI ${fmtN(bmi2, 1)}` : ''}, hành vi giảm cân, bận tâm cân nặng / hình thể; không cần rối loạn nội tiết)` + (ok11 && bmi2 != null ? ` → ${bmi2 < 14 ? '6B80.1 (BMI < 14)' : '6B80.0'}.` : '.');
+    }
+    if(/^F50\.[23]/.test(s.code) && has('bn_binge') && !has('bn_comp')) x = 'Không có hành vi bù trừ → ICD-11 xếp rối loạn ăn uống vô độ (6B82).';
+    if(/^F1[07]\.[12]/.test(s.code)){
+      const g = [has('sud_crave') || has('sud_control'), has('sud_neglect') || has('sud_harm'), has('sud_withdraw') || has('sud_toler')].filter(Boolean).length;
+      x = `Bảng kiểm: ${g}/3 nhóm (kiểm soát; ưu tiên sử dụng; sinh lý) → ${g >= 2 ? 'đủ' : 'chưa đủ'} tiêu chuẩn nghiện ICD-11 (cần ≥ 2).`;
+    }
+    if(/^F90/.test(s.code) && (has('adhd_inatt') !== (has('adhd_hyper') || has('adhd_imp')))) x = has('adhd_inatt') ? 'Chỉ có giảm chú ý → ICD-11 vẫn chẩn đoán được: thể giảm chú ý ưu thế (6A05.0).' : 'Chỉ có tăng động – xung động → ICD-11 vẫn chẩn đoán được: thể tăng động – xung động ưu thế (6A05.1).';
+    const m = icd11Of(s.code);
+    s.i11 = m ? (m[1] !== '—' ? m[1] + ': ' : '') + m[2] + (x ? ' ' + x : '') : x;
+  });
   out.forEach(s => { s.ok = !s.miss.length; });
   out.sort((a, b) => b.ok - a.ok);
   return {sugs: out, alerts, todo, c};
+}
+// Mục ICD11_MAP khớp tiền tố dài nhất với mã ICD-10
+function icd11Of(code){
+  return ICD11_MAP.filter(r => code.startsWith(r[0])).sort((a, b) => b[0].length - a[0].length)[0] || null;
 }
 
 // ================= MẪU =================

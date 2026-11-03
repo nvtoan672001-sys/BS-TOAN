@@ -708,7 +708,21 @@ def main():
             man = ['man_mood', 'man_talk', 'man_sleep', 'man_grand']
             assert pg.evaluate(DX, {'sx': man, 'weeks': 1, 'impair': 'marked'})['codes'] == ['F30.1']
             assert pg.evaluate(DX, {'sx': man, 'weeks': 1, 'impair': 'none'})['codes'] == ['F30.0']
-            assert pg.evaluate(DX, {'hist': ['mania']})['codes'] == ['F31.7']
+            # ICD-10 bản VN tr. 101: F31.7 cần hưng cảm + thêm ≥ 1 giai đoạn khác; F31.6 cần ≥ 2 tuần, tiền sử bất kỳ giai đoạn cảm xúc
+            assert pg.evaluate(DX, {'hist': ['mania']})['codes'] == [] and pg.evaluate(DX, {'hist': ['mania', 'dep']})['codes'] == ['F31.7']
+            assert pg.evaluate(DX, {'sx': ['mix_now'], 'weeks': 3, 'hist': ['dep']})['codes'] == ['F31.6']
+            assert pg.evaluate(DX, {'sx': ['mix_now'], 'weeks': 1, 'hist': ['dep']})['codes'] == []
+            assert pg.evaluate(DX, {'sx': man, 'weeks': 0.3, 'impair': 'none'})['codes'] == [], 'hưng cảm nhẹ cần ≥ 4 ngày'
+            I11 = "(o) => { const v = curV(); v.mental = Object.assign({sx: [], hist: [], excl: []}, o); return psyDx(curP(), v).sugs.map(s => [s.code, s.i11 || '', s.note || '']); }"
+            r = dict((x[0], x) for x in pg.evaluate(I11, {'sx': dep, 'weeks': 3}))
+            assert '6A70' in r['F32.1'][1] and '5/10' in r['F32.1'][1] and 'mức nhẹ' in r['F32.1'][2], r
+            r = dict((x[0], x) for x in pg.evaluate(I11, {'sx': ['ptsd_event', 'ptsd_reexp', 'ptsd_avoid'], 'weeks': 8}))
+            assert '6B40' in r['F43.1'][1], r
+            r = dict((x[0], x) for x in pg.evaluate(I11, {'sx': ['adhd_inatt', 'adhd_perv'], 'weeks': 30}))
+            assert '6A05.0' in r['F90.0'][1], r
+            r = dict((x[0], x) for x in pg.evaluate(I11, {'sx': ['sud_alc', 'sud_crave', 'sud_toler', 'sud_neglect'], 'weeks': 60}))
+            assert '3/3' in r['F10.2'][1] and '6C40.2' in r['F10.2'][1], r
+            assert pg.evaluate("() => ICD11_MAP.every(r => r.length === 3) && icd11Of('F43.25')[1] === '6B43' && icd11Of('F31.6')[1].startsWith('6A60')")
             assert pg.evaluate(DX, {'sx': dep + ['dep_suicide'], 'weeks': 3})['alerts'] == ['Có ý tưởng / hành vi tự sát']
             r = pg.evaluate(DX, {'sx': dep, 'weeks': 3, 'excl': ['subst']})
             assert r['codes'] == [] and 'F32.1' in r['all'], 'có yếu tố do chất thì không được "đủ tiêu chuẩn"'
