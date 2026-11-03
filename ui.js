@@ -956,7 +956,7 @@ const SEED_ADDED = ['gavis10',
   // thuốc điều trị rối loạn giấc ngủ (BYT 2020 Bài 27, LEC2) — 2026-11-02
   'zolpi10', 'melato3', 'doxep10', 'trazo50', 'hydro25', 'zale10',
   // chống trầm cảm 3 vòng (BYT 2020) — 2026-11-02
-  'amitri25f', 'imipr25'];
+  'amitri25f', 'imipr25', 'diaz5f'];
 async function addNewSeedDrugs(){
   const done = S.settings.seedAdded || [], todo = SEED_ADDED.filter(id => !done.includes(id));
   if(!todo.length) return;
@@ -970,7 +970,8 @@ const SEED_UPDATES = [{ver: 'stahl-2026-10', ids: SEED_ADDED.slice(1)},   // 44 
   {ver: 'zolpidem-2026-11-02', ids: ['zolpi10', 'zopi7n', 'zopi7f']},
   {ver: 'trazodon-2026-11-02', ids: ['trazo50']},
   {ver: 'mirtazapin-2026-11-02', ids: ['mirta30n', 'mirta30f']},
-  {ver: 'tca-2026-11-02', ids: ['amitri25']}];                          // ưu tiên khuyến cáo mới hơn Stahl 2004 (LactMed, FDA/EMA, SmPC)
+  {ver: 'tca-2026-11-02', ids: ['amitri25']},
+  {ver: 'diazepam-2026-11-02', ids: ['diaz5']}];                          // ưu tiên khuyến cáo mới hơn Stahl 2004 (LactMed, FDA/EMA, SmPC)
 const SEED_CLIN = ['tags', 'how', 'ae', 'warn', 'pro', 'con', 'renal', 'hep', 'old', 'preg', 'lact', 'cond'];
 async function updateSeedDrugs(){
   const done = S.settings.seedUpdated || [], todo = SEED_UPDATES.filter(u => !done.includes(u.ver));
