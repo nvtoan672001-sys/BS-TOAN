@@ -1177,7 +1177,54 @@ function psyDx(p, v){
     if(['asd_social', 'asd_comm', 'asd_rrb'].some(has)) miss.push('Có biểu hiện tự kỷ → ICD-10 không chẩn đoán tăng động khi có rối loạn phát triển lan toả (F84)');
     add(has('cd_pattern') && cdSerious.length ? 'F90.1' : 'F90.0', 'BYT 2020 Bài 30; ICD-10 F90', ['adhd_inatt', 'adhd_hyper', 'adhd_imp', 'adhd_7y', 'adhd_perv', 'adhd_impair'].filter(has).map(k => lab('kid', k)), miss, 'Trắc nghiệm hỗ trợ: Vanderbilt. Loại trừ hưng cảm, trầm cảm, lo âu.');
   }
-  if(['asd_social', 'asd_comm', 'asd_rrb'].some(has)) add(['asd_before3', 'asd_social', 'asd_comm', 'asd_rrb'].every(has) ? 'F84.0' : 'F84.1', 'BYT 2020 Bài 29; ICD-10 F84.0', ['asd_before3', 'asd_social', 'asd_comm', 'asd_rrb'].filter(has).map(k => lab('kid', k)), [], ['asd_before3', 'asd_social', 'asd_comm', 'asd_rrb'].every(has) ? 'Trắc nghiệm hỗ trợ: M-CHAT-R, CARS, ADOS.' : 'Chưa đủ cả 4 nhóm (khởi phát < 3 tuổi, xã hội, giao tiếp, hành vi định hình) → tự kỷ không điển hình (F84.1). Trắc nghiệm hỗ trợ: M-CHAT-R, CARS.');
+  // Rett (F84.2), phân rã khác (F84.3), Asperger (F84.5) — ICD-10 bản VN tr. 170–173
+  if(has('rett')) add('F84.2', 'ICD-10 (bản VN) tr. 170–171', [lab('kid', 'rett')], p.sex === 'Nam' ? ['Hội chứng Rett gần như chỉ gặp ở trẻ gái — xem lại chẩn đoán'] : [], 'Thường khởi phát 7–24 tháng tuổi. Làm xét nghiệm gen MECP2 nếu có điều kiện.');
+  if(has('cdd')) add('F84.3', 'ICD-10 (bản VN) tr. 171', [lab('kid', 'cdd')].concat(['asd_social', 'asd_comm', 'asd_rrb'].filter(has).map(k => lab('kid', k))), ['asd_social', 'asd_comm', 'asd_rrb'].filter(has).length >= 2 ? [] : ['Cần bất thường ở ≥ 2 lĩnh vực: tương tác xã hội, giao tiếp, hành vi thu hẹp – định hình'], '');
+  const asdN = ['asd_social', 'asd_comm', 'asd_rrb'].filter(has);
+  if(asdN.length && !has('rett') && !has('cdd')){
+    if(has('asd_nodelay') && has('asd_social') && has('asd_rrb')) add('F84.5', 'ICD-10 (bản VN) tr. 173', [lab('kid', 'asd_nodelay'), lab('kid', 'asd_social'), lab('kid', 'asd_rrb')], has('asd_comm') ? ['Đã đánh dấu bất thường giao tiếp (có thể có chậm nói) — Asperger không chậm ngôn ngữ; nếu có chậm nói → tự kỷ (F84.0)'] : [], 'Trắc nghiệm hỗ trợ: CARS, ADOS.');
+    else add(['asd_before3', 'asd_social', 'asd_comm', 'asd_rrb'].every(has) ? 'F84.0' : 'F84.1', 'BYT 2020 Bài 29; ICD-10 F84.0', ['asd_before3', 'asd_social', 'asd_comm', 'asd_rrb'].filter(has).map(k => lab('kid', k)), [], ['asd_before3', 'asd_social', 'asd_comm', 'asd_rrb'].every(has) ? 'ICD-10: ≥ 6 triệu chứng, trong đó ≥ 2 về tương tác xã hội, ≥ 1 về giao tiếp, ≥ 1 về hành vi định hình. Trắc nghiệm hỗ trợ: M-CHAT-R, CARS, ADOS.' : 'Chưa đủ cả 4 nhóm (khởi phát < 3 tuổi, xã hội, giao tiếp, hành vi định hình) → tự kỷ không điển hình (F84.1). Trắc nghiệm hỗ trợ: M-CHAT-R, CARS.');
+  }
+  // Rối loạn phát triển đặc hiệu lời nói / học tập / vận động (F80–F83) — ICD-10 bản VN tr. 162–167
+  const devSp = has('dev_lk') ? 'F80.3' : has('dev_recep') ? 'F80.2' : has('dev_expr') ? 'F80.1' : has('dev_artic') ? 'F80.0' : '';
+  const devSc = has('dev_math') && (has('dev_read') || has('dev_spell')) ? 'F81.3' : has('dev_read') ? 'F81.0' : has('dev_spell') ? 'F81.1' : has('dev_math') ? 'F81.2' : '';
+  const devMo = has('dev_motor') ? 'F82' : '', iqV = orderNum(v, 'wechsler');
+  if(devSp || devSc || devMo){
+    const devMiss = k => {
+      const r = need('dev', k === 'F80.3' ? [] : ['dev_iq', 'dev_excl'].concat(/^F8[12]/.test(k) ? ['dev_impair'] : []));
+      if(iqV != null && iqV < 70) r.push(`IQ (Wechsler) = ${fmtN(iqV)} < 70 → xem chậm phát triển tâm thần (F70–F79)`);
+      if(['asd_social', 'asd_comm', 'asd_rrb'].some(has)) r.push('Có biểu hiện tự kỷ — loại trừ rối loạn phát triển lan toả (F84)');
+      return r;
+    };
+    const devKeys = {'F80.0': ['dev_artic'], 'F80.1': ['dev_expr'], 'F80.2': ['dev_recep'], 'F80.3': ['dev_lk'], 'F81.0': ['dev_read'], 'F81.1': ['dev_spell'], 'F81.2': ['dev_math'], 'F81.3': ['dev_math', 'dev_read', 'dev_spell'], 'F82': ['dev_motor']};
+    const devNote = {'F80.2': 'Thường kèm rối loạn ngôn ngữ biểu hiện (rối loạn hỗn hợp tiếp nhận – biểu hiện).', 'F80.3': 'Cần điện não đồ; theo dõi động kinh. Phân biệt mất ngôn ngữ do tổn thương não, tự kỷ.', 'F81.3': 'Rối loạn cả tính toán và đọc / chính tả.', 'F82': 'Phân biệt bại não, bệnh thần kinh cơ.'};
+    [devSp, devSc, devMo].filter(Boolean).forEach(k => add(k, 'ICD-10 (bản VN) tr. 162–167', devKeys[k].filter(has).map(x => lab('dev', x)).concat(['dev_iq', 'dev_impair', 'dev_excl'].filter(has).map(x => lab('dev', x))), devMiss(k), (devNote[k] ? devNote[k] + ' ' : '') + 'Cần trắc nghiệm chuẩn hoá (ngôn ngữ, học tập, vận động) và IQ; khám thính lực, thị lực.'));
+    if([devSp, devSc, devMo].filter(Boolean).length >= 2) add('F83', 'ICD-10 (bản VN) tr. 167', ['Đáp ứng ≥ 2 nhóm rối loạn phát triển đặc hiệu (lời nói F80, học tập F81, vận động F82)'], devMiss('F83'), 'Chỉ dùng khi các rối loạn chồng lấp nhiều, không nhóm nào nổi trội.');
+  }
+  // Rối loạn cảm xúc khởi phát ở trẻ em (F93) và hoạt động xã hội (F94) — ICD-10 bản VN tr. 182–187
+  const kemoEx = need('kemo', ['emo_excl']);
+  if(has('sep_anx')) add('F93.0', 'ICD-10 (bản VN) tr. 182–183', [lab('kemo', 'sep_anx')].concat(['sep_6y', 'emo_4wk', 'emo_excl'].filter(has).map(k => lab('kemo', k))), need('kemo', ['sep_6y', 'emo_4wk']).concat(kemoEx, has('ch_gad') ? ['Có lo âu lan toả ở trẻ (F93.80) — F93.0 cần KHÔNG đủ tiêu chuẩn lo âu lan toả'] : []), 'Khởi phát sau 6 tuổi hoặc ở người lớn → xem rối loạn lo âu khác (F41).');
+  if(has('ch_phob')) add('F93.1', 'ICD-10 (bản VN) tr. 183', [lab('kemo', 'ch_phob')].concat(['emo_4wk', 'emo_excl'].filter(has).map(k => lab('kemo', k))), need('kemo', ['emo_4wk']).concat(kemoEx), 'Sợ không đặc thù theo giai đoạn phát triển (vd. sợ khoảng trống) → ám ảnh sợ F40.');
+  if(has('ch_social')) add('F93.2', 'ICD-10 (bản VN) tr. 184', [lab('kemo', 'ch_social')].concat(['emo_4wk', 'emo_excl'].filter(has).map(k => lab('kemo', k))), need('kemo', ['emo_4wk']).concat(kemoEx), 'Khởi phát muộn (vị thành niên) → ám ảnh sợ xã hội F40.1.');
+  if(has('sib_riv')) add('F93.3', 'ICD-10 (bản VN) tr. 184–185', [lab('kemo', 'sib_riv')].concat(has('emo_4wk') ? [lab('kemo', 'emo_4wk')] : []), need('kemo', ['emo_4wk']), '');
+  if(has('ch_gad')) add('F93.8', 'ICD-10 (bản VN) tr. 185–186 (F93.80)', [lab('kemo', 'ch_gad')].concat(has('emo_excl') ? [lab('kemo', 'emo_excl')] : []), kemoEx, 'Mã chi tiết F93.80 — rối loạn lo âu lan toả ở trẻ em. Loại trừ cường giáp, do thuốc / chất.');
+  if(has('mut_sel')) add('F94.0', 'ICD-10 (bản VN) tr. 186', [lab('kemo', 'mut_sel')], ['asd_social', 'asd_comm', 'asd_rrb'].some(has) ? ['Có biểu hiện tự kỷ — không chẩn đoán F94.0 khi có rối loạn lan toả sự phát triển (F84)'] : [], 'Loại trừ thiếu kiến thức ngôn ngữ nói ở môi trường đó (vd. trẻ mới chuyển vùng / ngôn ngữ).');
+  if(has('rad')) add('F94.1', 'ICD-10 (bản VN) tr. 186–187', [lab('kemo', 'rad')], ['asd_social', 'asd_comm', 'asd_rrb'].some(has) ? ['Có biểu hiện tự kỷ — loại trừ rối loạn lan toả sự phát triển (F84)'] : [], 'Thường liên quan bỏ bê, ngược đãi hoặc thay đổi người chăm sóc nhiều lần — đánh giá bảo vệ trẻ.');
+  if(has('dis_att')) add('F94.2', 'ICD-10 (bản VN) tr. 187', [lab('kemo', 'dis_att')], [], 'Thường gặp ở trẻ nuôi trong cơ sở tập trung, thay đổi người chăm sóc nhiều lần. Phân biệt tăng động (F90).');
+  // Tic (F95) — ICD-10 bản VN tr. 187–188
+  if(has('tic_motor') || has('tic_vocal')){
+    const both = has('tic_motor') && has('tic_vocal'), chronic = has('tic_12m');
+    const code = chronic ? (both ? 'F95.2' : 'F95.1') : 'F95.0';
+    add(code, 'ICD-10 (bản VN) tr. 187–188', ['tic_motor', 'tic_vocal', 'tic_daily', 'tic_12m', 'tic_18', 'tic_excl'].filter(has).map(k => lab('tic', k)), need('tic', ['tic_daily', 'tic_18', 'tic_excl']),
+      code === 'F95.0' ? 'Tic nhất thời: kéo dài ≥ 4 tuần và ≤ 12 tháng. Có cả tic vận động và lời nói kéo dài > 1 năm → Tourette (F95.2).' : code === 'F95.1' ? 'Tic mạn tính chỉ một loại (vận động HOẶC lời nói), > 12 tháng.' : 'Tourette: nhiều loại tic vận động và ≥ 1 tic lời nói (không cần đồng thời). Hay kèm tăng động giảm chú ý, ám ảnh nghi thức.');
+  }
+  // Ăn uống ở trẻ, ăn bậy, động tác định hình, nói lắp, nói lúng búng (F98.2–F98.6) — BYT 2020 Bài 33–34; ICD-10 bản VN tr. 190–191
+  const k2Ex = need('kid2', ['f98_excl']);
+  if(has('feed_child')) add('F98.2', 'ICD-10 (bản VN) tr. 190', [lab('kid2', 'feed_child')], k2Ex.concat(age != null && age >= 6 ? [`Hiện ${age} tuổi — tiêu chuẩn cần khởi phát trước 6 tuổi`] : []), 'Loại trừ bệnh thực thể, chán ăn tâm thần (F50).');
+  if(has('pica')) add('F98.3', 'ICD-10 (bản VN) tr. 190', [lab('kid2', 'pica')], k2Ex.concat(age != null && age < 2 ? [`Hiện ${age} tuổi — cần ≥ 2 tuổi`] : []), 'Xét nghiệm thiếu sắt (ferritin), chì máu, giun sán.');
+  if(has('stereo')) add('F98.4', 'BYT 2020 Bài 33; ICD-10 (bản VN) tr. 190–191', [lab('kid2', 'stereo')].concat(has('stereo_self') ? [lab('kid2', 'stereo_self')] : []), k2Ex, (has('stereo_self') ? 'Mã chi tiết F98.41 — có tự làm tổn thương. ' : 'Mã chi tiết F98.40 — không tự làm tổn thương. ') + 'Hay gặp ở trẻ chậm phát triển tâm thần, tự kỷ.');
+  if(has('stutter')) add('F98.5', 'BYT 2020 Bài 34; ICD-10 (bản VN) tr. 191', [lab('kid2', 'stutter')], [], 'Thường khởi phát 18 tháng – 9 tuổi. Loại trừ tic, rối loạn thần kinh.');
+  if(has('clutter')) add('F98.6', 'ICD-10 (bản VN) tr. 191', [lab('kid2', 'clutter')], [], 'Phân biệt nói lắp (F98.5: có lặp lại, ngập ngừng).');
   const iq = orderNum(v, 'wechsler');
   if(iq != null && iq < 70){
     const code = iq >= 50 ? 'F70' : iq >= 35 ? 'F71' : iq >= 20 ? 'F72' : 'F73';

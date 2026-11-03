@@ -36,3 +36,7 @@ Mục lục BYT 2020: Bài 1–3 sa sút trí tuệ · 4 sảng · 5–6 do tổ
 ## ICD-11 (2026-11-03)
 
 `Tâm thần/ICD-11.pdf` — WHO 2024, *Clinical descriptions and diagnostic requirements for ICD-11 mental, behavioural and neurodevelopmental disorders* (852 trang, có lớp chữ, trích bằng pypdf). Dùng mục "Essential (required) features" cho `ICD11_MAP` (data.js) và các ghi chú ICD-11 trong `psyDx`. `Tâm thần/ICD-10.pdf` — bản tiếng Anh ICD-10 *Diagnostic criteria for research* (WHO, bản scan nén CCITT, đọc bằng ảnh trang); nội dung trùng `ICD-10-nghiên-cứu-VN.pdf` nên app trích dẫn theo bản tiếng Việt.
+
+## Trẻ em – vị thành niên (2026-11-03)
+
+LEC7 (`Tâm thần/LEC7…`) chỉ nêu đại cương và ghi chẩn đoán theo ICD-10 / DSM-5, không có tiêu chuẩn từng bệnh. Tiêu chuẩn lấy từ `ICD-10-nghiên-cứu-VN.pdf` tr. 162–191 (F80–F98) và BYT 2020 Bài 28–34; mã ICD-11 từ `ICD-11.pdf`.

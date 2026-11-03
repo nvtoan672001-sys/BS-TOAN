@@ -723,6 +723,25 @@ def main():
             r = dict((x[0], x) for x in pg.evaluate(I11, {'sx': ['sud_alc', 'sud_crave', 'sud_toler', 'sud_neglect'], 'weeks': 60}))
             assert '3/3' in r['F10.2'][1] and '6C40.2' in r['F10.2'][1], r
             assert pg.evaluate("() => ICD11_MAP.every(r => r.length === 3) && icd11Of('F43.25')[1] === '6B43' && icd11Of('F31.6')[1].startsWith('6A60')")
+            # Trẻ em – vị thành niên (ICD-10 bản VN tr. 162–191)
+            assert pg.evaluate("() => ['F82','F83','F84.2','F84.3','F93.3','F93.8','F94.1','F94.2','F98.6'].every(c => ICD.some(r => r[0] === c))"), 'thiếu mã ICD trẻ em'
+            dv = ['dev_read', 'dev_math', 'dev_motor', 'dev_iq', 'dev_impair', 'dev_excl']
+            r = pg.evaluate(DX, {'sx': dv})
+            assert set(r['codes']) == {'F81.3', 'F82', 'F83'}, r
+            assert pg.evaluate(DX, {'sx': ['dev_expr', 'dev_iq', 'dev_excl']})['codes'] == ['F80.1']
+            assert pg.evaluate(DX, {'sx': ['sep_anx', 'sep_6y', 'emo_4wk', 'emo_excl']})['codes'] == ['F93.0']
+            assert pg.evaluate(DX, {'sx': ['sep_anx', 'emo_4wk', 'emo_excl']})['codes'] == [], 'lo âu chia ly cần khởi phát < 6 tuổi'
+            assert pg.evaluate(DX, {'sx': ['mut_sel']})['codes'] == ['F94.0']
+            assert pg.evaluate(DX, {'sx': ['mut_sel', 'asd_social']})['codes'] == [] or 'F94.0' not in pg.evaluate(DX, {'sx': ['mut_sel', 'asd_social']})['codes']
+            tic = ['tic_daily', 'tic_18', 'tic_excl']
+            assert pg.evaluate(DX, {'sx': ['tic_motor'] + tic})['codes'] == ['F95.0']
+            assert pg.evaluate(DX, {'sx': ['tic_motor', 'tic_12m'] + tic})['codes'] == ['F95.1']
+            assert pg.evaluate(DX, {'sx': ['tic_motor', 'tic_vocal', 'tic_12m'] + tic})['codes'] == ['F95.2']
+            assert pg.evaluate(DX, {'sx': ['asd_social', 'asd_rrb', 'asd_nodelay']})['codes'] == ['F84.5']
+            assert pg.evaluate(DX, {'sx': ['stereo', 'stereo_self', 'f98_excl']})['codes'] == ['F98.4']
+            assert pg.evaluate(DX, {'sx': ['stutter']})['codes'] == ['F98.5']
+            r = dict((x[0], x) for x in pg.evaluate(I11, {'sx': ['tic_motor', 'tic_vocal', 'tic_12m'] + tic}))
+            assert '8A05.00' in r['F95.2'][1], r
             assert pg.evaluate(DX, {'sx': dep + ['dep_suicide'], 'weeks': 3})['alerts'] == ['Có ý tưởng / hành vi tự sát']
             r = pg.evaluate(DX, {'sx': dep, 'weeks': 3, 'excl': ['subst']})
             assert r['codes'] == [] and 'F32.1' in r['all'], 'có yếu tố do chất thì không được "đủ tiêu chuẩn"'
