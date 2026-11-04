@@ -1171,19 +1171,37 @@ function psyDx(p, v){
     if(depLv) miss.push('Có triệu chứng trầm cảm đủ tiêu chuẩn → rối loạn hành vi trầm cảm (F92.0)');
     add(code, 'ICD-10 F91; LEC11', [lab('cond', 'cd_pattern')].concat(cdSerious.map(k => lab('cond', k))), miss, (age != null && age < 10 ? 'Loại khởi phát ở trẻ em (trước 10 tuổi). ' : '') + 'Loại trừ tâm thần phân liệt, hưng cảm, rối loạn phát triển lan toả, tăng động (có cả tăng động → F90.1).');
   } else if(has('cd_odd')) add('F91.3', 'ICD-10 F91.3; LEC11', [lab('cond', 'cd_odd')], has('cd_pattern') ? [] : ['Cần kéo dài ≥ 6 tháng'], 'Không có hành vi gây hấn / vi phạm nghiêm trọng (nếu có → F91.0–F91.2). Thường gặp kèm ADHD.');
+  // Tự kỷ: đếm triệu chứng tiêu chuẩn B của F84.0 (ICD-10 bản VN tr. 167–168; BYT 2020 Bài 29) theo 3 nhóm.
+  // Khoá cũ asd_social / asd_comm / asd_rrb (hồ sơ trước 2026-11-04) tính là 1 triệu chứng của nhóm đó.
+  const asdCnt = (ks, oldK) => ks.filter(has).length || (has(oldK) ? 1 : 0);
+  const ASD_S = ['asd_s1', 'asd_s2', 'asd_s3', 'asd_s4'], ASD_C = ['asd_c1', 'asd_c2', 'asd_c3', 'asd_c4'], ASD_R = ['asd_r1', 'asd_r2', 'asd_r3', 'asd_r4'];
+  const nS = asdCnt(ASD_S, 'asd_social'), nC = asdCnt(ASD_C, 'asd_comm'), nR = asdCnt(ASD_R, 'asd_rrb'), asdAny = nS + nC + nR > 0;
   // Trẻ em: ADHD (G1–G6), tự kỷ, chậm phát triển tâm thần (IQ), đái dầm, ỉa bậy
   if(['adhd_inatt', 'adhd_hyper', 'adhd_imp'].some(has)){
     const miss = need('kid', ['adhd_inatt', 'adhd_hyper', 'adhd_imp', 'adhd_7y', 'adhd_perv', 'adhd_impair']);
-    if(['asd_social', 'asd_comm', 'asd_rrb'].some(has)) miss.push('Có biểu hiện tự kỷ → ICD-10 không chẩn đoán tăng động khi có rối loạn phát triển lan toả (F84)');
+    if(asdAny) miss.push('Có biểu hiện tự kỷ → ICD-10 không chẩn đoán tăng động khi có rối loạn phát triển lan toả (F84)');
     add(has('cd_pattern') && cdSerious.length ? 'F90.1' : 'F90.0', 'BYT 2020 Bài 30; ICD-10 F90', ['adhd_inatt', 'adhd_hyper', 'adhd_imp', 'adhd_7y', 'adhd_perv', 'adhd_impair'].filter(has).map(k => lab('kid', k)), miss, 'Trắc nghiệm hỗ trợ: Vanderbilt. Loại trừ hưng cảm, trầm cảm, lo âu.');
   }
   // Rett (F84.2), phân rã khác (F84.3), Asperger (F84.5) — ICD-10 bản VN tr. 170–173
-  if(has('rett')) add('F84.2', 'ICD-10 (bản VN) tr. 170–171', [lab('kid', 'rett')], p.sex === 'Nam' ? ['Hội chứng Rett gần như chỉ gặp ở trẻ gái — xem lại chẩn đoán'] : [], 'Thường khởi phát 7–24 tháng tuổi. Làm xét nghiệm gen MECP2 nếu có điều kiện.');
-  if(has('cdd')) add('F84.3', 'ICD-10 (bản VN) tr. 171', [lab('kid', 'cdd')].concat(['asd_social', 'asd_comm', 'asd_rrb'].filter(has).map(k => lab('kid', k))), ['asd_social', 'asd_comm', 'asd_rrb'].filter(has).length >= 2 ? [] : ['Cần bất thường ở ≥ 2 lĩnh vực: tương tác xã hội, giao tiếp, hành vi thu hẹp – định hình'], '');
-  const asdN = ['asd_social', 'asd_comm', 'asd_rrb'].filter(has);
-  if(asdN.length && !has('rett') && !has('cdd')){
-    if(has('asd_nodelay') && has('asd_social') && has('asd_rrb')) add('F84.5', 'ICD-10 (bản VN) tr. 173', [lab('kid', 'asd_nodelay'), lab('kid', 'asd_social'), lab('kid', 'asd_rrb')], has('asd_comm') ? ['Đã đánh dấu bất thường giao tiếp (có thể có chậm nói) — Asperger không chậm ngôn ngữ; nếu có chậm nói → tự kỷ (F84.0)'] : [], 'Trắc nghiệm hỗ trợ: CARS, ADOS.');
-    else add(['asd_before3', 'asd_social', 'asd_comm', 'asd_rrb'].every(has) ? 'F84.0' : 'F84.1', 'BYT 2020 Bài 29; ICD-10 F84.0', ['asd_before3', 'asd_social', 'asd_comm', 'asd_rrb'].filter(has).map(k => lab('kid', k)), [], ['asd_before3', 'asd_social', 'asd_comm', 'asd_rrb'].every(has) ? 'ICD-10: ≥ 6 triệu chứng, trong đó ≥ 2 về tương tác xã hội, ≥ 1 về giao tiếp, ≥ 1 về hành vi định hình. Trắc nghiệm hỗ trợ: M-CHAT-R, CARS, ADOS.' : 'Chưa đủ cả 4 nhóm (khởi phát < 3 tuổi, xã hội, giao tiếp, hành vi định hình) → tự kỷ không điển hình (F84.1). Trắc nghiệm hỗ trợ: M-CHAT-R, CARS.');
+  if(has('rett')) add('F84.2', 'ICD-10 (bản VN) tr. 170–171', [lab('asd', 'rett')], p.sex === 'Nam' ? ['Hội chứng Rett gần như chỉ gặp ở trẻ gái — xem lại chẩn đoán'] : [], 'Thường khởi phát 7–24 tháng tuổi. Làm xét nghiệm gen MECP2 nếu có điều kiện.');
+  if(has('cdd')) add('F84.3', 'ICD-10 (bản VN) tr. 171', [lab('asd', 'cdd')].concat(ASD_S.concat(ASD_C, ASD_R).filter(has).map(k => lab('asd', k))), [nS, nC, nR].filter(n => n > 0).length >= 2 ? [] : ['Cần bất thường ở ≥ 2 lĩnh vực: tương tác xã hội, giao tiếp, hành vi thu hẹp – định hình'], '');
+  if(asdAny && !has('rett') && !has('cdd')){
+    // Tiêu chuẩn B của F84.0: tổng ≥ 6, trong đó xã hội ≥ 2, giao tiếp ≥ 1, hành vi ≥ 1
+    const asdTot = nS + nC + nR, asdB = asdTot >= 6 && nS >= 2 && nC >= 1 && nR >= 1, asdA = has('asd_before3');
+    const asdMet = ['asd_before3'].concat(ASD_S, ASD_C, ASD_R).filter(has).map(k => lab('asd', k))
+      .concat([`Tổng ${asdTot} triệu chứng: xã hội ${nS}/4, giao tiếp ${nC}/4, hành vi ${nR}/4`]);
+    const mc = orderNum(v, 'mchat'), cars = orderNum(v, 'cars');
+    const testTxt = [mc != null ? `M-CHAT-R = ${fmtN(mc)} (${mc >= 8 ? 'nguy cơ cao' : mc >= 3 ? 'nguy cơ trung bình — làm phỏng vấn tiếp' : 'nguy cơ thấp'})` : '', cars != null ? `CARS = ${fmtN(cars)} (${cars >= 37 ? 'tự kỷ nặng' : cars >= 30 ? 'tự kỷ nhẹ – vừa' : 'không tự kỷ'})` : ''].filter(Boolean);
+    const testNote = (testTxt.length ? 'Trắc nghiệm: ' + testTxt.join('; ') + '. ' : 'Trắc nghiệm hỗ trợ: M-CHAT-R (16–30 tháng), CARS, ADOS. ') + 'Khám thính lực; đánh giá IQ (chậm phát triển tâm thần thường đi kèm).';
+    const exM = need('asd', ['asd_excl']);
+    if(has('asd_nodelay') && nS >= 2 && nR >= 1) add('F84.5', 'ICD-10 (bản VN) tr. 173', [lab('asd', 'asd_nodelay')].concat(asdMet), exM.concat(has('asd_c1') ? ['Đã đánh dấu chậm / không có ngôn ngữ nói — Asperger không chậm ngôn ngữ; nếu đúng có chậm nói → tự kỷ (F84.0)'] : []), testNote);
+    else if(asdA && asdB) add('F84.0', 'BYT 2020 Bài 29; ICD-10 (bản VN) tr. 167–169', asdMet, exM, testNote);
+    else {
+      const bMiss = asdB ? '' : `Chưa đủ tiêu chuẩn B của tự kỷ điển hình: tổng ${asdTot}/6, xã hội ${nS}/2, giao tiếp ${nC}/1, hành vi ${nR}/1`;
+      const sub = !asdA && asdB ? 'F84.10 — không điển hình về tuổi khởi phát (biểu hiện rõ từ 3 tuổi trở đi)' : asdA && !asdB ? 'F84.11 — không điển hình về triệu chứng' : 'F84.12 — không điển hình cả tuổi khởi phát và triệu chứng';
+      add('F84.1', 'BYT 2020 Bài 29; ICD-10 (bản VN) tr. 169–170', asdMet, exM, `Mã chi tiết ${sub}. ${bMiss ? bMiss + ' (nếu bổ sung đủ → F84.0). ' : ''}${!asdA ? 'Chưa đánh dấu phát triển bất thường trước 3 tuổi. ' : ''}` + testNote);
+    }
+    i11x['F84.0'] = i11x['F84.1'] = i11x['F84.5'] = `Bảng kiểm: ${nS + nC >= 1 && nR >= 1 ? 'đủ' : 'CHƯA đủ'} 2 nhóm bắt buộc của ICD-11 (khiếm khuyết giao tiếp – tương tác xã hội VÀ hành vi, sở thích thu hẹp, lặp lại).`;
   }
   // Rối loạn phát triển đặc hiệu lời nói / học tập / vận động (F80–F83) — ICD-10 bản VN tr. 162–167
   const devSp = has('dev_lk') ? 'F80.3' : has('dev_recep') ? 'F80.2' : has('dev_expr') ? 'F80.1' : has('dev_artic') ? 'F80.0' : '';
@@ -1193,7 +1211,7 @@ function psyDx(p, v){
     const devMiss = k => {
       const r = need('dev', k === 'F80.3' ? [] : ['dev_iq', 'dev_excl'].concat(/^F8[12]/.test(k) ? ['dev_impair'] : []));
       if(iqV != null && iqV < 70) r.push(`IQ (Wechsler) = ${fmtN(iqV)} < 70 → xem chậm phát triển tâm thần (F70–F79)`);
-      if(['asd_social', 'asd_comm', 'asd_rrb'].some(has)) r.push('Có biểu hiện tự kỷ — loại trừ rối loạn phát triển lan toả (F84)');
+      if(asdAny) r.push('Có biểu hiện tự kỷ — loại trừ rối loạn phát triển lan toả (F84)');
       return r;
     };
     const devKeys = {'F80.0': ['dev_artic'], 'F80.1': ['dev_expr'], 'F80.2': ['dev_recep'], 'F80.3': ['dev_lk'], 'F81.0': ['dev_read'], 'F81.1': ['dev_spell'], 'F81.2': ['dev_math'], 'F81.3': ['dev_math', 'dev_read', 'dev_spell'], 'F82': ['dev_motor']};
@@ -1208,8 +1226,8 @@ function psyDx(p, v){
   if(has('ch_social')) add('F93.2', 'ICD-10 (bản VN) tr. 184', [lab('kemo', 'ch_social')].concat(['emo_4wk', 'emo_excl'].filter(has).map(k => lab('kemo', k))), need('kemo', ['emo_4wk']).concat(kemoEx), 'Khởi phát muộn (vị thành niên) → ám ảnh sợ xã hội F40.1.');
   if(has('sib_riv')) add('F93.3', 'ICD-10 (bản VN) tr. 184–185', [lab('kemo', 'sib_riv')].concat(has('emo_4wk') ? [lab('kemo', 'emo_4wk')] : []), need('kemo', ['emo_4wk']), '');
   if(has('ch_gad')) add('F93.8', 'ICD-10 (bản VN) tr. 185–186 (F93.80)', [lab('kemo', 'ch_gad')].concat(has('emo_excl') ? [lab('kemo', 'emo_excl')] : []), kemoEx, 'Mã chi tiết F93.80 — rối loạn lo âu lan toả ở trẻ em. Loại trừ cường giáp, do thuốc / chất.');
-  if(has('mut_sel')) add('F94.0', 'ICD-10 (bản VN) tr. 186', [lab('kemo', 'mut_sel')], ['asd_social', 'asd_comm', 'asd_rrb'].some(has) ? ['Có biểu hiện tự kỷ — không chẩn đoán F94.0 khi có rối loạn lan toả sự phát triển (F84)'] : [], 'Loại trừ thiếu kiến thức ngôn ngữ nói ở môi trường đó (vd. trẻ mới chuyển vùng / ngôn ngữ).');
-  if(has('rad')) add('F94.1', 'ICD-10 (bản VN) tr. 186–187', [lab('kemo', 'rad')], ['asd_social', 'asd_comm', 'asd_rrb'].some(has) ? ['Có biểu hiện tự kỷ — loại trừ rối loạn lan toả sự phát triển (F84)'] : [], 'Thường liên quan bỏ bê, ngược đãi hoặc thay đổi người chăm sóc nhiều lần — đánh giá bảo vệ trẻ.');
+  if(has('mut_sel')) add('F94.0', 'ICD-10 (bản VN) tr. 186', [lab('kemo', 'mut_sel')], asdAny ? ['Có biểu hiện tự kỷ — không chẩn đoán F94.0 khi có rối loạn lan toả sự phát triển (F84)'] : [], 'Loại trừ thiếu kiến thức ngôn ngữ nói ở môi trường đó (vd. trẻ mới chuyển vùng / ngôn ngữ).');
+  if(has('rad')) add('F94.1', 'ICD-10 (bản VN) tr. 186–187', [lab('kemo', 'rad')], asdAny ? ['Có biểu hiện tự kỷ — loại trừ rối loạn lan toả sự phát triển (F84)'] : [], 'Thường liên quan bỏ bê, ngược đãi hoặc thay đổi người chăm sóc nhiều lần — đánh giá bảo vệ trẻ.');
   if(has('dis_att')) add('F94.2', 'ICD-10 (bản VN) tr. 187', [lab('kemo', 'dis_att')], [], 'Thường gặp ở trẻ nuôi trong cơ sở tập trung, thay đổi người chăm sóc nhiều lần. Phân biệt tăng động (F90).');
   // Tic (F95) — ICD-10 bản VN tr. 187–188
   if(has('tic_motor') || has('tic_vocal')){

@@ -737,7 +737,7 @@ def main():
             assert pg.evaluate(DX, {'sx': ['tic_motor'] + tic})['codes'] == ['F95.0']
             assert pg.evaluate(DX, {'sx': ['tic_motor', 'tic_12m'] + tic})['codes'] == ['F95.1']
             assert pg.evaluate(DX, {'sx': ['tic_motor', 'tic_vocal', 'tic_12m'] + tic})['codes'] == ['F95.2']
-            assert pg.evaluate(DX, {'sx': ['asd_social', 'asd_rrb', 'asd_nodelay']})['codes'] == ['F84.5']
+            assert pg.evaluate(DX, {'sx': ['asd_s1', 'asd_s3', 'asd_r1', 'asd_nodelay', 'asd_excl']})['codes'] == ['F84.5']
             assert pg.evaluate(DX, {'sx': ['stereo', 'stereo_self', 'f98_excl']})['codes'] == ['F98.4']
             assert pg.evaluate(DX, {'sx': ['stutter']})['codes'] == ['F98.5']
             r = dict((x[0], x) for x in pg.evaluate(I11, {'sx': ['tic_motor', 'tic_vocal', 'tic_12m'] + tic}))
@@ -791,7 +791,17 @@ def main():
             assert ['F44', True] in pg.evaluate(SG, {'sx': ['dis_sx', 'dis_noorg', 'dis_time'], 'weeks': 2})
             assert ['F45.0', True] in pg.evaluate(SG, {'sx': ['som_2y', 'som_visits', 'som_refuse', 'som_6sx'], 'weeks': 110})
             assert ['F90.0', True] in pg.evaluate(SG, {'sx': ['adhd_inatt', 'adhd_hyper', 'adhd_imp', 'adhd_7y', 'adhd_perv', 'adhd_impair'], 'weeks': 30})
-            assert ['F84.1', True] in pg.evaluate(SG, {'sx': ['asd_social', 'asd_comm'], 'weeks': 30})
+            # khoá cũ asd_social / asd_comm vẫn được tính (hồ sơ trước 2026-11-04)
+            assert ['F84.1', True] in pg.evaluate(SG, {'sx': ['asd_social', 'asd_comm', 'asd_excl'], 'weeks': 30})
+            # Tự kỷ F84.0 (ICD-10 bản VN tr. 167–168): A trước 3 tuổi + B ≥ 6 triệu chứng (xã hội ≥ 2, giao tiếp ≥ 1, hành vi ≥ 1) + C loại trừ
+            a6 = ['asd_before3', 'asd_s1', 'asd_s2', 'asd_s4', 'asd_c1', 'asd_c3', 'asd_r2', 'asd_excl']
+            assert ['F84.0', True] in pg.evaluate(SG, {'sx': a6})
+            r = pg.evaluate(I11, {'sx': ['asd_before3', 'asd_s1', 'asd_c1', 'asd_c3', 'asd_r2', 'asd_r3', 'asd_excl']})
+            f841 = [x for x in r if x[0] == 'F84.1']
+            assert f841 and 'F84.11' in f841[0][2] and 'xã hội 1/2' in f841[0][2], r
+            r = pg.evaluate(I11, {'sx': [k for k in a6 if k != 'asd_before3']})
+            assert any(x[0] == 'F84.1' and 'F84.10' in x[2] for x in r), r
+            assert ['F84.0', False] in pg.evaluate(SG, {'sx': [k for k in a6 if k != 'asd_excl']}), 'thiếu tiêu chuẩn C loại trừ'
             # rối loạn giấc ngủ khác (ICD-10 bản VN F51.2–F51.5; LEC2 G47.3, G47.4)
             assert ['F51.2', True] in pg.evaluate(SG, {'sx': ['cir_mismatch', 'slp_impair', 'slp_excl'], 'weeks': 6})
             assert ['F51.3', True] in pg.evaluate(SG, {'sx': ['sw_walk', 'slp_excl'], 'weeks': 6})
