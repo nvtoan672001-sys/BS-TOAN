@@ -1180,10 +1180,37 @@ function psyDx(p, v){
   const ASD_S = ['asd_s1', 'asd_s2', 'asd_s3', 'asd_s4'], ASD_C = ['asd_c1', 'asd_c2', 'asd_c3', 'asd_c4'], ASD_R = ['asd_r1', 'asd_r2', 'asd_r3', 'asd_r4'];
   const nS = asdCnt(ASD_S, 'asd_social'), nC = asdCnt(ASD_C, 'asd_comm'), nR = asdCnt(ASD_R, 'asd_rrb'), asdAny = nS + nC + nR > 0;
   // Trẻ em: ADHD (G1–G6), tự kỷ, chậm phát triển tâm thần (IQ), đái dầm, ỉa bậy
-  if(['adhd_inatt', 'adhd_hyper', 'adhd_imp'].some(has)){
-    const miss = need('kid', ['adhd_inatt', 'adhd_hyper', 'adhd_imp', 'adhd_7y', 'adhd_perv', 'adhd_impair']);
+  // ADHD — BYT 2020 Bài 30 (tiêu chuẩn ICD-10): giảm chú ý ≥ 6/9, tăng động ≥ 3/5, xung động ≥ 1/4; ≥ 6 tháng; trước 7 tuổi; nhiều hoàn cảnh; suy giảm chức năng; loại trừ
+  // khoá cũ adhd_inatt / adhd_hyper / adhd_imp (hồ sơ trước 2026-11-04) = đã đủ ngưỡng nhóm
+  const ADHD_I = [1, 2, 3, 4, 5, 6, 7, 8, 9].map(i => 'adhd_i' + i), ADHD_H = [1, 2, 3, 4, 5].map(i => 'adhd_h' + i), ADHD_M = [1, 2, 3, 4].map(i => 'adhd_m' + i);
+  const adOld = has('adhd_inatt') || has('adhd_hyper') || has('adhd_imp');
+  const nAI = ADHD_I.filter(has).length || (has('adhd_inatt') ? 6 : 0), nAH = ADHD_H.filter(has).length || (has('adhd_hyper') ? 3 : 0), nAM = ADHD_M.filter(has).length || (has('adhd_imp') ? 1 : 0);
+  const iqW = orderNum(v, 'wechsler');
+  if(nAI + nAH + nAM > 0){
+    const miss = [];
+    if(nAI < 6) miss.push(`Giảm chú ý ${nAI}/9 — cần ≥ 6`);
+    if(nAH < 3) miss.push(`Tăng động ${nAH}/5 — cần ≥ 3`);
+    if(nAM < 1) miss.push('Xung động 0/4 — cần ≥ 1');
+    if(wk != null && wk < 26) miss.push(durTxt + ' — cần ≥ 6 tháng');
+    else if(!has('adhd_6m') && !adOld && wk == null) miss.push('Chưa có: ' + lab('adhd', 'adhd_6m'));
+    miss.push(...need('adhd', ['adhd_7y', 'adhd_perv', 'adhd_impair', 'adhd_excl']));
     if(asdAny) miss.push('Có biểu hiện tự kỷ → ICD-10 không chẩn đoán tăng động khi có rối loạn phát triển lan toả (F84)');
-    add(has('cd_pattern') && cdSerious.length ? 'F90.1' : 'F90.0', 'BYT 2020 Bài 30; ICD-10 F90', ['adhd_inatt', 'adhd_hyper', 'adhd_imp', 'adhd_7y', 'adhd_perv', 'adhd_impair'].filter(has).map(k => lab('kid', k)), miss, 'Trắc nghiệm hỗ trợ: Vanderbilt. Loại trừ hưng cảm, trầm cảm, lo âu.');
+    const met = ADHD_I.concat(ADHD_H, ADHD_M).filter(has).map(k => lab('adhd', k))
+      .concat(['adhd_inatt', 'adhd_hyper', 'adhd_imp'].filter(has).map(k => ({adhd_inatt: 'Giảm chú ý ≥ 6/9', adhd_hyper: 'Tăng động ≥ 3/5', adhd_imp: 'Xung động ≥ 1/4'})[k]))
+      .concat([`Giảm chú ý ${nAI}/9, tăng động ${nAH}/5, xung động ${nAM}/4`])
+      .concat(['adhd_6m', 'adhd_7y', 'adhd_perv', 'adhd_impair', 'adhd_excl'].filter(has).map(k => lab('adhd', k)));
+    const vb = (v.orders || []).find(x => x.key === 'vanderbilt');
+    const f901 = has('cd_pattern') && cdSerious.length;
+    add(f901 ? 'F90.1' : 'F90.0', 'BYT 2020 Bài 30; ICD-10 F90', met, miss,
+      (f901 ? 'Kèm rối loạn hành vi (F91) → F90.1. ' : '') +
+      (vb && vb.value ? `Vanderbilt: ${vb.value}. ` : 'Trắc nghiệm hỗ trợ: Vanderbilt (cha mẹ và giáo viên). ') +
+      (iqW != null && iqW < 70 ? `IQ = ${fmtN(iqW)} < 70 — chỉ chẩn đoán khi triệu chứng vượt mức so với trình độ trí tuệ. ` : 'Đánh giá IQ (Wechsler, Raven) để loại trừ chậm phát triển tâm thần. ') +
+      (age != null && age >= 18 ? 'Người lớn: cần bằng chứng triệu chứng từ thơ ấu (hỏi gia đình, học bạ). ' : '') +
+      'Phân biệt: rối loạn lưỡng cực, tâm thần phân liệt, tic, rối loạn hành vi chống đối. Điện tim trước khi dùng methylphenidat.');
+    const aI = nAI >= 6, aHI = nAH + nAM >= 4;
+    const pres = aI && aHI ? 'kết hợp (6A05.2)' : aI ? 'giảm chú ý ưu thế (6A05.0)' : aHI ? 'tăng động – xung động ưu thế (6A05.1)' : 'chưa rõ thể';
+    i11x['F90.0'] = i11x['F90.1'] = `Bảng kiểm: giảm chú ý ${nAI}/9, tăng động – xung động ${nAH + nAM}/9 → thể ${pres} (lấy ngưỡng ICD-10 tham khảo; ICD-11 chỉ cần MỘT trong hai nhóm).` +
+      (has('adhd_7y') || has('adhd_12y') ? '' : ' Cần khởi phát trước 12 tuổi.');
   }
   // Rett (F84.2), phân rã khác (F84.3), Asperger (F84.5) — ICD-10 bản VN tr. 170–173
   if(has('rett')) add('F84.2', 'ICD-10 (bản VN) tr. 170–171', [lab('asd', 'rett')], p.sex === 'Nam' ? ['Hội chứng Rett gần như chỉ gặp ở trẻ gái — xem lại chẩn đoán'] : [], 'Thường khởi phát 7–24 tháng tuổi. Làm xét nghiệm gen MECP2 nếu có điều kiện.');
@@ -1194,8 +1221,11 @@ function psyDx(p, v){
     const asdMet = ['asd_before3'].concat(ASD_S, ASD_C, ASD_R).filter(has).map(k => lab('asd', k))
       .concat([`Tổng ${asdTot} triệu chứng: xã hội ${nS}/4, giao tiếp ${nC}/4, hành vi ${nR}/4`]);
     const mc = orderNum(v, 'mchat'), cars = orderNum(v, 'cars');
+    const asdId = iqW != null ? iqW < 70 : null, asdLang = has('asd_c1');
+    const asd11 = asdId == null ? 'cần IQ để chọn mã' : asdId ? (asdLang ? '6A02.3 (6A02.5 nếu gần như không có ngôn ngữ chức năng)' : '6A02.1') : (asdLang ? '6A02.2' : '6A02.0');
+    const asdIdTxt = asdId ? ` IQ = ${fmtN(iqW)} → chẩn đoán kèm chậm phát triển tâm thần (F70–F79).` : '';
     const testTxt = [mc != null ? `M-CHAT-R = ${fmtN(mc)} (${mc >= 8 ? 'nguy cơ cao' : mc >= 3 ? 'nguy cơ trung bình — làm phỏng vấn tiếp' : 'nguy cơ thấp'})` : '', cars != null ? `CARS = ${fmtN(cars)} (${cars >= 37 ? 'tự kỷ nặng' : cars >= 30 ? 'tự kỷ nhẹ – vừa' : 'không tự kỷ'})` : ''].filter(Boolean);
-    const testNote = (testTxt.length ? 'Trắc nghiệm: ' + testTxt.join('; ') + '. ' : 'Trắc nghiệm hỗ trợ: M-CHAT-R (16–30 tháng), CARS, ADOS. ') + 'Khám thính lực; đánh giá IQ (chậm phát triển tâm thần thường đi kèm).';
+    const testNote = (testTxt.length ? 'Trắc nghiệm: ' + testTxt.join('; ') + '. ' : 'Trắc nghiệm hỗ trợ: M-CHAT-R (16–30 tháng), CARS, ADOS. ') + 'Khám thính lực; đánh giá IQ (chậm phát triển tâm thần thường đi kèm).' + asdIdTxt;
     const exM = need('asd', ['asd_excl']);
     if(has('asd_nodelay') && nS >= 2 && nR >= 1) add('F84.5', 'ICD-10 (bản VN) tr. 173', [lab('asd', 'asd_nodelay')].concat(asdMet), exM.concat(has('asd_c1') ? ['Đã đánh dấu chậm / không có ngôn ngữ nói — Asperger không chậm ngôn ngữ; nếu đúng có chậm nói → tự kỷ (F84.0)'] : []), testNote);
     else if(asdA && asdB) add('F84.0', 'BYT 2020 Bài 29; ICD-10 (bản VN) tr. 167–169', asdMet, exM, testNote);
@@ -1204,7 +1234,7 @@ function psyDx(p, v){
       const sub = !asdA && asdB ? 'F84.10 — không điển hình về tuổi khởi phát (biểu hiện rõ từ 3 tuổi trở đi)' : asdA && !asdB ? 'F84.11 — không điển hình về triệu chứng' : 'F84.12 — không điển hình cả tuổi khởi phát và triệu chứng';
       add('F84.1', 'BYT 2020 Bài 29; ICD-10 (bản VN) tr. 169–170', asdMet, exM, `Mã chi tiết ${sub}. ${bMiss ? bMiss + ' (nếu bổ sung đủ → F84.0). ' : ''}${!asdA ? 'Chưa đánh dấu phát triển bất thường trước 3 tuổi. ' : ''}` + testNote);
     }
-    i11x['F84.0'] = i11x['F84.1'] = i11x['F84.5'] = `Bảng kiểm: ${nS + nC >= 1 && nR >= 1 ? 'đủ' : 'CHƯA đủ'} 2 nhóm bắt buộc của ICD-11 (khiếm khuyết giao tiếp – tương tác xã hội VÀ hành vi, sở thích thu hẹp, lặp lại).`;
+    i11x['F84.0'] = i11x['F84.1'] = i11x['F84.5'] = `Bảng kiểm: ${nS + nC >= 1 && nR >= 1 ? 'đủ' : 'CHƯA đủ'} 2 nhóm bắt buộc của ICD-11 (khiếm khuyết giao tiếp – tương tác xã hội VÀ hành vi, sở thích thu hẹp, lặp lại). Mã chi tiết theo trí tuệ × ngôn ngữ chức năng: ${asd11}.`;
   }
   // Rối loạn phát triển đặc hiệu lời nói / học tập / vận động (F80–F83) — ICD-10 bản VN tr. 162–167
   const devSp = has('dev_lk') ? 'F80.3' : has('dev_recep') ? 'F80.2' : has('dev_expr') ? 'F80.1' : has('dev_artic') ? 'F80.0' : '';
@@ -1246,10 +1276,31 @@ function psyDx(p, v){
   if(has('stereo')) add('F98.4', 'BYT 2020 Bài 33; ICD-10 (bản VN) tr. 190–191', [lab('kid2', 'stereo')].concat(has('stereo_self') ? [lab('kid2', 'stereo_self')] : []), k2Ex, (has('stereo_self') ? 'Mã chi tiết F98.41 — có tự làm tổn thương. ' : 'Mã chi tiết F98.40 — không tự làm tổn thương. ') + 'Hay gặp ở trẻ chậm phát triển tâm thần, tự kỷ.');
   if(has('stutter')) add('F98.5', 'BYT 2020 Bài 34; ICD-10 (bản VN) tr. 191', [lab('kid2', 'stutter')], [], 'Thường khởi phát 18 tháng – 9 tuổi. Loại trừ tic, rối loạn thần kinh.');
   if(has('clutter')) add('F98.6', 'ICD-10 (bản VN) tr. 191', [lab('kid2', 'clutter')], [], 'Phân biệt nói lắp (F98.5: có lặp lại, ngập ngừng).');
-  const iq = orderNum(v, 'wechsler');
-  if(iq != null && iq < 70){
-    const code = iq >= 50 ? 'F70' : iq >= 35 ? 'F71' : iq >= 20 ? 'F72' : 'F73';
-    add(code, 'BYT 2020 Bài 28; ICD-10 F70–F79', [`IQ (Wechsler) = ${fmtN(iq)}`].concat(has('id_adapt') ? [lab('kid', 'id_adapt')] : []), has('id_adapt') ? [] : ['Cần đánh giá giảm năng lực thích ứng xã hội'], 'Bảng ICD-10: nhẹ IQ 50–69 (tuổi tâm thần 9–< 12), vừa 35–49 (6–< 9), nặng 20–34 (3–< 6), trầm trọng < 20 (< 3 tuổi).');
+  // Chậm phát triển tâm thần — BYT 2020 Bài 28; ICD-10 F70–F79; ICD-11 6A00 (trí tuệ VÀ hành vi thích ứng)
+  const ID_A = ['id_concept', 'id_social', 'id_practical', 'id_adapt'], ID_L = ['id_l1', 'id_l2', 'id_l3', 'id_l4'];
+  const idKeys = ID_A.concat(ID_L, ['id_onset', 'id_behav', 'id_sensory', 'id_excl']);
+  if((iqW != null && iqW < 70) || idKeys.some(has)){
+    const lvIq = iqW == null || iqW >= 70 ? null : iqW >= 50 ? 'F70' : iqW >= 35 ? 'F71' : iqW >= 20 ? 'F72' : 'F73';
+    const lvCl = ['F73', 'F72', 'F71', 'F70'][[3, 2, 1, 0].findIndex(i => has(ID_L[i]))] || null;
+    const code = lvIq || (has('id_sensory') ? 'F78' : lvCl || 'F79');
+    const adapt = ID_A.some(has), raven = (v.orders || []).find(x => x.key === 'raven'), denver = (v.orders || []).find(x => x.key === 'denver');
+    const met = (iqW != null ? [`IQ (Wechsler) = ${fmtN(iqW)}`] : []).concat(raven && raven.value ? [`Raven: ${raven.value}`] : [], denver && denver.value ? [`Denver II: ${denver.value}`] : [])
+      .concat(idKeys.filter(has).map(k => lab('id', k)));
+    const miss = [];
+    if(iqW != null && iqW >= 70) miss.push(`IQ = ${fmtN(iqW)} ≥ 70 — không phù hợp chậm phát triển tâm thần (70–79: ranh giới)`);
+    if(iqW == null && !has('id_sensory')) miss.push('Chưa có trắc nghiệm trí tuệ chuẩn hoá — nhập IQ Wechsler (hoặc Raven, Denver) ở phần cận lâm sàng');
+    if(!adapt) miss.push('Chưa đánh giá giảm hành vi thích ứng (khái niệm, xã hội, thực hành)');
+    miss.push(...need('id', ['id_onset', 'id_excl']));
+    const lvName = {F70: 'nhẹ', F71: 'trung bình', F72: 'nặng', F73: 'trầm trọng'};
+    add(code, 'BYT 2020 Bài 28; ICD-10 F70–F79', met, miss,
+      (lvIq && lvCl && lvIq !== lvCl ? `Mức theo IQ (${lvName[lvIq]}) khác mức theo lâm sàng (${lvName[lvCl]}) — xét cả trí tuệ và hành vi thích ứng. ` : '') +
+      (code === 'F78' ? 'F78: khi khiếm khuyết giác quan / cơ thể / hành vi nặng làm không đánh giá được mức độ. ' : code === 'F79' ? 'F79: có bằng chứng nhưng chưa đủ thông tin xếp mức độ. ' : '') +
+      `Ký tự thứ 4: ${code}.${has('id_behav') ? '1 — có suy giảm hành vi đáng kể cần chăm sóc / điều trị' : '0 nếu không / ít suy giảm hành vi; .1 nếu suy giảm hành vi đáng kể'}. ` +
+      'Bảng ICD-10: nhẹ IQ 50–69 (tuổi tâm thần 9–< 12), trung bình 35–49 (6–< 9), nặng 20–34 (3–< 6), trầm trọng < 20 (< 3 tuổi). ' +
+      'Cận lâm sàng (BYT): điện não đồ, CT / MRI sọ não; xét nghiệm chuyển hoá, di truyền khi nghi ngờ; đo thính lực, thị lực; sàng lọc rối loạn đi kèm (ADHD, tự kỷ, trầm cảm).');
+    const prov = (age != null && age < 4) || has('id_sensory');
+    i11x[code] = `Bảng kiểm: trí tuệ ${iqW != null ? (iqW < 70 ? 'thấp rõ' : 'không thấp') : 'chưa đo'}; hành vi thích ứng ${adapt ? 'giảm' : 'CHƯA đánh giá'} — ICD-11 bắt buộc CẢ HAI (≈ ≥ 2 độ lệch chuẩn dưới trung bình).` +
+      (prov ? ` ${age != null && age < 4 ? `Trẻ ${age} tuổi (< 4)` : 'Không đánh giá được do khiếm khuyết'} → ICD-11 ghi chẩn đoán tạm thời 6A00.4.` : '');
   }
   if(has('enu_wet')){
     const miss = need('kid', ['elim_excl']); if(age == null || age < 5) miss.push('Cần tuổi ≥ 5' + (age != null ? ` (hiện ${age} tuổi)` : ''));
@@ -1306,7 +1357,6 @@ function psyDx(p, v){
       const g = [has('sud_crave') || has('sud_control'), has('sud_neglect') || has('sud_harm'), has('sud_withdraw') || has('sud_toler')].filter(Boolean).length;
       x = `Bảng kiểm: ${g}/3 nhóm (kiểm soát; ưu tiên sử dụng; sinh lý) → ${g >= 2 ? 'đủ' : 'chưa đủ'} tiêu chuẩn nghiện ICD-11 (cần ≥ 2).`;
     }
-    if(/^F90/.test(s.code) && (has('adhd_inatt') !== (has('adhd_hyper') || has('adhd_imp')))) x = has('adhd_inatt') ? 'Chỉ có giảm chú ý → ICD-11 vẫn chẩn đoán được: thể giảm chú ý ưu thế (6A05.0).' : 'Chỉ có tăng động – xung động → ICD-11 vẫn chẩn đoán được: thể tăng động – xung động ưu thế (6A05.1).';
     const m = icd11Of(s.code);
     s.i11 = m ? (m[1] !== '—' ? m[1] + ': ' : '') + m[2] + (x ? ' ' + x : '') : x;
   });

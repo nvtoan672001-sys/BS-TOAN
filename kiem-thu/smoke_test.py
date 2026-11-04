@@ -791,7 +791,39 @@ def main():
             assert ['F91.3', True] in pg.evaluate(SG, {'sx': ['cd_odd', 'cd_pattern'], 'weeks': 30})
             assert ['F44', True] in pg.evaluate(SG, {'sx': ['dis_sx', 'dis_noorg', 'dis_time'], 'weeks': 2})
             assert ['F45.0', True] in pg.evaluate(SG, {'sx': ['som_2y', 'som_visits', 'som_refuse', 'som_6sx'], 'weeks': 110})
-            assert ['F90.0', True] in pg.evaluate(SG, {'sx': ['adhd_inatt', 'adhd_hyper', 'adhd_imp', 'adhd_7y', 'adhd_perv', 'adhd_impair'], 'weeks': 30})
+            # khoá cũ adhd_inatt / adhd_hyper / adhd_imp vẫn được tính (hồ sơ trước 2026-11-04)
+            assert ['F90.0', True] in pg.evaluate(SG, {'sx': ['adhd_inatt', 'adhd_hyper', 'adhd_imp', 'adhd_7y', 'adhd_perv', 'adhd_impair', 'adhd_excl'], 'weeks': 30})
+            # ADHD theo BYT 2020 Bài 30 (ICD-10): giảm chú ý ≥ 6/9, tăng động ≥ 3/5, xung động ≥ 1/4
+            adc = ['adhd_6m', 'adhd_7y', 'adhd_perv', 'adhd_impair', 'adhd_excl']
+            ad = ['adhd_i1', 'adhd_i2', 'adhd_i3', 'adhd_i5', 'adhd_i8', 'adhd_i9', 'adhd_h1', 'adhd_h2', 'adhd_h5', 'adhd_m2'] + adc
+            assert pg.evaluate(DX, {'sx': ad})['codes'] == ['F90.0']
+            assert pg.evaluate(DX, {'sx': [k for k in ad if k != 'adhd_i9']})['codes'] == [], 'giảm chú ý 5/9 chưa đủ'
+            assert pg.evaluate(DX, {'sx': ad, 'weeks': 10})['codes'] == [], 'ADHD cần ≥ 6 tháng'
+            assert 'F90.1' in pg.evaluate(DX, {'sx': ad + ['cd_pattern', 'cd_aggr']})['codes']
+            r = dict((x[0], x) for x in pg.evaluate(I11, {'sx': ad}))
+            assert '6A05.2' in r['F90.0'][1], r
+            r = dict((x[0], x) for x in pg.evaluate(I11, {'sx': ['adhd_h1', 'adhd_h2', 'adhd_h3', 'adhd_m1'] + adc}))
+            assert '6A05.1' in r['F90.0'][1], r
+            # Chậm phát triển tâm thần — BYT 2020 Bài 28; ICD-11 cần cả trí tuệ và hành vi thích ứng
+            ORD = "(x) => { const v = curV(); v.orders = (v.orders || []).filter(o => o.key !== 'wechsler').concat(x == null ? [] : [{id: 'o_iq_t', key: 'wechsler', name: 'IQ', unit: 'IQ', ref: '', type: 'n', value: x, flag: '', note: ''}]); }"
+            idc = ['id_concept', 'id_practical', 'id_onset', 'id_excl']
+            pg.evaluate(ORD, 42)
+            assert pg.evaluate(DX, {'sx': idc})['codes'] == ['F71']
+            r = dict((x[0], x) for x in pg.evaluate(I11, {'sx': idc}))
+            assert 'F71.0' in r['F71'][2] and '6A00.1' in r['F71'][1], r
+            assert pg.evaluate(SG, {'sx': ['id_onset', 'id_excl']}) == [['F71', False]], 'thiếu hành vi thích ứng'
+            assert 'F71.1' in dict((x[0], x) for x in pg.evaluate(I11, {'sx': idc + ['id_behav']}))['F71'][2]
+            r = dict((x[0], x) for x in pg.evaluate(I11, {'sx': idc + ['id_l3']}))
+            assert 'khác mức theo lâm sàng' in r['F71'][2], r
+            # tự kỷ kèm IQ < 70 → gợi ý F70–F79 và mã ICD-11 6A02.3
+            r = dict((x[0], x) for x in pg.evaluate(I11, {'sx': ['asd_before3', 'asd_s1', 'asd_s2', 'asd_s4', 'asd_c1', 'asd_c3', 'asd_r2', 'asd_excl']}))
+            assert 'F70–F79' in r['F84.0'][2] and '6A02.3' in r['F84.0'][1], r
+            pg.evaluate(ORD, 85)
+            assert ['F70', False] not in pg.evaluate(SG, {'sx': idc}) and pg.evaluate(SG, {'sx': idc}) == [['F79', False]], 'IQ ≥ 70'
+            pg.evaluate(ORD, None)
+            assert pg.evaluate(DX, {'sx': idc + ['id_l2']})['all'] == ['F71'] and pg.evaluate(DX, {'sx': idc + ['id_l2']})['codes'] == [], 'chưa có IQ'
+            r = dict((x[0], x) for x in pg.evaluate(I11, {'sx': idc + ['id_sensory']}))
+            assert 'F78' in r and '6A00.4' in r['F78'][1], r
             r = pg.evaluate(DX, {'sx': ['rf_word', 'rf_loss']})
             assert 'Cờ đỏ tự kỷ' in r['alerts'] and r['codes'] == [], r
             # khoá cũ asd_social / asd_comm vẫn được tính (hồ sơ trước 2026-11-04)
