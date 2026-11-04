@@ -387,7 +387,7 @@ function mentalCard(p, v){
   const srcTxt = src => /^Bài/.test(src) ? 'BYT 2020, ' + src : src;
   const grp = (t, src, body) => `<div class="mgrp"><span class="lbl">${esc(t)} <span class="tiny muted">${esc(srcTxt(src))}</span></span><div class="checks">${body}</div></div>`;
   const OPEN_G = ['dep_core', 'dep_common', 'dep_som', 'man_a', 'man_b', 'mix', 'psy', 'anx'], sxSet = new Set(m.sx || []);
-  const grpX = g => { const body = g.items.map(([k, l]) => CL('v.mental.sx', m.sx, k, l)).join('');
+  const grpX = g => { const body = g.items.map(([k, l]) => [].concat((g.heads || {})[k] || []).map(h => `<div class="subhd${/^\(\d\)/.test(h) ? ' sub2' : ''}">${esc(h)}</div>`).join('') + CL('v.mental.sx', m.sx, k, l)).join('');
     if(OPEN_G.includes(g.g)) return grp(g.t, g.src, body);
     const n = g.items.filter(([k]) => sxSet.has(k)).length;
     return `<details class="mgrp mdet" data-g="${g.g}"${n ? ' open' : ''}><summary><span class="lbl">${esc(g.t)}${n ? ` <span class="chip pri">${n}</span>` : ''} <span class="tiny muted">${esc(srcTxt(g.src))}</span></span></summary><div class="checks">${body}</div></details>`; };

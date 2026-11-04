@@ -73,6 +73,9 @@ input[type=checkbox],input[type=radio]{accent-color:var(--pri);width:16px;height
 .g6{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
 .span2{grid-column:span 2} .span3{grid-column:span 3} .spanall{grid-column:1/-1}
 .checks{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:6px 14px}
+.checks .subhd{grid-column:1/-1;font-weight:600;margin-top:6px;padding-top:4px;border-top:1px solid var(--line,#ddd)}
+.checks .subhd.sub2{font-weight:500;border-top:0;padding-left:12px;margin-top:2px}
+.checks .subhd:first-child{margin-top:0;padding-top:0;border-top:0}
 .check{display:flex;gap:8px;align-items:center;cursor:pointer;padding:3px 0}
 .unitwrap{position:relative}
 .unitwrap input{padding-right:46px}
