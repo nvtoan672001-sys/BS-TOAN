@@ -804,6 +804,22 @@ def main():
             assert '6A05.2' in r['F90.0'][1], r
             r = dict((x[0], x) for x in pg.evaluate(I11, {'sx': ['adhd_h1', 'adhd_h2', 'adhd_h3', 'adhd_m1'] + adc}))
             assert '6A05.1' in r['F90.0'][1], r
+            # Đái dầm F98.0 / ỉa bậy F98.1 — ICD-10 bản VN tr. 189–190
+            enu = ['enu_age', 'enu_wet', 'enu_excl', 'enu_nopsy', 'enu_3m']
+            assert pg.evaluate(DX, {'sx': enu + ['enu_night']})['codes'] == ['F98.0']
+            r = dict((x[0], x) for x in pg.evaluate(I11, {'sx': enu + ['enu_night', 'enu_day']}))
+            assert 'F98.02' in r['F98.0'][2] and '6C00.2' in r['F98.0'][1], r
+            assert pg.evaluate(DX, {'sx': enu, 'weeks': 6})['codes'] == [], 'đái dầm cần ≥ 3 tháng'
+            assert pg.evaluate(DX, {'sx': [k for k in enu if k != 'enu_excl']})['codes'] == []
+            assert pg.evaluate(DX, {'sx': [k for k in enu if k != 'enu_excl'] + ['elim_excl']})['codes'] == ['F98.0'], 'khoá cũ elim_excl'
+            enc = ['enc_soil', 'enc_age', 'enc_freq', 'enc_6m', 'enc_excl']
+            assert pg.evaluate(DX, {'sx': enc})['codes'] == ['F98.1']
+            r = dict((x[0], x) for x in pg.evaluate(I11, {'sx': enc + ['enc_overflow']}))
+            assert 'F98.12' in r['F98.1'][2] and '6C01.0' in r['F98.1'][1], r
+            assert pg.evaluate(DX, {'sx': enc, 'weeks': 20})['codes'] == [], 'ỉa bậy cần ≥ 6 tháng'
+            pg.evaluate("() => { curP().dob0 = curP().dob; curP().dob = (Number(todayISO().slice(0, 4)) - 3) + '-01-01'; }")
+            assert pg.evaluate(SG, {'sx': enc}) == [['F98.1', False]], 'trẻ 3 tuổi chưa đủ tuổi'
+            pg.evaluate("() => { const p = curP(); p.dob = p.dob0; delete p.dob0; }")
             # Chậm phát triển tâm thần — BYT 2020 Bài 28; ICD-11 cần cả trí tuệ và hành vi thích ứng
             ORD = "(x) => { const v = curV(); v.orders = (v.orders || []).filter(o => o.key !== 'wechsler').concat(x == null ? [] : [{id: 'o_iq_t', key: 'wechsler', name: 'IQ', unit: 'IQ', ref: '', type: 'n', value: x, flag: '', note: ''}]); }"
             idc = ['id_concept', 'id_practical', 'id_onset', 'id_excl']

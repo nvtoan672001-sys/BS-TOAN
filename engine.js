@@ -1302,13 +1302,33 @@ function psyDx(p, v){
     i11x[code] = `Bảng kiểm: trí tuệ ${iqW != null ? (iqW < 70 ? 'thấp rõ' : 'không thấp') : 'chưa đo'}; hành vi thích ứng ${adapt ? 'giảm' : 'CHƯA đánh giá'} — ICD-11 bắt buộc CẢ HAI (≈ ≥ 2 độ lệch chuẩn dưới trung bình).` +
       (prov ? ` ${age != null && age < 4 ? `Trẻ ${age} tuổi (< 4)` : 'Không đánh giá được do khiếm khuyết'} → ICD-11 ghi chẩn đoán tạm thời 6A00.4.` : '');
   }
-  if(has('enu_wet')){
-    const miss = need('kid', ['elim_excl']); if(age == null || age < 5) miss.push('Cần tuổi ≥ 5' + (age != null ? ` (hiện ${age} tuổi)` : ''));
-    add('F98.0', 'BYT 2020 Bài 31; ICD-10 F98.0', [lab('kid', 'enu_wet')].concat(has('elim_excl') ? [lab('kid', 'elim_excl')] : []), miss, 'Mã con: F98.00 chỉ ban đêm, F98.01 chỉ ban ngày, F98.02 cả ngày và đêm. Làm tổng phân tích nước tiểu, siêu âm hệ tiết niệu.');
+  // Đái dầm F98.0, ỉa bậy F98.1 — ICD-10 bản VN tr. 189–190 (BYT 2020 Bài 31 trích nguyên tiêu chuẩn này); khoá cũ elim_excl = loại trừ thực tổn cả hai
+  const ENU = ['enu_age', 'enu_wet', 'enu_excl', 'enu_nopsy', 'enu_3m', 'enu_night', 'enu_day'], ENC = ['enc_soil', 'enc_age', 'enc_freq', 'enc_6m', 'enc_excl', 'enc_ctrl', 'enc_place', 'enc_overflow'];
+  const elimOld = has('elim_excl') ? ['Không do bệnh thực thể (ghi nhận cũ)'] : [];
+  const ageMiss = (min, k, g) => age != null && age < min ? [`Hiện ${age} tuổi — cần tuổi đời ≥ ${min}`] : has(k) ? [] : need(g, [k]);
+  if(ENU.some(has)){
+    const miss = need('kid', ['enu_wet']).concat(ageMiss(5, 'enu_age', 'kid'));
+    if(!has('enu_excl') && !has('elim_excl')) miss.push('Chưa có: ' + lab('kid', 'enu_excl'));
+    miss.push(...need('kid', ['enu_nopsy']));
+    if(wk != null && wk < 13) miss.push(durTxt + ' — cần ≥ 3 tháng');
+    else if(!has('enu_3m') && wk == null) miss.push('Chưa có: ' + lab('kid', 'enu_3m'));
+    const sub = has('enu_night') && has('enu_day') ? 'F98.02 — cả ban đêm và ban ngày' : has('enu_day') ? 'F98.01 — chỉ ban ngày' : has('enu_night') ? 'F98.00 — chỉ ban đêm' : '';
+    add('F98.0', 'ICD-10 (bản VN) tr. 189; BYT 2020 Bài 31', ENU.filter(has).map(k => lab('kid', k)).concat(elimOld), miss,
+      (sub ? `Mã chi tiết ${sub}. ` : 'Đánh dấu ban đêm / ban ngày để chọn mã F98.00 / F98.01 / F98.02. ') +
+      (iqW != null && iqW < 70 ? `IQ = ${fmtN(iqW)} — cần tuổi tâm thần ≥ 5. ` : '') +
+      'Cận lâm sàng (BYT): tổng phân tích nước tiểu, đường máu, siêu âm hệ tiết niệu; điện não đồ khi nghi động kinh. Phân biệt: nhiễm khuẩn, tắc nghẽn, dị dạng tiết niệu, tật nứt đốt sống; đái tháo đường, đái tháo nhạt; mộng du; động kinh, nhiễm độc; tác dụng phụ thuốc chống loạn thần. Hay kèm ADHD, chậm phát triển tâm thần, ỉa bậy.');
+    i11x['F98.0'] = 'ICD-11 chặt hơn về tần suất (vd. vài lần mỗi tuần trong nhiều tháng)' + (sub ? ` → ${has('enu_night') && has('enu_day') ? '6C00.2' : has('enu_day') ? '6C00.1' : '6C00.0'}.` : '.');
   }
-  if(has('enc_soil')){
-    const miss = need('kid', ['elim_excl']); if(age == null || age < 4) miss.push('Cần tuổi ≥ 4' + (age != null ? ` (hiện ${age} tuổi)` : ''));
-    add('F98.1', 'ICD-10 F98.1', [lab('kid', 'enc_soil')].concat(has('elim_excl') ? [lab('kid', 'elim_excl')] : []), miss, 'Loại trừ táo bón mạn, phình đại tràng, bệnh thần kinh.');
+  if(ENC.some(has)){
+    const miss = need('kid', ['enc_soil']).concat(ageMiss(4, 'enc_age', 'kid'), need('kid', ['enc_freq']));
+    if(wk != null && wk < 26) miss.push(durTxt + ' — cần ≥ 6 tháng');
+    else if(!has('enc_6m') && wk == null) miss.push('Chưa có: ' + lab('kid', 'enc_6m'));
+    if(!has('enc_excl') && !has('elim_excl')) miss.push('Chưa có: ' + lab('kid', 'enc_excl'));
+    const sub = has('enc_overflow') ? 'F98.12 — ỉa bẩn kèm phân nhiều nước do táo bón' : has('enc_ctrl') ? 'F98.10 — không đạt kiểm soát sinh lý ruột' : has('enc_place') ? 'F98.11 — kiểm soát ruột bình thường, đi sai chỗ' : '';
+    add('F98.1', 'ICD-10 (bản VN) tr. 189–190', ENC.filter(has).map(k => lab('kid', k)).concat(elimOld), miss,
+      (sub ? `Mã chi tiết ${sub}. ` : 'Đánh dấu biệt định để chọn mã F98.10 / F98.11 / F98.12. ') +
+      'Khám bụng, thăm trực tràng tìm u phân; hỏi tình trạng táo bón, né tránh đi vệ sinh. Hay kèm đái dầm.');
+    i11x['F98.1'] = has('enc_overflow') ? 'Có táo bón kèm són phân tràn → 6C01.0.' : (has('enc_ctrl') || has('enc_place')) ? 'Không có táo bón kèm són phân tràn → 6C01.1.' : 'Ghi có / không táo bón kèm són phân tràn (6C01.0 / 6C01.1).';
   }
   // Phân ly (F44) / cơ thể hoá (F45.0)
   if(has('dis_sx')) add('F44', 'BYT 2020 Bài 24; ICD-10 F44', [lab('diss', 'dis_sx')].concat(['dis_noorg', 'dis_time'].filter(has).map(k => lab('diss', k))), need('diss', ['dis_noorg', 'dis_time']), 'Chọn mã con theo biểu hiện: quên F44.0, trốn nhà F44.1, sững sờ F44.2, vận động F44.4, co giật F44.5, mất cảm giác F44.6, hỗn hợp F44.7.');
