@@ -1526,7 +1526,7 @@ const MENTAL_SX = [
     ['cd_odd','Thách thức chống đối: hay cáu giận, cãi người lớn, từ chối tuân thủ, cố tình gây khó chịu, đổ lỗi'],
     ['cd_family','Chỉ xảy ra trong gia đình'],
     ['cd_peer','Không có quan hệ bạn bè cùng trang lứa (không thích ứng xã hội)']]},
-  {g:'adhd', t:'Tăng động giảm chú ý (F90)', src:'BYT 2020 Bài 30 (theo ICD-10); ICD-11 6A05', items:[
+  {g:'adhd', t:'Tăng động giảm chú ý (F90)', src:'BYT 2020 Bài 30 (theo ICD-10); ICD-11 6A05', heads:{adhd_i1: ['Tiêu chuẩn 1. Triệu chứng kéo dài ≥ 6 tháng, gây khó thích ứng so với trẻ cùng trang lứa', '(1) Giảm chú ý: ≥ 6/9'], adhd_h1: '(2) Tăng động: ≥ 3/5', adhd_m1: '(3) Xung động: ≥ 1/4', adhd_6m: '(4) Thời gian', adhd_7y: 'Tiêu chuẩn 2. Khởi phát sớm', adhd_perv: 'Tiêu chuẩn 3. Nhiều hoàn cảnh', adhd_impair: 'Tiêu chuẩn 4. Suy giảm chức năng', adhd_excl: 'Tiêu chuẩn 5. Loại trừ'}, items:[
     ['adhd_i1','Giảm chú ý 1. Không chú ý chi tiết, mắc lỗi dại dột khi làm bài, làm việc'],
     ['adhd_i2','Giảm chú ý 2. Khó duy trì chú ý vào công việc, trò chơi'],
     ['adhd_i3','Giảm chú ý 3. Lơ đãng khi người khác nói chuyện với mình'],
