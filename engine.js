@@ -1171,6 +1171,9 @@ function psyDx(p, v){
     if(depLv) miss.push('Có triệu chứng trầm cảm đủ tiêu chuẩn → rối loạn hành vi trầm cảm (F92.0)');
     add(code, 'ICD-10 F91; LEC11', [lab('cond', 'cd_pattern')].concat(cdSerious.map(k => lab('cond', k))), miss, (age != null && age < 10 ? 'Loại khởi phát ở trẻ em (trước 10 tuổi). ' : '') + 'Loại trừ tâm thần phân liệt, hưng cảm, rối loạn phát triển lan toả, tăng động (có cả tăng động → F90.1).');
   } else if(has('cd_odd')) add('F91.3', 'ICD-10 F91.3; LEC11', [lab('cond', 'cd_odd')], has('cd_pattern') ? [] : ['Cần kéo dài ≥ 6 tháng'], 'Không có hành vi gây hấn / vi phạm nghiêm trọng (nếu có → F91.0–F91.2). Thường gặp kèm ADHD.');
+  // Cờ đỏ tự kỷ (bác sĩ đặt 2026-11-04): có bất kỳ dấu hiệu nào → cảnh báo cần đánh giá phát triển ngay
+  const RF = ['rf_babble', 'rf_gesture', 'rf_word', 'rf_phrase', 'rf_loss'].filter(has);
+  if(RF.length) alerts.push({lv: 3, t: 'Cờ đỏ tự kỷ', m: RF.map(k => lab('asd', k).replace(/^⚑ Cờ đỏ: /, '')).join('; ') + ' — cần đánh giá phát triển ngay: sàng lọc M-CHAT-R (16–30 tháng), đo thính lực, đánh giá đủ tiêu chuẩn tự kỷ (mục "Tự kỷ"), chuyển khám chuyên khoa tâm thần nhi / phát triển.'});
   // Tự kỷ: đếm triệu chứng tiêu chuẩn B của F84.0 (ICD-10 bản VN tr. 167–168; BYT 2020 Bài 29) theo 3 nhóm.
   // Khoá cũ asd_social / asd_comm / asd_rrb (hồ sơ trước 2026-11-04) tính là 1 triệu chứng của nhóm đó.
   const asdCnt = (ks, oldK) => ks.filter(has).length || (has(oldK) ? 1 : 0);

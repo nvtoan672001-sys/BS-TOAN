@@ -724,6 +724,7 @@ def main():
             assert '3/3' in r['F10.2'][1] and '6C40.2' in r['F10.2'][1], r
             assert pg.evaluate("() => ICD11_MAP.every(r => r.length === 3) && icd11Of('F43.25')[1] === '6B43' && icd11Of('F31.6')[1].startsWith('6A60')")
             # Trẻ em – vị thành niên (ICD-10 bản VN tr. 162–191)
+            assert pg.evaluate("() => ['thinh_luc', 'thi_luc'].every(k => LABS.some(r => r[1] === k && r[5] === 't'))"), 'thiếu đo thính lực / thị lực'
             assert pg.evaluate("() => ['F82','F83','F84.2','F84.3','F93.3','F93.8','F94.1','F94.2','F98.6'].every(c => ICD.some(r => r[0] === c))"), 'thiếu mã ICD trẻ em'
             dv = ['dev_read', 'dev_math', 'dev_motor', 'dev_iq', 'dev_impair', 'dev_excl']
             r = pg.evaluate(DX, {'sx': dv})
@@ -791,6 +792,8 @@ def main():
             assert ['F44', True] in pg.evaluate(SG, {'sx': ['dis_sx', 'dis_noorg', 'dis_time'], 'weeks': 2})
             assert ['F45.0', True] in pg.evaluate(SG, {'sx': ['som_2y', 'som_visits', 'som_refuse', 'som_6sx'], 'weeks': 110})
             assert ['F90.0', True] in pg.evaluate(SG, {'sx': ['adhd_inatt', 'adhd_hyper', 'adhd_imp', 'adhd_7y', 'adhd_perv', 'adhd_impair'], 'weeks': 30})
+            r = pg.evaluate(DX, {'sx': ['rf_word', 'rf_loss']})
+            assert 'Cờ đỏ tự kỷ' in r['alerts'] and r['codes'] == [], r
             # khoá cũ asd_social / asd_comm vẫn được tính (hồ sơ trước 2026-11-04)
             assert ['F84.1', True] in pg.evaluate(SG, {'sx': ['asd_social', 'asd_comm', 'asd_excl'], 'weeks': 30})
             # Tự kỷ F84.0 (ICD-10 bản VN tr. 167–168): A trước 3 tuổi + B ≥ 6 triệu chứng (xã hội ≥ 2, giao tiếp ≥ 1, hành vi ≥ 1) + C loại trừ
