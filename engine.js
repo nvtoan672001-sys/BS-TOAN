@@ -1150,20 +1150,77 @@ function psyDx(p, v){
   // ===== Nhóm bổ sung 2026-10-30: nhận thức, giấc ngủ, nghiện, hành vi, trẻ em, phân ly / cơ thể hoá =====
   // Nguồn: BYT 2020 (Bài 1, 2, 4, 7, 24, 25, 27–31) và ICD-10 bản tiếng Việt "tiêu chuẩn chẩn đoán dành cho nghiên cứu" (thư mục Tâm thần)
   const age = ageOf(p, v.date);
-  // Sa sút trí tuệ: G1 (trí nhớ + nhận thức khác), G2 (ý thức không u ám), G3 (kiểm soát cảm xúc / hành vi), G4 (≥ 6 tháng)
-  if(has('dem_mem') && has('dem_cog')){
+  // Sa sút trí tuệ — ICD-10 bản VN tr. 47–56 (G1–G4 chung; F00 A–B + F00.0 / F00.1; F01 G1–G4 + thể; F02.0–F02.8; F03); BYT 2020 Bài 1–3
+  const pc = ctxOf(p, v).conds, dems = has('dem_mem') && has('dem_cog');
+  if(dems){
     const miss = need('dem', ['dem_clear', 'dem_emo', 'dem_6m']);
     if(!has('dem_func')) miss.push('Chưa ảnh hưởng hoạt động hằng ngày → cân nhắc rối loạn nhận thức nhẹ (F06.7)');
-    let code = 'F03', note = 'Mức độ (ICD-10): nhẹ — chưa phụ thuộc người khác; trung bình — cần trợ giúp sinh hoạt; nặng — mất khả năng diễn đạt ý dễ hiểu.';
-    if(has('dem_vasc')){ code = has('dem_step') ? 'F01.0' : 'F01.9'; if(!has('dem_step')) note = 'Mạch máu: đối chiếu thể nhiều ổ nhồi máu (F01.1, khởi phát từ từ 3–6 tháng), dưới vỏ (F01.2, có tăng huyết áp), hỗn hợp (F01.3). ' + note; }
-    else if(has('dem_slow')) code = has('dem_early') ? 'F00.0' : 'F00.1';
-    else miss.push('Chưa xác định nguyên nhân: bệnh Alzheimer (khởi phát từ từ, không nguyên nhân khác) hay bệnh mạch máu não');
-    add(code, 'BYT 2020 Bài 1–2; ICD-10', ['Suy giảm trí nhớ', 'Suy giảm nhận thức khác'].concat(['dem_func', 'dem_clear', 'dem_emo', 'dem_6m'].filter(has).map(k => lab('dem', k))), miss, note + ' Làm MMSE / MoCA, CT / MRI sọ não, TSH, B12, đường máu.');
+    const met = ['dem_mem', 'dem_cog', 'dem_func', 'dem_clear', 'dem_emo', 'dem_6m'].filter(has).map(k => lab('dem', k));
+    const notes = [];
+    let code = 'F03';
+    const f02x = need('dem', ['dem_f02_excl']);
+    if(has('dem_cjd')){ code = 'F02.1'; met.push(lab('dem', 'dem_cjd')); miss.push(...need('dem', ['dem_cjd_neuro'])); notes.push('Điện não đồ: phức hợp nhọn chu kỳ; chẩn đoán xác định bằng giải phẫu bệnh.'); }
+    else if(has('dem_hd')){ code = 'F02.2'; met.push(lab('dem', 'dem_hd')); miss.push(...need('dem', ['dem_hd_fam'])); }
+    else if(has('dem_hiv')){ code = 'F02.4'; met.push(lab('dem', 'dem_hiv')); miss.push(...f02x); }
+    else if(has('dem_pd') || pc.has('parkinson')){ code = 'F02.3'; met.push(has('dem_pd') ? lab('dem', 'dem_pd') : 'Bệnh nền Parkinson'); if(!has('dem_pd')) miss.push('Chưa xác nhận suy giảm nhận thức không do thuốc kháng Parkinson'); miss.push(...f02x); notes.push('Nếu cũng đủ tiêu chuẩn Alzheimer khởi phát muộn → dùng F00.1 kèm G20.'); }
+    else if(has('dem_front')){ code = 'F02.0'; met.push(lab('dem', 'dem_front')); miss.push(...need('dem', ['dem_front_mem'])); }
+    else if(has('dem_vasc')){
+      met.push(lab('dem', 'dem_vasc')); miss.push(...need('dem', ['dem_uneven', 'dem_focal']));
+      if(has('dem_mixad')) code = 'F00.2';
+      else if(has('dem_step')) code = 'F01.0';
+      else if(has('dem_multi')) code = 'F01.1';
+      else if(has('dem_subcort')){ code = 'F01.2'; if(!pc.has('htn')) miss.push('F01.2 cần tiền sử tăng huyết áp'); }
+      else if(has('dem_mixcs')) code = 'F01.3';
+      else { code = 'F01.9'; notes.push('Đánh dấu thể F01.0–F01.3 nếu xác định được.'); }
+    }
+    else if(has('dem_other')){ code = 'F02.8'; met.push(lab('dem', 'dem_other')); notes.push('Ghi thêm mã ICD-10 của bệnh gây ra.'); }
+    else if(['dem_ad_excl', 'dem_early', 'dem_fast', 'dem_cortical', 'dem_slow', 'dem_mempred', 'dem_mixad'].some(has)){
+      miss.push(...need('dem', ['dem_ad_excl']));
+      if(has('dem_mixad')) code = 'F00.2';
+      else if(has('dem_early')){ if(has('dem_fast') || has('dem_cortical')) code = 'F00.0'; else { code = 'F00.9'; notes.push('F00.0 cần thêm: khởi phát / tiến triển nhanh, hoặc vong ngôn, vong ký, vong đọc, vong tính, vong hành.'); } }
+      else if(has('dem_slow') || has('dem_mempred')) code = 'F00.1';
+      else { code = 'F00.9'; notes.push('F00.1 (≥ 65 tuổi) cần thêm: khởi phát từ từ, tiến triển rất chậm, hoặc ưu thế suy giảm trí nhớ.'); }
+      met.push(...['dem_ad_excl', 'dem_early', 'dem_fast', 'dem_cortical', 'dem_slow', 'dem_mempred', 'dem_mixad'].filter(has).map(k => lab('dem', k)));
+    }
+    else notes.push('Chưa xác định nguyên nhân → F03; đánh dấu đặc điểm Alzheimer, mạch máu hoặc bệnh khác để xếp thể.');
+    if(code === 'F00.0' && age != null && age >= 75) notes.push(`Hiện ${age} tuổi — xem lại tuổi khởi phát.`);
+    const x5 = ['dem_x1', 'dem_x2', 'dem_x3'].filter(has), d5 = x5.length > 1 ? 4 : x5.length ? Number(x5[0].slice(-1)) : 0;
+    const d6 = has('dem_sev3') ? 2 : has('dem_sev2') ? 1 : has('dem_sev1') ? 0 : null;
+    notes.push(`Chữ số thứ 5: ${d5} (${['không có triệu chứng phụ', 'chủ yếu hoang tưởng', 'chủ yếu ảo giác', 'chủ yếu trầm cảm', 'hỗn hợp'][d5]})` + (d6 != null ? `; chữ số thứ 6: ${d6} (${['nhẹ', 'trung bình', 'nặng'][d6]})` : '; đánh dấu mức độ để có chữ số thứ 6') + '.');
+    const mm = orderNum(v, 'mmse'), mo = orderNum(v, 'moca');
+    if(mm != null || mo != null) notes.push('Trắc nghiệm: ' + [mm != null ? `MMSE ${fmtN(mm)}/30` : '', mo != null ? `MoCA ${fmtN(mo)}/30` : ''].filter(Boolean).join(', ') + '.');
+    else notes.push('Làm MMSE / MoCA.');
+    notes.push('Cận lâm sàng: CT / MRI sọ não, TSH, B12, acid folic, canxi, đường máu; HIV, giang mai khi nghi ngờ.');
+    add(code, 'ICD-10 (bản VN) tr. 47–56; BYT 2020 Bài 1–3', met, miss, notes.join(' '));
+    const bpsd = [has('dem_x1') || has('dem_x2') ? '6D86.0 loạn thần' : '', has('dem_x3') ? '6D86.1 khí sắc' : ''].filter(Boolean);
+    i11x[code] = 'ICD-11: suy giảm ≥ 2 lĩnh vực nhận thức (trí nhớ không bắt buộc), ảnh hưởng rõ tự lập; ghi mức độ nhẹ / trung bình / nặng' + (bpsd.length ? '; ghi kèm rối loạn hành vi – tâm lý: ' + bpsd.join(', ') : '') + '.';
   } else if(has('dem_mem') || has('dem_cog')) todo.push('Có suy giảm nhận thức: đánh giá đủ mục "Sa sút trí tuệ" và làm MMSE / MoCA.');
+  // Hội chứng quên thực tổn F04 — ICD-10 bản VN tr. 56–57
+  if(['amn_recent', 'amn_past'].some(has)){
+    const miss = need('amn', ['amn_recent', 'amn_past', 'amn_noimm', 'amn_clear', 'amn_noglobal', 'amn_cause']);
+    if(dems) miss.push('Đã có tiêu chuẩn mất trí — hội chứng quên cần không suy giảm trí tuệ toàn thể');
+    add('F04', 'ICD-10 (bản VN) tr. 56–57', ['amn_recent', 'amn_past', 'amn_noimm', 'amn_clear', 'amn_noglobal', 'amn_cause'].filter(has).map(k => lab('amn', k)), miss,
+      'Do rượu → F10.6 (hội chứng Korsakoff). Bịa chuyện, vô cảm, thiếu sáng kiến, thiếu hiểu biết bệnh gợi ý chẩn đoán. Làm MRI sọ não, vitamin B1.');
+  }
+  // Rối loạn nhận thức nhẹ F06.7 — ICD-10 bản VN tr. 58, 61–62 (tạm thời); ICD-11 6D71
+  const MCI_D = ['mci_mem', 'mci_att', 'mci_think', 'mci_lang', 'mci_vis'];
+  if(['mci_f06', 'mci_2w', 'mci_test'].concat(MCI_D).some(has)){
+    const mm = orderNum(v, 'mmse'), mo = orderNum(v, 'moca'), testLow = (mm != null && mm < 24) || (mo != null && mo < 26);
+    const miss = need('mci', ['mci_f06', 'mci_2w']);
+    if(!MCI_D.some(has)) miss.push('Cần ≥ 1 lĩnh vực suy giảm (trí nhớ, chú ý, suy nghĩ, ngôn ngữ, thị giác – không gian)');
+    if(!has('mci_test') && !testLow) miss.push('Chưa có: ' + lab('mci', 'mci_test'));
+    miss.push(...need('mci', ['mci_excl']));
+    if(dems && has('dem_func')) miss.push('Đã ảnh hưởng hoạt động hằng ngày — xem xét sa sút trí tuệ (F00–F03)');
+    const code = has('mci_sys') ? 'F06.71' : 'F06.70';
+    add(code, 'ICD-10 (bản VN) tr. 61–62', ['mci_f06', 'mci_2w'].concat(MCI_D, ['mci_test', 'mci_excl', 'mci_sys']).filter(has).map(k => lab('mci', k))
+      .concat(testLow ? [[mm != null && mm < 24 ? `MMSE ${fmtN(mm)} < 24` : '', mo != null && mo < 26 ? `MoCA ${fmtN(mo)} < 26` : ''].filter(Boolean).join(', ')] : []), miss,
+      'Tiêu chuẩn ICD-10 cho mục này là tạm thời. Theo dõi định kỳ (MMSE / MoCA) vì có thể tiến triển thành sa sút trí tuệ.');
+    i11x[code] = `ICD-11 6D71 không bắt buộc có bệnh thực tổn${has('mci_f06') ? '' : ' — nếu chưa có bằng chứng bệnh não vẫn có thể chẩn đoán theo ICD-11'}; cần bằng chứng khách quan và không ảnh hưởng đáng kể sinh hoạt.`;
+  }
   // Sảng: A–D đủ + khởi phát nhanh
   if(['del_cons', 'del_cog', 'del_psymo', 'del_sleep'].some(has)){
     const miss = need('del', ['del_cons', 'del_cog', 'del_psymo', 'del_sleep', 'del_acute', 'del_cause']);
-    add(has('dem_mem') && has('dem_cog') ? 'F05.1' : 'F05.0', 'BYT 2020 Bài 4; ICD-10', ['del_cons', 'del_cog', 'del_psymo', 'del_sleep', 'del_acute', 'del_cause'].filter(has).map(k => lab('del', k)), miss, 'Sảng là cấp cứu: tìm nguyên nhân (nhiễm trùng, rối loạn điện giải, hạ đường huyết, thuốc kháng cholinergic, cai rượu / benzodiazepin). Sảng do rượu / chất → F10–F19.');
+    add(dems || pc.has('dementia') ? 'F05.1' : 'F05.0', 'ICD-10 (bản VN) tr. 57–58; BYT 2020 Bài 4', ['del_cons', 'del_cog', 'del_psymo', 'del_sleep', 'del_acute', 'del_cause'].filter(has).map(k => lab('del', k)), miss, 'Sảng là cấp cứu: tìm nguyên nhân (nhiễm trùng, rối loạn điện giải, hạ đường huyết, thuốc kháng cholinergic, cai rượu / benzodiazepin). Sảng do rượu / chất → F10–F19.');
     if(has('del_cons')) alerts.push({lv: 3, t: 'Nghi sảng', m: 'Ý thức u ám, khởi phát cấp: đánh giá nguyên nhân thực tổn ngay (dấu sinh tồn, đường máu, điện giải, nhiễm trùng, thuốc); cân nhắc chuyển viện.'});
   }
   // Mất ngủ / ngủ nhiều không thực tổn

@@ -839,8 +839,31 @@ def main():
             assert ['F52.2', False] in pg.evaluate(SG, {'sx': ['sex_ed', 'dep_mood', 'dep_anhed', 'dep_conc', 'dep_sleep'] + gen, 'weeks': 30})
             assert ['F52.7', True] in pg.evaluate(SG, {'sx': ['sxg_hyper'], 'weeks': 30})
             # nhóm bổ sung 2026-10-30
-            assert ['F00.1', True] in pg.evaluate(SG, {'sx': ['dem_mem', 'dem_cog', 'dem_func', 'dem_clear', 'dem_emo', 'dem_6m', 'dem_slow'], 'weeks': 40})
-            assert ['F01.0', True] in pg.evaluate(SG, {'sx': ['dem_mem', 'dem_cog', 'dem_func', 'dem_clear', 'dem_emo', 'dem_6m', 'dem_vasc', 'dem_step'], 'weeks': 40})
+            # Rối loạn nhận thức — ICD-10 bản VN tr. 47–62
+            dg = ['dem_mem', 'dem_cog', 'dem_func', 'dem_clear', 'dem_emo', 'dem_6m']
+            assert ['F00.1', True] in pg.evaluate(SG, {'sx': dg + ['dem_slow', 'dem_ad_excl'], 'weeks': 40})
+            assert ['F00.1', False] in pg.evaluate(SG, {'sx': dg + ['dem_slow'], 'weeks': 40}), 'F00 cần loại trừ nguyên nhân khác (B)'
+            assert ['F00.0', True] in pg.evaluate(SG, {'sx': dg + ['dem_early', 'dem_cortical', 'dem_ad_excl'], 'weeks': 40})
+            assert ['F00.9', True] in pg.evaluate(SG, {'sx': dg + ['dem_early', 'dem_ad_excl'], 'weeks': 40})
+            assert ['F03', True] in pg.evaluate(SG, {'sx': dg, 'weeks': 40})
+            assert ['F02.0', True] in pg.evaluate(SG, {'sx': dg + ['dem_front', 'dem_front_mem'], 'weeks': 40})
+            assert ['F02.1', True] in pg.evaluate(SG, {'sx': dg + ['dem_cjd', 'dem_cjd_neuro'], 'weeks': 10})
+            assert ['F02.4', False] in pg.evaluate(SG, {'sx': dg + ['dem_hiv'], 'weeks': 40}), 'F02.4 cần loại trừ nguyên nhân khác'
+            r = dict((x[0], x) for x in pg.evaluate(I11, {'sx': dg + ['dem_slow', 'dem_ad_excl', 'dem_sev2', 'dem_x1', 'dem_x3'], 'weeks': 40}))
+            assert 'Chữ số thứ 5: 4' in r['F00.1'][2] and 'chữ số thứ 6: 1' in r['F00.1'][2] and '6D80.1' in r['F00.1'][1] and '6D86.0' in r['F00.1'][1], r
+            amn = ['amn_recent', 'amn_past', 'amn_noimm', 'amn_clear', 'amn_noglobal', 'amn_cause']
+            assert pg.evaluate(DX, {'sx': amn})['codes'] == ['F04']
+            assert ['F04', False] in pg.evaluate(SG, {'sx': amn + dg, 'weeks': 40}), 'hội chứng quên không đi cùng mất trí'
+            mci = ['mci_f06', 'mci_2w', 'mci_mem', 'mci_test', 'mci_excl']
+            assert pg.evaluate(DX, {'sx': mci})['codes'] == ['F06.70']
+            assert pg.evaluate(DX, {'sx': mci + ['mci_sys']})['codes'] == ['F06.71']
+            assert pg.evaluate(DX, {'sx': ['mci_f06', 'mci_2w', 'mci_excl']})['codes'] == [], 'cần ≥ 1 lĩnh vực'
+            r = dict((x[0], x) for x in pg.evaluate(I11, {'sx': [k for k in mci if k != 'mci_f06']}))
+            assert '6D71' in r['F06.70'][1] and 'không bắt buộc' in r['F06.70'][1], r
+            assert pg.evaluate("() => ['F02.8', 'F06.70', 'F06.71'].every(c => ICD.some(r => r[0] === c)) && icd11Of('F02.3')[1] === '6D85.0' && icd11Of('F04')[1] === '6D72'")
+            assert ['F01.0', True] in pg.evaluate(SG, {'sx': dg + ['dem_vasc', 'dem_uneven', 'dem_focal', 'dem_step'], 'weeks': 40})
+            assert ['F01.9', False] in pg.evaluate(SG, {'sx': dg + ['dem_vasc'], 'weeks': 40}), 'F01 cần G2, G3'
+            assert ['F05.1', True] in pg.evaluate(SG, {'sx': ['del_cons', 'del_cog', 'del_psymo', 'del_sleep', 'del_acute', 'del_cause'] + dg, 'weeks': 40})
             assert ['F05.0', True] in pg.evaluate(SG, {'sx': ['del_cons', 'del_cog', 'del_psymo', 'del_sleep', 'del_acute', 'del_cause'], 'weeks': 0})
             assert ['F51.0', True] in pg.evaluate(SG, {'sx': ['ins_compl', 'ins_freq', 'slp_impair', 'slp_excl'], 'weeks': 6})
             assert ['F10.2', True] in pg.evaluate(SG, {'sx': ['sud_alc', 'sud_crave', 'sud_control', 'sud_withdraw', 'sud_12m'], 'weeks': 20})
