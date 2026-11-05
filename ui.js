@@ -958,7 +958,9 @@ const SEED_ADDED = ['gavis10',
   // chống trầm cảm 3 vòng (BYT 2020) — 2026-11-02
   'amitri25f', 'imipr25', 'diaz5f',
   // piracetam 400 mg — 2026-11-05
-  'pirac400'];
+  'pirac400',
+  // methylphenidat (Ritalin 5 mg, Concerta 18 mg, Ritalin LA 20 mg) — 2026-11-05
+  'mph5', 'mph18er', 'mph20la'];
 async function addNewSeedDrugs(){
   const done = S.settings.seedAdded || [], todo = SEED_ADDED.filter(id => !done.includes(id));
   if(!todo.length) return;
@@ -975,7 +977,7 @@ const SEED_UPDATES = [{ver: 'stahl-2026-10', ids: SEED_ADDED.slice(1)},   // 44 
   {ver: 'tca-2026-11-02', ids: ['amitri25']},
   {ver: 'diazepam-2026-11-02', ids: ['diaz5']},
   {ver: 'piracetam-2026-11-05', ids: ['piracetam']}];                          // ưu tiên khuyến cáo mới hơn Stahl 2004 (LactMed, FDA/EMA, SmPC)
-const SEED_CLIN = ['tags', 'how', 'howOpts', 'ae', 'warn', 'pro', 'con', 'renal', 'hep', 'old', 'preg', 'lact', 'cond'];
+const SEED_CLIN = ['tags', 'how', 'howOpts', 'dnote', 'ae', 'warn', 'pro', 'con', 'renal', 'hep', 'old', 'preg', 'lact', 'cond'];
 async function updateSeedDrugs(){
   const done = S.settings.seedUpdated || [], todo = SEED_UPDATES.filter(u => !done.includes(u.ver));
   if(!todo.length) return;

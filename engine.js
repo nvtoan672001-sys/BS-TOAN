@@ -541,6 +541,15 @@ function drugBlockReasons(p, v, d, ctx, line){
     if(['benh mach ngoai bien nang', 'benh dong mach ngoai bien nang', 'benh mach mau ngoai bien nang'].some(k => mentionsSymptom(p.condNote || '', k))) r.push('bệnh mạch ngoại biên nặng');
     if(r.length) out.push('propranolol: bệnh nền ' + r.join('; '));
   }
+  // Methylphenidat (bác sĩ đặt 2026-11-05): tiền sử THA, rối loạn nhịp, động kinh, bệnh mạch ngoại biên, glôcôm góc đóng, tic, chóng mặt (ô tích hoặc ghi trong tiền sử)
+  if(H.includes('methylphenidat')){
+    const say = k => mentionsSymptom(p.condNote || '', k);
+    const r = [['htn', 'tăng huyết áp', ['tang huyet ap']], ['af', 'rối loạn nhịp', ['roi loan nhip', 'rung nhi', 'ngoai tam thu']], ['epilepsy', 'động kinh', ['dong kinh']],
+      ['pad', 'bệnh mạch ngoại biên', ['benh mach ngoai bien', 'benh dong mach ngoai bien', 'benh dong mach chi duoi']], ['glaucoma', 'glôcôm góc đóng', ['glocom', 'glaucoma', 'tang nhan ap']],
+      ['', 'tic', ['tic', 'tourette']], ['', 'chóng mặt', ['chong mat']]]
+      .filter(([k, , kws]) => (k && C.has(k)) || kws.some(say)).map(([, t]) => t);
+    if(r.length) out.push('methylphenidat: tiền sử ' + r.join(', '));
+  }
   // Piracetam (bác sĩ đặt 2026-11-05): CrCl < 20; tiền sử ghi xơ gan / đột quỵ; đang mang thai; đang cho con bú; rối loạn tiền đình (ô tích hoặc ghi trong tiền sử)
   if(H.includes('piracetam')){
     const r = [], C2 = (ctx || ctxOf(p, v)), say = k => mentionsSymptom(p.condNote || '', k), rn = renalOf(p);
@@ -851,6 +860,7 @@ function checkAll(p, v, entries){
       const block = drugBlockReasons(p, v, e.drug, ctx, e.line);
       if(block.length) items.push({lv: 3, kind: 'Quy tắc phòng khám', title: e.name, m: 'Không kê thuốc này vì ' + block.join('; ') + '. Chọn thuốc khác.', lines: [e.id]});
       const half = halfDoseReasons(p, v, e.drug, ctx);
+      if(e.drug.dnote) items.push({lv: 2, kind: 'Liều (quy tắc phòng khám)', title: `${e.name} — chỉnh liều`, m: e.drug.dnote, lines: [e.id]});
       const htnC = htnCautions(p, v, e.drug, ctx);
       if(htnC.length) items.push({lv: 2, kind: 'Thận trọng (VNHA 2026)', title: `${e.name} — ${HTN_GNAME[htnGroup(e.drug)]}`, m: 'Thận trọng: ' + htnC.join('; ') + '.', lines: [e.id]});
       const zl = zolpidemLowStart(p, v, e.drug);

@@ -188,6 +188,19 @@ def main():
                 const e = S.drugs.find(x => x.id === 'tiane12'); return {p: e.p, preg: e.preg && e.preg.lv, warn: e.warn, ver: S.settings.seedUpdated}; }""")
             assert r['p'] == 9999 and r['preg'] == 3 and r['warn'] != 'cũ' and r['ver'] == ['stahl-2026-10', 'moi-2026-10', 'tha-abcd-2026-10-30', 'zolpidem-2026-11-02', 'trazodon-2026-11-02', 'mirtazapin-2026-11-02', 'tca-2026-11-02', 'diazepam-2026-11-02', 'piracetam-2026-11-05'], r
             assert pg.evaluate("S.drugs.find(x => x.id === 'quet100n').lact.lv") == 1, 'quetiapin cho con bú phải theo LactMed (mức lưu ý)'
+            # Methylphenidat (bác sĩ đặt 2026-11-05): chặn theo tiền sử; cách dùng chọn sẵn; lưu ý chỉnh liều
+            MB = "([id, o]) => { const p = JSON.parse(JSON.stringify(curP())), v = JSON.parse(JSON.stringify(curV())); Object.assign(p, o); v.hpi = ''; v.dx = {icd: '', text: ''}; p.meds = []; return drugBlockReasons(p, v, drugById(id)).join(' | '); }"
+            for mid in ['mph5', 'mph18er', 'mph20la']:
+                assert pg.evaluate(MB, [mid, {'conds': [], 'condNote': ''}]) == '', (mid, pg.evaluate(MB, [mid, {'conds': [], 'condNote': ''}]))
+            for cd, word in [('htn', 'tăng huyết áp'), ('af', 'rối loạn nhịp'), ('epilepsy', 'động kinh'), ('pad', 'bệnh mạch ngoại biên'), ('glaucoma', 'glôcôm')]:
+                assert word in pg.evaluate(MB, ['mph5', {'conds': [cd], 'condNote': ''}]), cd
+            assert 'tic' in pg.evaluate(MB, ['mph18er', {'conds': [], 'condNote': 'Tic vận động từ 8 tuổi'}])
+            assert 'chóng mặt' in pg.evaluate(MB, ['mph20la', {'conds': [], 'condNote': 'Hay chóng mặt'}])
+            assert pg.evaluate(MB, ['mph20la', {'conds': [], 'condNote': 'Không chóng mặt, thể tích bình thường'}]) == ''
+            assert pg.evaluate("() => ['mph5', 'mph18er', 'mph20la'].map(id => drugById(id).howOpts[0]).join('|')") == 'Dùng mỗi lần 1 viên, ngày 2 lần sau ăn sáng, trưa|Dùng mỗi lần 1 viên, nuốt nguyên viên, không nhai, ngày 1 lần sau ăn sáng, không dùng tối do mất ngủ|Dùng mỗi lần 1 viên, ngày 1 lần sau ăn sáng'
+            r = pg.evaluate("() => { const p = JSON.parse(JSON.stringify(curP())), v = JSON.parse(JSON.stringify(curV())); p.conds = []; p.condNote = ''; p.meds = []; v.dx = {icd: '', text: ''}; v.rx = [{id: 'r_mph', drugId: 'mph18er', name: 'Concerta', dose: [1, 0, 0, 0], days: 30, how: ''}]; return checkAll(p, v).items.map(i => i.kind + ': ' + i.m); }")
+            assert any(x.startswith('Liều (quy tắc phòng khám): Tăng 18 mg mỗi tuần') for x in r), r
+            assert pg.evaluate("() => drugById('mph18er').dnote.includes('18–72 mg/ngày') && drugById('mph5').dnote === 'Tăng 5–10 mg mỗi tuần, tối đa 60 mg/ngày.'")
             # Piracetam (bác sĩ đặt 2026-11-05): chặn CrCl < 20, tiền sử xơ gan / đột quỵ, rối loạn tiền đình; lưu ý liều theo Clcr; ô bệnh nền mới
             assert pg.evaluate("() => ['vestibular', 'pad'].every(k => CONDS.some(c => c.k === k))"), 'thiếu ô tiền sử rối loạn tiền đình / bệnh mạch ngoại biên'
             PB = "(o) => { const p = JSON.parse(JSON.stringify(curP())), v = JSON.parse(JSON.stringify(curV())); Object.assign(p, o); v.hpi = ''; return drugBlockReasons(p, v, drugById('pirac400')).join(' | '); }"
