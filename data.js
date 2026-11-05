@@ -11,6 +11,7 @@ const CONDS = [
   {k:'diabetes', t:'Đái tháo đường'},
   {k:'dyslipid', t:'Rối loạn lipid máu'},
   {k:'cvd', t:'Bệnh mạch vành / đột quỵ'},
+  {k:'pad', t:'Bệnh mạch ngoại biên'},
   {k:'af', t:'Rung nhĩ / rối loạn nhịp'},
   {k:'heart_failure', t:'Suy tim'},
   {k:'qt_long', t:'QT kéo dài'},
@@ -30,6 +31,7 @@ const CONDS = [
   {k:'dementia', t:'Sa sút trí tuệ'},
   {k:'parkinson', t:'Bệnh Parkinson'},
   {k:'sexual_dysf', t:'Rối loạn / lo ngại chức năng tình dục'},
+  {k:'vestibular', t:'Rối loạn tiền đình'},
 ];
 const COND_EXTRA = {elderly:'Người cao tuổi (≥ 65)', alcohol:'Có uống rượu bia', alcohol_heavy:'Uống rượu nhiều', obese:'Thừa cân / béo phì', sedentary:'Ít vận động', child:'Dưới 18 tuổi', anorexia:'Chán ăn tâm thần (F50.0 / F50.1)', bulimia:'Ăn vô độ tâm thần (F50.2 / F50.3)', erectile_dysf:'Rối loạn cương dương (F52.2 / N48.4)', premature_ejac:'Xuất tinh sớm (F52.4)', sexual_dysf_f:'Nữ có rối loạn chức năng tình dục', insomnia:'Mất ngủ (G47.0 / F51.0)', sleep_dis:'Rối loạn giấc ngủ (F51.x / G47.x)', orthostatic:'Hạ huyết áp tư thế (I95.1)', 'tag:anticoag':'Đang dùng thuốc chống đông'};
 
@@ -770,7 +772,11 @@ const DRUGS_SEED = [
 {id:'piracetam', n:'Piracetam', hc:'piracetam', o:'Nội', u:'viên', p:0, cls:'Hỗ trợ chuyển hoá thần kinh', g:'neuro', tags:[], dose:[1,0,1,0], how:'Liều theo hàm lượng và chỉ định; BYT 2020 xếp trong nhóm nuôi dưỡng tế bào thần kinh',
  ae:'Bồn chồn, kích động, mất ngủ, tăng cân, rối loạn tiêu hoá.', warn:'Kích động, mất ngủ nhiều → báo bác sĩ.',
  pro:'Ít tác dụng phụ.', con:'Thải qua thận; có thể tăng nguy cơ chảy máu khi dùng cùng thuốc chống đông; bằng chứng hiệu quả hạn chế.',
- renal:[{lt:50,lv:2,m:'Suy thận: giảm liều theo CrCl (tờ hướng dẫn sử dụng).'},{lt:20,lv:3,m:'CrCl < 20: chống chỉ định (tờ hướng dẫn sử dụng).'}]},
+ renal:[{lt:80,lv:2,m:'Clcr 50 - 79 ml/phút: Dùng 2/3 liều bình thường, chia thành 2 - 3 lần/ngày.'},{lt:50,lv:2,m:'Clcr 30 - 49 ml/phút: Dùng 1/3 liều bình thường, chia thành 2 lần/ngày.'},{lt:30,lv:2,m:'Clcr 20 - 29 ml/phút: Dùng 1/6 liều bình thường, 1 lần/ngày.'},{lt:20,lv:3,m:'Clcr < 20 ml/phút: không kê (chống chỉ định).'}]},
+{id:'pirac400', n:'Piracetam 400 mg', hc:'piracetam', o:'Nội', u:'viên', p:0, cls:'Hỗ trợ chuyển hoá thần kinh', g:'neuro', tags:[], dose:[2,2,0,2], how:'', howOpts:['Dùng mỗi lần 2 viên, ngày 3 lần sau ăn sáng, trưa, tối'],
+ ae:'Bồn chồn, kích động, mất ngủ, tăng cân, rối loạn tiêu hoá.', warn:'Kích động, mất ngủ nhiều → báo bác sĩ.',
+ pro:'Ít tác dụng phụ.', con:'Thải qua thận; có thể tăng nguy cơ chảy máu khi dùng cùng thuốc chống đông; bằng chứng hiệu quả hạn chế.',
+ renal:[{lt:80,lv:2,m:'Clcr 50 - 79 ml/phút: Dùng 2/3 liều bình thường, chia thành 2 - 3 lần/ngày.'},{lt:50,lv:2,m:'Clcr 30 - 49 ml/phút: Dùng 1/3 liều bình thường, chia thành 2 lần/ngày.'},{lt:30,lv:2,m:'Clcr 20 - 29 ml/phút: Dùng 1/6 liều bình thường, 1 lần/ngày.'},{lt:20,lv:3,m:'Clcr < 20 ml/phút: không kê (chống chỉ định).'}]},
 {id:'ginkgo', n:'Ginkgo biloba', hc:'ginkgo biloba', o:'Ngoại', u:'viên', p:0, cls:'Hỗ trợ tuần hoàn não (thảo dược)', g:'neuro', tags:[], dose:[1,0,1,0], how:'Liều theo hàm lượng và chỉ định; BYT 2020 xếp trong nhóm nuôi dưỡng tế bào thần kinh',
  ae:'Rối loạn tiêu hoá, đau đầu, chóng mặt, dị ứng da.', warn:'Chảy máu bất thường, bầm tím → báo bác sĩ.',
  pro:'Dung nạp tốt.', con:'Tăng nguy cơ chảy máu khi dùng cùng thuốc chống đông, chống kết tập tiểu cầu, NSAID; bằng chứng hiệu quả hạn chế.'},

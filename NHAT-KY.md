@@ -25,3 +25,9 @@ Mỗi lần làm xong, thêm một mục ở **cuối file**: ngày · agent · 
 - PGV-001 (2026-10-24): tóm tắt record ĐTĐ ver 2 (`dtd ver 2.mp4`, `đtđ ver 2.mp4` trong thư mục iTop Screen Recorder\Videos). Trạng thái: CHỜ LÀM.
 - PGV-001 Antigravity nộp `ket-qua/PGV-001-tom-tat-record-dtd-ver2.md`. Claude kiểm tra (cắt khung hình video tại mốc agent ghi + đối chiếu docx): **ĐẠT CÓ ĐIỀU KIỆN ≈ 8/10**. Đúng: số liệu thử nghiệm SGLT2i [14:40], lịch sàng lọc biến chứng + IWGDF [26:48], ADA 2026 HA [01:42:32]. Sai: gộp ESC/EASD 2019 thành ESC 2024; mốc LDL-C [02:06:16] thực tế là slide dự phòng tiên phát (LDL < 1,8 mmol/L) bị bỏ sót; nhiều mốc [00:00] không xác minh được. Đánh giá chi tiết: `Giao-viec-Antigravity\danh-gia\PGV-001-danh-gia-claude.md`. Chưa đưa gì vào app.
 - PGV-002 (2026-10-24): Antigravity sửa 4 điểm của PGV-001 (tách ESC cũ/2024, đích LDL-C + mốc, thay mốc [00:00], kiểm lại số liệu chưa chắc). Kết quả: `ket-qua/PGV-002-sua-loi-PGV-001.md`. Trạng thái: CHỜ LÀM.
+
+## 2026-11-05 · Claude
+- Bệnh nền mới `vestibular` "Rối loạn tiền đình" (ô tích ở tiền sử + từ khoá chẩn đoán).
+- Thuốc mới `pirac400` Piracetam 400 mg (2-2-0-2), ô cách dùng có `howOpts` → chọn "Tự ghi (để trống)" hoặc "Dùng mỗi lần 2 viên, ngày 3 lần sau ăn sáng, trưa, tối". Lưu ý chỉnh liều theo Clcr (50–79: 2/3; 30–49: 1/3; 20–29: 1/6) — áp cho cả `piracetam` cũ (đợt `piracetam-2026-11-05`).
+- Chặn kê piracetam (`drugBlockReasons`): CrCl < 20; tiền sử ghi xơ gan / đột quỵ; mang thai; cho con bú (đã có quy tắc nhóm thần kinh); rối loạn tiền đình. File: data.js, engine.js, ui.js, kiem-thu/smoke_test.py.
+- Bệnh nền mới `pad` "Bệnh mạch ngoại biên" (ô tích ở tiền sử + từ khoá chẩn đoán "bệnh (động) mạch ngoại biên", "bệnh động mạch chi dưới"). Chưa dùng trong luật nào; quy tắc propranolol vẫn chỉ chặn khi tiền sử ghi "bệnh mạch ngoại biên nặng". Thêm kiểm thử chặn kê piracetam (tiền đình, xơ gan, đột quỵ, mang thai, howOpts, mức Clcr).

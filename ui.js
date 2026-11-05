@@ -448,7 +448,7 @@ function step3(p, v){
   const rows = v.rx.map(l => { const d = drugById(l.drugId); if(!d) return `<tr><td colspan="9" class="muted">Thuốc đã bị xoá khỏi danh mục <button class="btn xs danger" data-act="rxDel" data-id="${l.id}">Xoá dòng</button></td></tr>`;
     const b = k => `<td class="num" style="width:58px">${I(`v.rx.#${l.id}.${k}`, l[k], {num: true})}</td>`;
     return `<tr class="rxline"><td style="min-width:190px"><b>${esc(d.n)}</b> ${originBadge(d)}<div class="tiny muted">${esc(d.hc)} · ${money(d.p)}/${esc(d.u)}</div></td>${b('s')}${b('tr')}${b('c')}${b('t')}<td class="num" style="width:60px">${I(`v.rx.#${l.id}.days`, l.days, {num: true})}</td><td class="nowrap" data-live="rxqty" data-id="${l.id}"></td><td class="right nowrap" data-live="rxcost" data-id="${l.id}"></td><td class="nowrap right"><button class="btn xs" data-act="cmpOpen" data-line="${l.id}" title="So sánh với thuốc cùng nhóm">⇄ So sánh</button> <button class="btn xs danger" data-act="rxDel" data-id="${l.id}" title="Bỏ khỏi đơn">✕</button></td></tr>
-    <tr class="rxwarn"><td colspan="9"><div class="rxsub"><div class="how">${I(`v.rx.#${l.id}.how`, l.how, {list: 'dlHow', ph: 'Cách dùng'})}</div><div data-live="rxw" data-id="${l.id}"></div></div></td></tr>`; }).join('');
+    <tr class="rxwarn"><td colspan="9"><div class="rxsub"><div class="how">${I(`v.rx.#${l.id}.how`, l.how, {list: 'dlHow', ph: 'Cách dùng'})}${(d.howOpts || []).length ? `<select class="howpick" data-for="v.rx.#${l.id}.how" style="width:auto;padding:2px 8px;font-size:13px"><option value="">Tự ghi (để trống)</option>${d.howOpts.map(h => `<option value="${esc(h)}"${l.how === h ? ' selected' : ''}>${esc(h)}</option>`).join('')}</select>` : ''}</div><div data-live="rxw" data-id="${l.id}"></div></div></td></tr>`; }).join('');
   return `<div class="card"><h3>3. Chẩn đoán</h3><div class="g2">
     <div class="dxcol">${F('Mã ICD-10 chẩn đoán chính (gõ để chọn nhanh)', I('v.dx.icd', v.dx.icd, {list: 'dlIcd', ph: 'vd. K29.7 hoặc "viêm dạ dày"'}))}${F('Chẩn đoán chính', T('v.dx.main', v.dx.main, {rows: 2}))}</div>
     <div class="dxcol">${F('Mã ICD-10 chẩn đoán phụ', I('v.dx.icd2', v.dx.icd2, {list: 'dlIcd', ph: 'vd. I10 hoặc "tăng huyết áp"'}))}${F('Chẩn đoán phụ', T('v.dx.secondary', v.dx.secondary, {rows: 2}))}</div>
@@ -956,7 +956,9 @@ const SEED_ADDED = ['gavis10',
   // thuốc điều trị rối loạn giấc ngủ (BYT 2020 Bài 27, LEC2) — 2026-11-02
   'zolpi10', 'melato3', 'doxep10', 'trazo50', 'hydro25', 'zale10',
   // chống trầm cảm 3 vòng (BYT 2020) — 2026-11-02
-  'amitri25f', 'imipr25', 'diaz5f'];
+  'amitri25f', 'imipr25', 'diaz5f',
+  // piracetam 400 mg — 2026-11-05
+  'pirac400'];
 async function addNewSeedDrugs(){
   const done = S.settings.seedAdded || [], todo = SEED_ADDED.filter(id => !done.includes(id));
   if(!todo.length) return;
@@ -971,8 +973,9 @@ const SEED_UPDATES = [{ver: 'stahl-2026-10', ids: SEED_ADDED.slice(1)},   // 44 
   {ver: 'trazodon-2026-11-02', ids: ['trazo50']},
   {ver: 'mirtazapin-2026-11-02', ids: ['mirta30n', 'mirta30f']},
   {ver: 'tca-2026-11-02', ids: ['amitri25']},
-  {ver: 'diazepam-2026-11-02', ids: ['diaz5']}];                          // ưu tiên khuyến cáo mới hơn Stahl 2004 (LactMed, FDA/EMA, SmPC)
-const SEED_CLIN = ['tags', 'how', 'ae', 'warn', 'pro', 'con', 'renal', 'hep', 'old', 'preg', 'lact', 'cond'];
+  {ver: 'diazepam-2026-11-02', ids: ['diaz5']},
+  {ver: 'piracetam-2026-11-05', ids: ['piracetam']}];                          // ưu tiên khuyến cáo mới hơn Stahl 2004 (LactMed, FDA/EMA, SmPC)
+const SEED_CLIN = ['tags', 'how', 'howOpts', 'ae', 'warn', 'pro', 'con', 'renal', 'hep', 'old', 'preg', 'lact', 'cond'];
 async function updateSeedDrugs(){
   const done = S.settings.seedUpdated || [], todo = SEED_UPDATES.filter(u => !done.includes(u.ver));
   if(!todo.length) return;
@@ -995,6 +998,7 @@ function bindEvents(){
     else if(el.id === 'mq') renderMres();
     else if(el.id === 'dfq'){ S.dfq = el.value; $('#dtable').innerHTML = drugTable(); }
     else if(el.id === 'dg'){ S.dg = el.value; $('#dtable').innerHTML = drugTable(); }
+    else if(el.matches('.howpick')){ const t = $(`[data-b="${el.dataset.for}"]`); if(t){ t.value = el.value; onBind(t); } }
     else if(el.matches('.tplsel')){ if(el.value) insertTpl(el.value, el.dataset.path); el.value = ''; }
   });
   document.addEventListener('focusin', e => { if(e.target.id === 'dq' && S.rxG) renderDres(); });

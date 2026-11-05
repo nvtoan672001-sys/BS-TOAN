@@ -186,8 +186,18 @@ def main():
             r = pg.evaluate("""async () => { const d = S.drugs.find(x => x.id === 'tiane12'); d.p = 9999; delete d.preg; d.warn = 'cũ';
                 await Store.put('drugs', d); S.settings.seedUpdated = []; await saveSettings(); await loadAll();
                 const e = S.drugs.find(x => x.id === 'tiane12'); return {p: e.p, preg: e.preg && e.preg.lv, warn: e.warn, ver: S.settings.seedUpdated}; }""")
-            assert r['p'] == 9999 and r['preg'] == 3 and r['warn'] != 'cũ' and r['ver'] == ['stahl-2026-10', 'moi-2026-10', 'tha-abcd-2026-10-30', 'zolpidem-2026-11-02', 'trazodon-2026-11-02', 'mirtazapin-2026-11-02', 'tca-2026-11-02', 'diazepam-2026-11-02'], r
+            assert r['p'] == 9999 and r['preg'] == 3 and r['warn'] != 'cũ' and r['ver'] == ['stahl-2026-10', 'moi-2026-10', 'tha-abcd-2026-10-30', 'zolpidem-2026-11-02', 'trazodon-2026-11-02', 'mirtazapin-2026-11-02', 'tca-2026-11-02', 'diazepam-2026-11-02', 'piracetam-2026-11-05'], r
             assert pg.evaluate("S.drugs.find(x => x.id === 'quet100n').lact.lv") == 1, 'quetiapin cho con bú phải theo LactMed (mức lưu ý)'
+            # Piracetam (bác sĩ đặt 2026-11-05): chặn CrCl < 20, tiền sử xơ gan / đột quỵ, rối loạn tiền đình; lưu ý liều theo Clcr; ô bệnh nền mới
+            assert pg.evaluate("() => ['vestibular', 'pad'].every(k => CONDS.some(c => c.k === k))"), 'thiếu ô tiền sử rối loạn tiền đình / bệnh mạch ngoại biên'
+            PB = "(o) => { const p = JSON.parse(JSON.stringify(curP())), v = JSON.parse(JSON.stringify(curV())); Object.assign(p, o); v.hpi = ''; return drugBlockReasons(p, v, drugById('pirac400')).join(' | '); }"
+            assert pg.evaluate(PB, {'conds': [], 'condNote': ''}) == '', pg.evaluate(PB, {'conds': [], 'condNote': ''})
+            assert 'rối loạn tiền đình' in pg.evaluate(PB, {'conds': ['vestibular'], 'condNote': ''})
+            assert 'xơ gan' in pg.evaluate(PB, {'conds': [], 'condNote': 'Xơ gan Child B'})
+            assert 'đột quỵ' in pg.evaluate(PB, {'conds': [], 'condNote': 'Nhồi máu não 2024'})
+            assert 'đột quỵ' not in pg.evaluate(PB, {'conds': [], 'condNote': 'Không có đột quỵ'})
+            assert 'mang thai' in pg.evaluate(PB, {'conds': ['pregnant'], 'condNote': '', 'sex': 'Nữ'})
+            assert pg.evaluate("() => { const d = drugById('pirac400'); return d.howOpts[0] === 'Dùng mỗi lần 2 viên, ngày 3 lần sau ăn sáng, trưa, tối' && d.renal.map(r => r.lt).join() === '80,50,30,20' && d.renal[3].lv === 3; }")
 
             # 6g. Có chẩn đoán mà chưa có thuốc -> không sang được bước 4, trừ khi chọn lý do "Không kê đơn"
             pg.evaluate("go({name: 'visit', pid: 'p_demoA', vid: 'v_demo_now', step: 3})"); pg.wait_for_timeout(200)

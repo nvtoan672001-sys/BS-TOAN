@@ -289,7 +289,7 @@ function resolveMed(m){
   return {name: m.text + (m.dose ? ' – ' + m.dose : ''), short: m.text, tags: expandTags(tags), drug: hit || null, cls: hit ? hit.cls : null};
 }
 
-const DX_KEYWORDS = [['viem da day','peptic'],['loet da day','peptic'],['loet ta trang','peptic'],['xuat huyet tieu hoa','gi_bleed'],['tang huyet ap','htn'],['dai thao duong','diabetes'],['suy than','ckd'],['benh than man','ckd'],['suy tim','heart_failure'],['gut','gout'],['thoai hoa khop','oa'],['luong cuc','bipolar'],['sa sut tri tue','dementia'],['alzheimer','dementia'],['parkinson','parkinson'],['nghien ruou','alcohol_heavy'],['lo au','depression'],['xo gan','liver'],['benh gan man','liver'],['suy gan','liver'],['dong kinh','epilepsy'],['chan an tam than','anorexia'],['an vo do tam than','bulimia'],['mat ngu','insomnia'],['ha huyet ap tu the','orthostatic']];
+const DX_KEYWORDS = [['viem da day','peptic'],['loet da day','peptic'],['loet ta trang','peptic'],['xuat huyet tieu hoa','gi_bleed'],['tang huyet ap','htn'],['dai thao duong','diabetes'],['suy than','ckd'],['benh than man','ckd'],['suy tim','heart_failure'],['gut','gout'],['thoai hoa khop','oa'],['luong cuc','bipolar'],['sa sut tri tue','dementia'],['alzheimer','dementia'],['parkinson','parkinson'],['nghien ruou','alcohol_heavy'],['lo au','depression'],['xo gan','liver'],['benh gan man','liver'],['suy gan','liver'],['dong kinh','epilepsy'],['chan an tam than','anorexia'],['an vo do tam than','bulimia'],['mat ngu','insomnia'],['ha huyet ap tu the','orthostatic'],['roi loan tien dinh','vestibular'],['benh mach ngoai bien','pad'],['benh dong mach ngoai bien','pad'],['benh dong mach chi duoi','pad']];
 function ctxOf(p, v){
   const a = ageOf(p, v ? v.date : null);
   const conds = new Set(p.conds || []);
@@ -540,6 +540,18 @@ function drugBlockReasons(p, v, d, ctx, line){
     const r = [['asthma', 'hen / COPD (co thắt phế quản)'], ['af', 'rối loạn nhịp'], ['heart_failure', 'suy tim']].filter(([k]) => C.has(k)).map(([, t]) => t);
     if(['benh mach ngoai bien nang', 'benh dong mach ngoai bien nang', 'benh mach mau ngoai bien nang'].some(k => mentionsSymptom(p.condNote || '', k))) r.push('bệnh mạch ngoại biên nặng');
     if(r.length) out.push('propranolol: bệnh nền ' + r.join('; '));
+  }
+  // Piracetam (bác sĩ đặt 2026-11-05): CrCl < 20; tiền sử ghi xơ gan / đột quỵ; đang mang thai; đang cho con bú; rối loạn tiền đình (ô tích hoặc ghi trong tiền sử)
+  if(H.includes('piracetam')){
+    const r = [], C2 = (ctx || ctxOf(p, v)), say = k => mentionsSymptom(p.condNote || '', k), rn = renalOf(p);
+    if(rn && rn.crcl != null && rn.crcl < 20) r.push(`CrCl ≈ ${fmtN(rn.crcl)} mL/phút (< 20)`);
+    const hx = [];
+    if(say('xo gan')) hx.push('xơ gan');
+    if(['dot quy', 'tai bien mach mau nao', 'nhoi mau nao', 'xuat huyet nao'].some(say)) hx.push('đột quỵ');
+    if(hx.length) r.push('tiền sử ghi ' + hx.join(', '));
+    if(d.g !== 'neuro'){ const pr = pregnancyReason(p, v, C2); if(pr) r.push('đang mang thai: ' + pr); if(breastfeeding(p, v, C2)) r.push('đang cho con bú'); }
+    if(C2.conds.has('vestibular') || say('roi loan tien dinh')) r.push('rối loạn tiền đình');
+    if(r.length) out.push('piracetam: ' + r.join('; '));
   }
   // Sildenafil, tadalafil — nhóm ức chế PDE5 (bác sĩ đặt 2026-11-02; tadalafil cùng quy tắc): đang dùng nitroglycerin / isosorbid (nitrat — LEC6: chống chỉ định); tiền sử nhồi máu cơ tim, đột quỵ,
   // rối loạn nhịp, suy tim, bệnh mạch vành; HA < 90/50 hoặc > 170/100 (sinh hiệu lượt khám này)
