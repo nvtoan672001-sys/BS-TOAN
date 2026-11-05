@@ -962,7 +962,9 @@ const SEED_ADDED = ['gavis10',
   // methylphenidat (Ritalin 5 mg, Concerta 18 mg, Ritalin LA 20 mg) — 2026-11-05
   'mph5', 'mph18er', 'mph20la',
   // atomoxetin — 2026-11-05
-  'atomox'];
+  'atomox',
+  // clonidin 0,025 mg — 2026-11-05
+  'clon025'];
 async function addNewSeedDrugs(){
   const done = S.settings.seedAdded || [], todo = SEED_ADDED.filter(id => !done.includes(id));
   if(!todo.length) return;

@@ -211,6 +211,15 @@ def main():
             assert 'mang thai' in pg.evaluate(MB, ['atomox', {'conds': ['pregnant'], 'condNote': '', 'sex': 'Nữ'}])
             assert 'cho con bú' in pg.evaluate(MB, ['atomox', {'conds': ['breastfeeding'], 'condNote': '', 'sex': 'Nữ'}])
             assert pg.evaluate("() => drugById('atomox').how === '' && drugById('atomox').dnote.endsWith('Xơ gan vừa giảm còn 25% liều.')")
+            # Clonidin (bác sĩ đặt 2026-11-05)
+            assert pg.evaluate(MB, ['clon025', {'conds': [], 'condNote': ''}]) == '', pg.evaluate(MB, ['clon025', {'conds': [], 'condNote': ''}])
+            for cd, word in [('glaucoma', 'glôcôm'), ('htn', 'tăng huyết áp'), ('af', 'rối loạn nhịp'), ('vestibular', 'rối loạn tiền đình')]:
+                assert word in pg.evaluate(MB, ['clon025', {'conds': [cd], 'condNote': ''}]), cd
+            assert 'u tuỷ thượng thận' in pg.evaluate(MB, ['clon025', {'conds': [], 'condNote': 'Pheochromocytoma'}])
+            assert 'xơ gan' in pg.evaluate(MB, ['clon025', {'conds': [], 'condNote': 'Xơ gan do rượu'}])
+            assert 'mang thai' in pg.evaluate(MB, ['clon025', {'conds': ['pregnant'], 'condNote': '', 'sex': 'Nữ'}])
+            assert 'cho con bú' in pg.evaluate(MB, ['clon025', {'conds': ['breastfeeding'], 'condNote': '', 'sex': 'Nữ'}])
+            assert pg.evaluate("() => { const d = drugById('clon025'); return d.how === '' && d.howOpts[0] === 'Dùng mỗi lần 1 viên, ngày 2 lần sau ăn sáng, tối' && d.dnote === 'Trung bình 0,1–0,25 mg/ngày, tăng 0,025–0,05 mg mỗi 3–7 ngày.'; }")
             # Piracetam (bác sĩ đặt 2026-11-05): chặn CrCl < 20, tiền sử xơ gan / đột quỵ, rối loạn tiền đình; lưu ý liều theo Clcr; ô bệnh nền mới
             assert pg.evaluate("() => ['vestibular', 'pad'].every(k => CONDS.some(c => c.k === k))"), 'thiếu ô tiền sử rối loạn tiền đình / bệnh mạch ngoại biên'
             PB = "(o) => { const p = JSON.parse(JSON.stringify(curP())), v = JSON.parse(JSON.stringify(curV())); Object.assign(p, o); v.hpi = ''; return drugBlockReasons(p, v, drugById('pirac400')).join(' | '); }"

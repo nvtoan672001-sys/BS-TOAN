@@ -560,6 +560,15 @@ function drugBlockReasons(p, v, d, ctx, line){
       .filter(([k, , kws]) => (k && C.has(k)) || kws.some(say)).map(([, t]) => t);
     if(r.length) out.push('atomoxetin: tiền sử ' + r.join(', '));
   }
+  // Clonidin (bác sĩ đặt 2026-11-05): tiền sử glôcôm góc đóng, u tuỷ thượng thận, THA, rối loạn nhịp, rối loạn tiền đình (ô tích hoặc chữ), xơ gan (chữ);
+  // mang thai / cho con bú: quy tắc chung nhóm thần kinh – tâm thần
+  if(H.includes('clonidin')){
+    const say = k => mentionsSymptom(p.condNote || '', k);
+    const r = [['glaucoma', 'glôcôm góc đóng', ['glocom', 'glaucoma', 'tang nhan ap']], ['', 'u tuỷ thượng thận', ['u tuy thuong than', 'pheochromocytoma', 'u te bao uu crom', 'u tuy tuyen thuong than']],
+      ['htn', 'tăng huyết áp', ['tang huyet ap']], ['af', 'rối loạn nhịp', ['roi loan nhip', 'rung nhi', 'ngoai tam thu']], ['vestibular', 'rối loạn tiền đình', ['roi loan tien dinh']], ['', 'xơ gan', ['xo gan']]]
+      .filter(([k, , kws]) => (k && C.has(k)) || kws.some(say)).map(([, t]) => t);
+    if(r.length) out.push('clonidin: tiền sử ' + r.join(', '));
+  }
   // Piracetam (bác sĩ đặt 2026-11-05): CrCl < 20; tiền sử ghi xơ gan / đột quỵ; đang mang thai; đang cho con bú; rối loạn tiền đình (ô tích hoặc ghi trong tiền sử)
   if(H.includes('piracetam')){
     const r = [], C2 = (ctx || ctxOf(p, v)), say = k => mentionsSymptom(p.condNote || '', k), rn = renalOf(p);
