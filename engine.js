@@ -289,7 +289,7 @@ function resolveMed(m){
   return {name: m.text + (m.dose ? ' – ' + m.dose : ''), short: m.text, tags: expandTags(tags), drug: hit || null, cls: hit ? hit.cls : null};
 }
 
-const DX_KEYWORDS = [['viem da day','peptic'],['loet da day','peptic'],['loet ta trang','peptic'],['xuat huyet tieu hoa','gi_bleed'],['tang huyet ap','htn'],['dai thao duong','diabetes'],['suy than','ckd'],['benh than man','ckd'],['suy tim','heart_failure'],['gut','gout'],['thoai hoa khop','oa'],['luong cuc','bipolar'],['sa sut tri tue','dementia'],['alzheimer','dementia'],['parkinson','parkinson'],['nghien ruou','alcohol_heavy'],['lo au','depression'],['xo gan','liver'],['benh gan man','liver'],['suy gan','liver'],['dong kinh','epilepsy'],['chan an tam than','anorexia'],['an vo do tam than','bulimia'],['mat ngu','insomnia'],['ha huyet ap tu the','orthostatic'],['roi loan tien dinh','vestibular'],['benh mach ngoai bien','pad'],['benh dong mach ngoai bien','pad'],['benh dong mach chi duoi','pad']];
+const DX_KEYWORDS = [['viem da day','peptic'],['loet da day','peptic'],['loet ta trang','peptic'],['xuat huyet tieu hoa','gi_bleed'],['tang huyet ap','htn'],['dai thao duong','diabetes'],['suy than','ckd'],['benh than man','ckd'],['suy tim','heart_failure'],['gut','gout'],['thoai hoa khop','oa'],['luong cuc','bipolar'],['sa sut tri tue','dementia'],['alzheimer','dementia'],['parkinson','parkinson'],['nghien ruou','alcohol_heavy'],['lo au','depression'],['xo gan','liver'],['benh gan man','liver'],['suy gan','liver'],['dong kinh','epilepsy'],['chan an tam than','anorexia'],['an vo do tam than','bulimia'],['mat ngu','insomnia'],['ha huyet ap tu the','orthostatic'],['roi loan tien dinh','vestibular'],['benh mach ngoai bien','pad'],['benh dong mach ngoai bien','pad'],['benh dong mach chi duoi','pad'],['suy dinh duong','malnutrition']];
 function ctxOf(p, v){
   const a = ageOf(p, v ? v.date : null);
   const conds = new Set(p.conds || []);
@@ -549,6 +549,16 @@ function drugBlockReasons(p, v, d, ctx, line){
       ['', 'tic', ['tic', 'tourette']], ['', 'chóng mặt', ['chong mat']]]
       .filter(([k, , kws]) => (k && C.has(k)) || kws.some(say)).map(([, t]) => t);
     if(r.length) out.push('methylphenidat: tiền sử ' + r.join(', '));
+  }
+  // Atomoxetin (bác sĩ đặt 2026-11-05): tiền sử glôcôm góc đóng, u tuỷ thượng thận, THA, rối loạn nhịp, suy dinh dưỡng, phì đại tiền liệt tuyến, rối loạn tiền đình (ô tích hoặc chữ);
+  // mang thai / cho con bú: quy tắc chung nhóm thần kinh – tâm thần (d.g === 'neuro')
+  if(H.includes('atomoxetin')){
+    const say = k => mentionsSymptom(p.condNote || '', k);
+    const r = [['glaucoma', 'glôcôm góc đóng', ['glocom', 'glaucoma', 'tang nhan ap']], ['', 'u tuỷ thượng thận', ['u tuy thuong than', 'pheochromocytoma', 'u te bao uu crom', 'u tuy tuyen thuong than']],
+      ['htn', 'tăng huyết áp', ['tang huyet ap']], ['af', 'rối loạn nhịp', ['roi loan nhip', 'rung nhi', 'ngoai tam thu']], ['malnutrition', 'suy dinh dưỡng', ['suy dinh duong']],
+      ['bph', 'phì đại tiền liệt tuyến', ['phi dai tien liet tuyen', 'phi dai tuyen tien liet', 'tang san tien liet tuyen']], ['vestibular', 'rối loạn tiền đình', ['roi loan tien dinh']]]
+      .filter(([k, , kws]) => (k && C.has(k)) || kws.some(say)).map(([, t]) => t);
+    if(r.length) out.push('atomoxetin: tiền sử ' + r.join(', '));
   }
   // Piracetam (bác sĩ đặt 2026-11-05): CrCl < 20; tiền sử ghi xơ gan / đột quỵ; đang mang thai; đang cho con bú; rối loạn tiền đình (ô tích hoặc ghi trong tiền sử)
   if(H.includes('piracetam')){

@@ -201,6 +201,16 @@ def main():
             r = pg.evaluate("() => { const p = JSON.parse(JSON.stringify(curP())), v = JSON.parse(JSON.stringify(curV())); p.conds = []; p.condNote = ''; p.meds = []; v.dx = {icd: '', text: ''}; v.rx = [{id: 'r_mph', drugId: 'mph18er', name: 'Concerta', dose: [1, 0, 0, 0], days: 30, how: ''}]; return checkAll(p, v).items.map(i => i.kind + ': ' + i.m); }")
             assert any(x.startswith('Liều (quy tắc phòng khám): Tăng 18 mg mỗi tuần') for x in r), r
             assert pg.evaluate("() => drugById('mph18er').dnote.includes('18–72 mg/ngày') && drugById('mph5').dnote === 'Tăng 5–10 mg mỗi tuần, tối đa 60 mg/ngày.'")
+            # Atomoxetin (bác sĩ đặt 2026-11-05)
+            assert pg.evaluate("() => CONDS.some(c => c.k === 'malnutrition')"), 'thiếu ô suy dinh dưỡng'
+            assert pg.evaluate(MB, ['atomox', {'conds': [], 'condNote': ''}]) == ''
+            for cd, word in [('glaucoma', 'glôcôm'), ('htn', 'tăng huyết áp'), ('af', 'rối loạn nhịp'), ('malnutrition', 'suy dinh dưỡng'), ('bph', 'phì đại tiền liệt tuyến'), ('vestibular', 'rối loạn tiền đình')]:
+                assert word in pg.evaluate(MB, ['atomox', {'conds': [cd], 'condNote': ''}]), cd
+            assert 'u tuỷ thượng thận' in pg.evaluate(MB, ['atomox', {'conds': [], 'condNote': 'U tủy thượng thận đã mổ'}])
+            assert 'suy dinh dưỡng' in pg.evaluate(MB, ['atomox', {'conds': [], 'condNote': 'Suy dinh dưỡng thể thấp còi'}])
+            assert 'mang thai' in pg.evaluate(MB, ['atomox', {'conds': ['pregnant'], 'condNote': '', 'sex': 'Nữ'}])
+            assert 'cho con bú' in pg.evaluate(MB, ['atomox', {'conds': ['breastfeeding'], 'condNote': '', 'sex': 'Nữ'}])
+            assert pg.evaluate("() => drugById('atomox').how === '' && drugById('atomox').dnote.endsWith('Xơ gan vừa giảm còn 25% liều.')")
             # Piracetam (bác sĩ đặt 2026-11-05): chặn CrCl < 20, tiền sử xơ gan / đột quỵ, rối loạn tiền đình; lưu ý liều theo Clcr; ô bệnh nền mới
             assert pg.evaluate("() => ['vestibular', 'pad'].every(k => CONDS.some(c => c.k === k))"), 'thiếu ô tiền sử rối loạn tiền đình / bệnh mạch ngoại biên'
             PB = "(o) => { const p = JSON.parse(JSON.stringify(curP())), v = JSON.parse(JSON.stringify(curV())); Object.assign(p, o); v.hpi = ''; return drugBlockReasons(p, v, drugById('pirac400')).join(' | '); }"

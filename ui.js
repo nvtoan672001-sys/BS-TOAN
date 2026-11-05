@@ -960,7 +960,9 @@ const SEED_ADDED = ['gavis10',
   // piracetam 400 mg — 2026-11-05
   'pirac400',
   // methylphenidat (Ritalin 5 mg, Concerta 18 mg, Ritalin LA 20 mg) — 2026-11-05
-  'mph5', 'mph18er', 'mph20la'];
+  'mph5', 'mph18er', 'mph20la',
+  // atomoxetin — 2026-11-05
+  'atomox'];
 async function addNewSeedDrugs(){
   const done = S.settings.seedAdded || [], todo = SEED_ADDED.filter(id => !done.includes(id));
   if(!todo.length) return;
