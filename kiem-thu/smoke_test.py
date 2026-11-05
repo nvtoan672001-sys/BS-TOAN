@@ -450,10 +450,18 @@ def main():
               const M = icd => tplMatches(t, ctxOf({sex:'Nam', condNote:''}, {date:'2026-11-05', dx:{icd}, rx:[]}));
               return [M('F90.0'), M('F84.0'), M('F70'), M('F98.0'), M('F32.1'), M('F99'), /Gia đình cần phối hợp/.test(t.text) && t.text.includes('(MBI)')]; }""")
             assert cp == [True, True, True, True, False, False, True], 'lời dặn rối loạn tâm thần trẻ em sai: ' + str(cp)
+            # bản đã cài trước 2026-11-05 (chưa có đoạn theo dõi) được bổ sung một lần qua TPL_UPDATES
+            assert pg.evaluate("""async () => { const t = S.tpls.find(x => x.id === 'adv_child_psy'); t.text = t.text.split(String.fromCharCode(10) + 'Theo dõi phát triển')[0];
+              S.settings.tplUpdated = (S.settings.tplUpdated || []).filter(v => v !== 'tre-em-theo-doi-2026-11-05'); await updateSeedTpls();
+              const x = S.tpls.find(y => y.id === 'adv_child_psy').text; return x.endsWith('Tái khám sau 2 tuần.') && x.split('Theo dõi phát triển').length === 2; }"""), 'chưa bổ sung đoạn theo dõi vào mẫu trẻ em'
             ap = pg.evaluate("""() => { const t = TEMPLATES_SEED.find(x => x.id === 'adv_asd'); if(!t) return null;
               const M = icd => tplMatches(t, ctxOf({sex:'Nam', condNote:''}, {date:'2026-11-05', dx:{icd}, rx:[]}));
               return [M('F84.0'), M('F84.1'), M('F84.5'), M('F90.0'), /trung tâm cho trẻ khuyết tật/.test(t.text)]; }""")
             assert ap == [True, True, True, False, True], 'lời dặn tự kỷ sai: ' + str(ap)
+            st = pg.evaluate("""() => { const t = TEMPLATES_SEED.find(x => x.id === 'adv_stutter'); if(!t) return null;
+              const M = icd => tplMatches(t, ctxOf({sex:'Nam', condNote:''}, {date:'2026-11-05', dx:{icd}, rx:[]}));
+              return [M('F98.5'), M('F98.6'), M('F84.0'), /ngón tay/.test(t.text)]; }""")
+            assert st == [True, False, False, True], 'lời dặn nói lắp sai: ' + str(st)
             assert pg.evaluate("() => ['amitri25','amitri25f','imipr25'].every(id => { const d = drugById(id); return d && isTca(d) && /25–300 mg/.test(d.how); })"), 'thiếu amitriptylin / imipramin'
             ai = pg.evaluate("""() => { const v0 = {date:'2026-11-02', hpi:'', dx:{}, rx:[]};
               const B = (id, p) => { const q = {sex:'Nam', condNote:'', birthYear:1980, ...p}; return drugBlockReasons(q, v0, drugById(id), ctxOf(q, v0)).length > 0; };

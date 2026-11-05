@@ -928,9 +928,10 @@ async function loadAll(){
   await updateSeedTpls();
 }
 // Mẫu lời dặn bổ sung sau khi phát hành: chỉ thêm id chưa có, mỗi id đúng một lần (BS đã xoá thì không thêm lại)
-const TPL_ADDED = ['adv_psych', 'adv_viagra', 'adv_ed', 'adv_pe', 'adv_sex_f', 'adv_relax', 'adv_trazo', 'adv_sleep', 'adv_child_psy', 'adv_asd'];
+const TPL_ADDED = ['adv_psych', 'adv_viagra', 'adv_ed', 'adv_pe', 'adv_sex_f', 'adv_relax', 'adv_trazo', 'adv_sleep', 'adv_child_psy', 'adv_asd', 'adv_stutter'];
 // Sửa nội dung mẫu đã phát hành: thay đoạn `from` bằng `to` một lần (nhớ ở settings.tplUpdated); mẫu bác sĩ đã sửa đoạn đó thì giữ nguyên
-const TPL_UPDATES = [{ver: 'psych-mang-thai-2026-10-28', id: 'adv_psych', from: 'không tự ý ngừng thuốc. Báo bác sĩ', to: 'không tự ý ngừng thuốc. Tránh mang thai trong thời gian sử dụng thuốc. Báo bác sĩ'}];
+const TPL_UPDATES = [{ver: 'psych-mang-thai-2026-10-28', id: 'adv_psych', from: 'không tự ý ngừng thuốc. Báo bác sĩ', to: 'không tự ý ngừng thuốc. Tránh mang thai trong thời gian sử dụng thuốc. Báo bác sĩ'},
+  {ver: 'tre-em-theo-doi-2026-11-05', id: 'adv_child_psy', from: 'hỗ trợ trẻ.', to: 'hỗ trợ trẻ.\nTheo dõi phát triển: cân nặng, chiều cao, kỹ năng ngôn ngữ, xã hội, học tập. Theo dõi đáp ứng của giáo viên, người xung quanh. Tái khám sau 2 tuần.'}];
 async function updateSeedTpls(){
   const done = S.settings.tplUpdated || [], todo = TPL_UPDATES.filter(u => !done.includes(u.ver));
   if(!todo.length) return;
