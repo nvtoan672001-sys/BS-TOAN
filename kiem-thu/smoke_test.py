@@ -446,6 +446,14 @@ def main():
               const M = icd => tplMatches(t, ctxOf({sex:'Nam', condNote:''}, {date:'2026-11-02', dx:{icd}, rx:[]}));
               return [M('F51.0'), M('G47.3'), M('F51.5'), M('F32.1'), /20 phút/.test(t.text)]; }""")
             assert sa == [True, True, True, False, True], 'lời dặn rối loạn giấc ngủ sai: ' + str(sa)
+            cp = pg.evaluate("""() => { const t = TEMPLATES_SEED.find(x => x.id === 'adv_child_psy'); if(!t) return null;
+              const M = icd => tplMatches(t, ctxOf({sex:'Nam', condNote:''}, {date:'2026-11-05', dx:{icd}, rx:[]}));
+              return [M('F90.0'), M('F84.0'), M('F70'), M('F98.0'), M('F32.1'), M('F99'), /Gia đình cần phối hợp/.test(t.text) && t.text.includes('(MBI)')]; }""")
+            assert cp == [True, True, True, True, False, False, True], 'lời dặn rối loạn tâm thần trẻ em sai: ' + str(cp)
+            ap = pg.evaluate("""() => { const t = TEMPLATES_SEED.find(x => x.id === 'adv_asd'); if(!t) return null;
+              const M = icd => tplMatches(t, ctxOf({sex:'Nam', condNote:''}, {date:'2026-11-05', dx:{icd}, rx:[]}));
+              return [M('F84.0'), M('F84.1'), M('F84.5'), M('F90.0'), /trung tâm cho trẻ khuyết tật/.test(t.text)]; }""")
+            assert ap == [True, True, True, False, True], 'lời dặn tự kỷ sai: ' + str(ap)
             assert pg.evaluate("() => ['amitri25','amitri25f','imipr25'].every(id => { const d = drugById(id); return d && isTca(d) && /25–300 mg/.test(d.how); })"), 'thiếu amitriptylin / imipramin'
             ai = pg.evaluate("""() => { const v0 = {date:'2026-11-02', hpi:'', dx:{}, rx:[]};
               const B = (id, p) => { const q = {sex:'Nam', condNote:'', birthYear:1980, ...p}; return drugBlockReasons(q, v0, drugById(id), ctxOf(q, v0)).length > 0; };
