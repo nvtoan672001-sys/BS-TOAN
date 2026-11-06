@@ -39,3 +39,6 @@ Mỗi lần làm xong, thêm một mục ở **cuối file**: ngày · agent · 
 - Mẫu lời dặn mới `adv_stutter` "Nói lắp" (văn bản của bác sĩ, thêm dấu chấm cuối) — gợi ý khi chẩn đoán có mã F98.5 (cond mới `stutter`).
 - Mẫu `adv_child_psy` bổ sung đoạn cuối "Theo dõi phát triển … Tái khám sau 2 tuần." (bác sĩ gửi); bản đã cài được thêm một lần qua `TPL_UPDATES` (`tre-em-theo-doi-2026-11-05`, bỏ qua nếu bác sĩ đã sửa đoạn cuối).
 - Rối loạn nhận thức (F00–F06.7) viết lại theo ICD-10 bản VN tr. 47–62 + ICD-11 6D70–6D86: nhóm `dem` (G1–G4, mức độ = chữ số 6, triệu chứng phụ = chữ số 5, F00 B + F00.0 / F00.1 / F00.2 / F00.9, F01 G2–G4 + F01.0–F01.3 / F01.9, F02.0–F02.4, F02.8, F03), nhóm `del` ghi A–F, nhóm mới `amn` (F04) và `mci` (F06.70 / F06.71). Thêm ICD F02.8, F06.70, F06.71; `ICD11_MAP` thêm F00.0–F00.2, F02.0–F02.8, F04, F06.7. Khoá `dem_slow` đổi nghĩa (chỉ "từ từ, tiến triển rất chậm"; loại trừ nguyên nhân khác thành `dem_ad_excl`) — hồ sơ cũ sẽ hiện "Chưa có: B. Không có bằng chứng…".
+
+## 2026-11-06 · Claude
+- Cờ đỏ Alzheimer (bác sĩ cung cấp): 10 mục `ad_rf1`–`ad_rf10` đầu phần F00 của nhóm `dem` → `psyDx` cảnh báo mức 3 "Cờ đỏ Alzheimer" (không tự gợi ý mã), nhắc MMSE / MoCA, đánh giá G1–G4, loại trừ nguyên nhân điều trị được.

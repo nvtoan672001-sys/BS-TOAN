@@ -851,6 +851,9 @@ def main():
             assert ['F02.4', False] in pg.evaluate(SG, {'sx': dg + ['dem_hiv'], 'weeks': 40}), 'F02.4 cần loại trừ nguyên nhân khác'
             r = dict((x[0], x) for x in pg.evaluate(I11, {'sx': dg + ['dem_slow', 'dem_ad_excl', 'dem_sev2', 'dem_x1', 'dem_x3'], 'weeks': 40}))
             assert 'Chữ số thứ 5: 4' in r['F00.1'][2] and 'chữ số thứ 6: 1' in r['F00.1'][2] and '6D80.1' in r['F00.1'][1] and '6D86.0' in r['F00.1'][1], r
+            r = pg.evaluate(DX, {'sx': ['ad_rf1', 'ad_rf7']})
+            assert 'Cờ đỏ Alzheimer' in r['alerts'] and r['codes'] == [] and r['all'] == [], r
+            assert pg.evaluate("() => MENTAL_SX.find(g => g.g === 'dem').items.filter(i => /^ad_rf/.test(i[0])).length") == 10
             amn = ['amn_recent', 'amn_past', 'amn_noimm', 'amn_clear', 'amn_noglobal', 'amn_cause']
             assert pg.evaluate(DX, {'sx': amn})['codes'] == ['F04']
             assert ['F04', False] in pg.evaluate(SG, {'sx': amn + dg, 'weeks': 40}), 'hội chứng quên không đi cùng mất trí'
