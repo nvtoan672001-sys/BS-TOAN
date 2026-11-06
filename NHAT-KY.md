@@ -43,3 +43,14 @@ Mỗi lần làm xong, thêm một mục ở **cuối file**: ngày · agent · 
 ## 2026-11-06 · Claude
 - Cờ đỏ Alzheimer (bác sĩ cung cấp): 10 mục `ad_rf1`–`ad_rf10` đầu phần F00 của nhóm `dem` → `psyDx` cảnh báo mức 3 "Cờ đỏ Alzheimer" (không tự gợi ý mã), nhắc MMSE / MoCA, đánh giá G1–G4, loại trừ nguyên nhân điều trị được.
 - Diễn giải MMSE (bác sĩ đặt): `SCALE_BANDS.mmse` = Bình thường (24–30) / Nhẹ (19–23) / Vừa (10–18) / Nặng (< 10) — bác sĩ sửa lại cùng ngày; khoảng tham chiếu trong `LABS` sửa theo. Rối loạn nhận thức nhẹ F06.7 vẫn tính "trắc nghiệm bất thường" khi MMSE < 24.
+
+## 2026-11-06 · Claude
+- Sàng lọc theo tuổi/giới/nguy cơ: thêm mục `cog` "Rối loạn nhận thức (Mini-Cog, MMSE, MoCA, test vẽ đồng hồ)", chu kỳ 6 tháng, khuyến cáo do bác sĩ đặt. Hiện khi: ≥ 65 tuổi có than phiền trí nhớ (chữ "giảm trí nhớ / hay quên / mau quên…" trong tiền sử, bệnh sử, lý do khám); đột quỵ (chữ trong các ô trên hoặc mã ICD I60–I64, I69 ở lượt khám); bệnh nền Parkinson; đái tháo đường (app không biết số năm mắc → mọi ĐTĐ, bác sĩ tự cân nhắc "lâu năm"); trầm cảm/lo âu ở người ≥ 60 tuổi (thay cho "khởi phát muộn"). Không hiện nếu đã có bệnh nền sa sút trí tuệ. Kết quả MMSE/MoCA/Mini-Cog/vẽ đồng hồ tự ghi ngày làm (`ORDER_TO_SCREEN`).
+- File: data.js, engine.js (`screenCtx` thêm `memory`, `stroke`), kiem-thu/smoke_test.py.
+- Cần bác sĩ duyệt: ngưỡng 60 tuổi cho "trầm cảm khởi phát muộn"; ĐTĐ mọi thời gian mắc.
+
+## 2026-11-06 · Claude — cập nhật định hướng F00–F03
+- Nguồn: BYT 2020 Bài 1–3, ICD-11 (yêu cầu chung sa sút trí tuệ, 6D80–6D86, phân độ XS5W / XS0T / XS25), bài giảng LEC1 (DSM-5-TR, chẩn đoán phân biệt).
+- Bảng kiểm `dem`: mức độ nhẹ / trung bình / nặng ghép mô tả ICD-10 + ICD-11; thêm `dem_vasc_img` (CT/MRI khẳng định – BYT Bài 2), `dem_vasc_3m` (khởi phát ≤ 3 tháng sau đột quỵ), `dem_pd_1y` (nhận thức suy giảm ≥ 1 năm sau chẩn đoán Parkinson – BYT Bài 3), 4 đặc điểm thể Lewy `dem_lbd_vh/fl/rbd/pk` (ICD-11 6D82: cần ≥ 2); `dem_other` liệt kê nguyên nhân theo BYT Bài 3 mục 2.6.
+- engine.js: thể Lewy → F02.8 (kèm G31.8, ICD-11 6D82); Parkinson + ≥ 2 dấu Lewy mà chưa đủ 1 năm → thể Lewy; ghi chú CJD (bộ 3, EEG sóng 3 pha, tau dịch não tuỷ > 1200 pg/mL), Huntington, Pick, HIV, F01 (CT/MRI, 3 tháng); F03: rượu F10.73 (6D84.0), an thần F13.73 (6D84.1); chẩn đoán phân biệt và danh sách cận lâm sàng BYT Bài 1; ICD-11 ghi mã mức độ (vd. 6D80.1&XS0T).
+- Bác sĩ duyệt 2026-11-06: giữ ghi chú "tránh haloperidol" ở thể Lewy; F01 thiếu CT/MRI chỉ hiện nhắc nhở, không tính là thiếu tiêu chuẩn.

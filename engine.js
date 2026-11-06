@@ -948,10 +948,16 @@ function nutriCalc(p, v){
 }
 
 // ================= SÀNG LỌC & LỊCH HẸN =================
-const ORDER_TO_SCREEN = {ns_dd:'gastric', ns_dt:'crc', hbsag:'hep', antihcv:'hep', glu:'dm', hba1c:['dm','a1c'], chol:'lipid', ldl:'lipid', creat:'kidney', acr:'kidney', inr:'inr', ecg:null};
+const ORDER_TO_SCREEN = {ns_dd:'gastric', ns_dt:'crc', hbsag:'hep', antihcv:'hep', glu:'dm', hba1c:['dm','a1c'], chol:'lipid', ldl:'lipid', creat:'kidney', acr:'kidney', inr:'inr', mmse:'cog', moca:'cog', minicog:'cog', clock:'cog', ecg:null};
 function screenCtx(p){
   const ctx = ctxOf(p, null), r = p.risk || {};
-  return {age: ctx.age ?? 0, sex: p.sex, bmi: ctx.bmi ?? 0, has: k => ctx.conds.has(k), fam: k => (p.fam || []).includes(k), smoke: r.smoke || 'never', packYears: num(r.packYears) || 0, quitYears: num(r.quitYear) ? (new Date().getFullYear() - num(r.quitYear)) : 0, menopause: !!r.menopause, longTag: t => ctx.longTags.has(t)};
+  // Sàng lọc nhận thức: than phiền trí nhớ / đột quỵ ghi trong tiền sử, bệnh sử, lý do khám hoặc mã ICD đột quỵ (I60–I64, I69) ở các lượt khám
+  const txt = [p.condNote || ''].concat((p.visits || []).map(v => (v.hpi || '') + ' . ' + (v.reason || ''))).join(' . ');
+  const say = k => mentionsSymptom(txt, k);
+  const memory = ['giam tri nho', 'suy giam tri nho', 'hay quen', 'mau quen', 'kem tri nho', 'quen nhieu', 'quen truoc quen sau'].some(say);
+  const stroke = ['dot quy', 'tai bien mach mau nao', 'nhoi mau nao', 'xuat huyet nao', 'chay mau nao'].some(say)
+    || (p.visits || []).some(v => { try { return dxCodes(v).some(c => /^I6[0-4]|^I69/.test(c)); } catch(e){ return false; } });
+  return {memory, stroke, age: ctx.age ?? 0, sex: p.sex, bmi: ctx.bmi ?? 0, has: k => ctx.conds.has(k), fam: k => (p.fam || []).includes(k), smoke: r.smoke || 'never', packYears: num(r.packYears) || 0, quitYears: num(r.quitYear) ? (new Date().getFullYear() - num(r.quitYear)) : 0, menopause: !!r.menopause, longTag: t => ctx.longTags.has(t)};
 }
 function autoScreenDates(p){
   const out = {};
@@ -1157,17 +1163,21 @@ function psyDx(p, v){
     if(!has('dem_func')) miss.push('Chưa ảnh hưởng hoạt động hằng ngày → cân nhắc rối loạn nhận thức nhẹ (F06.7)');
     const met = ['dem_mem', 'dem_cog', 'dem_func', 'dem_clear', 'dem_emo', 'dem_6m'].filter(has).map(k => lab('dem', k));
     const notes = [];
-    let code = 'F03';
+    let code = 'F03', lewy = false;
+    const LBD = ['dem_lbd_vh', 'dem_lbd_fl', 'dem_lbd_rbd', 'dem_lbd_pk'], nL = LBD.filter(has).length;
     const f02x = need('dem', ['dem_f02_excl']);
-    if(has('dem_cjd')){ code = 'F02.1'; met.push(lab('dem', 'dem_cjd')); miss.push(...need('dem', ['dem_cjd_neuro'])); notes.push('Điện não đồ: phức hợp nhọn chu kỳ; chẩn đoán xác định bằng giải phẫu bệnh.'); }
-    else if(has('dem_hd')){ code = 'F02.2'; met.push(lab('dem', 'dem_hd')); miss.push(...need('dem', ['dem_hd_fam'])); }
-    else if(has('dem_hiv')){ code = 'F02.4'; met.push(lab('dem', 'dem_hiv')); miss.push(...f02x); }
-    else if(has('dem_pd') || pc.has('parkinson')){ code = 'F02.3'; met.push(has('dem_pd') ? lab('dem', 'dem_pd') : 'Bệnh nền Parkinson'); if(!has('dem_pd')) miss.push('Chưa xác nhận suy giảm nhận thức không do thuốc kháng Parkinson'); miss.push(...f02x); notes.push('Nếu cũng đủ tiêu chuẩn Alzheimer khởi phát muộn → dùng F00.1 kèm G20.'); }
-    else if(has('dem_front')){ code = 'F02.0'; met.push(lab('dem', 'dem_front')); miss.push(...need('dem', ['dem_front_mem'])); }
+    if(has('dem_cjd')){ code = 'F02.1'; met.push(lab('dem', 'dem_cjd')); miss.push(...need('dem', ['dem_cjd_neuro'])); notes.push('Bộ 3: sa sút nặng tiến triển nhanh, rối loạn tháp – ngoại tháp, rung giật cơ. Điện não đồ sóng 3 pha (phức hợp nhọn chu kỳ); dịch não tuỷ protein tau > 1200 pg/mL, enolase tăng (BYT 2020 Bài 3); xác định bằng giải phẫu bệnh.'); }
+    else if(has('dem_hd')){ code = 'F02.2'; met.push(lab('dem', 'dem_hd')); miss.push(...need('dem', ['dem_hd_fam'])); notes.push('Thường khởi phát 30–40 tuổi; múa giật xuất hiện trước giảm trí nhớ, sớm có trầm cảm, lo âu, hoang tưởng (BYT 2020 Bài 3).'); }
+    else if(has('dem_hiv')){ code = 'F02.4'; met.push(lab('dem', 'dem_hiv')); miss.push(...f02x); notes.push('Tiến triển nhanh trong nhiều tuần – tháng; khám: run, mất điều hoà, tăng phản xạ, dấu giải phóng thuỳ trán (BYT 2020 Bài 3).'); }
+    else if((has('dem_pd') || pc.has('parkinson')) && (has('dem_pd_1y') || nL < 2)){ code = 'F02.3'; met.push(has('dem_pd') ? lab('dem', 'dem_pd') : 'Bệnh nền Parkinson'); if(has('dem_pd_1y')) met.push(lab('dem', 'dem_pd_1y')); if(!has('dem_pd')) miss.push('Chưa xác nhận suy giảm nhận thức không do thuốc kháng Parkinson'); miss.push(...f02x); if(!has('dem_pd_1y')) notes.push('BYT 2020 Bài 3: suy giảm nhận thức thường xuất hiện ≥ 1 năm sau chẩn đoán Parkinson; nếu xuất hiện trước hoặc cùng lúc với triệu chứng vận động → nghĩ thể Lewy.'); notes.push('Nếu cũng đủ tiêu chuẩn Alzheimer khởi phát muộn → dùng F00.1 kèm G20.'); }
+    else if(nL >= 2){ code = 'F02.8'; lewy = true; met.push(...LBD.filter(has).map(k => lab('dem', k))); if(has('dem_pd') || pc.has('parkinson')) miss.push('Có Parkinson nhưng nhận thức suy giảm chưa đủ 1 năm sau chẩn đoán → nghĩ thể Lewy; đánh dấu "≥ 1 năm" nếu là F02.3'); miss.push(...f02x); notes.push('Sa sút trí tuệ thể Lewy: ICD-10 F02.8 kèm G31.8; ICD-11 6D82 (cần ≥ 2: ảo thị tái diễn, lú lẫn từng đợt, rối loạn hành vi giấc ngủ REM, dấu parkinson). Rất nhạy cảm thuốc an thần kinh — tránh haloperidol.'); }
+    else if(has('dem_front')){ code = 'F02.0'; met.push(lab('dem', 'dem_front')); miss.push(...need('dem', ['dem_front_mem'])); notes.push('Thường khởi phát 45–60 tuổi; biến đổi nhân cách, hành vi xã hội đi trước giảm trí nhớ (BYT 2020 Bài 3). ICD-11 ghi kèm 8A23.'); }
     else if(has('dem_vasc')){
       met.push(lab('dem', 'dem_vasc')); miss.push(...need('dem', ['dem_uneven', 'dem_focal']));
+      ['dem_vasc_img', 'dem_vasc_3m'].filter(has).forEach(k => met.push(lab('dem', k)));
+      if(!has('dem_vasc_img')) notes.push('BYT 2020 Bài 2: bệnh mạch máu não phải được khẳng định bằng CT / MRI.');
       if(has('dem_mixad')) code = 'F00.2';
-      else if(has('dem_step')) code = 'F01.0';
+      else if(has('dem_step')){ code = 'F01.0'; if(!has('dem_vasc_3m')) notes.push('Xác nhận khởi phát trong 3 tháng sau đột quỵ, không có sa sút trí tuệ trước đột quỵ (BYT 2020 Bài 2).'); }
       else if(has('dem_multi')) code = 'F01.1';
       else if(has('dem_subcort')){ code = 'F01.2'; if(!pc.has('htn')) miss.push('F01.2 cần tiền sử tăng huyết áp'); }
       else if(has('dem_mixcs')) code = 'F01.3';
@@ -1182,7 +1192,7 @@ function psyDx(p, v){
       else { code = 'F00.9'; notes.push('F00.1 (≥ 65 tuổi) cần thêm: khởi phát từ từ, tiến triển rất chậm, hoặc ưu thế suy giảm trí nhớ.'); }
       met.push(...['dem_ad_excl', 'dem_early', 'dem_fast', 'dem_cortical', 'dem_slow', 'dem_mempred', 'dem_mixad'].filter(has).map(k => lab('dem', k)));
     }
-    else notes.push('Chưa xác định nguyên nhân → F03; đánh dấu đặc điểm Alzheimer, mạch máu hoặc bệnh khác để xếp thể.');
+    else { notes.push('Chưa xác định nguyên nhân → F03; đánh dấu đặc điểm Alzheimer, mạch máu hoặc bệnh khác để xếp thể. Do rượu → F10.73 (ICD-11 6D84.0); do thuốc an thần, gây ngủ → F13.73 (6D84.1).'); if(nL === 1) notes.push('Có 1 đặc điểm thể Lewy — cần ≥ 2 để nghĩ F02.8 thể Lewy.'); }
     if(code === 'F00.0' && age != null && age >= 75) notes.push(`Hiện ${age} tuổi — xem lại tuổi khởi phát.`);
     const x5 = ['dem_x1', 'dem_x2', 'dem_x3'].filter(has), d5 = x5.length > 1 ? 4 : x5.length ? Number(x5[0].slice(-1)) : 0;
     const d6 = has('dem_sev3') ? 2 : has('dem_sev2') ? 1 : has('dem_sev1') ? 0 : null;
@@ -1190,10 +1200,13 @@ function psyDx(p, v){
     const mm = orderNum(v, 'mmse'), mo = orderNum(v, 'moca');
     if(mm != null || mo != null) notes.push('Trắc nghiệm: ' + [mm != null ? `MMSE ${fmtN(mm)}/30` : '', mo != null ? `MoCA ${fmtN(mo)}/30` : ''].filter(Boolean).join(', ') + '.');
     else notes.push('Làm MMSE / MoCA.');
-    notes.push('Cận lâm sàng: CT / MRI sọ não, TSH, B12, acid folic, canxi, đường máu; HIV, giang mai khi nghi ngờ.');
+    notes.push('Phân biệt: trầm cảm (giả sa sút — làm GDS), sảng, hội chứng quên thực tổn, ngộ độc / thuốc (kháng cholin, an thần) (BYT 2020 Bài 1–3; LEC1).');
+    notes.push('Cận lâm sàng (BYT 2020 Bài 1): công thức máu, máu lắng, chức năng gan thận, điện giải, glucose / HbA1c, canxi, phosphat, B12, folat, hormon tuyến giáp, mỡ máu, nước tiểu; CT / MRI sọ não; điện não đồ, điện tim; giang mai, HIV khi nghi ngờ.');
     add(code, 'ICD-10 (bản VN) tr. 47–56; BYT 2020 Bài 1–3', met, miss, notes.join(' '));
     const bpsd = [has('dem_x1') || has('dem_x2') ? '6D86.0 loạn thần' : '', has('dem_x3') ? '6D86.1 khí sắc' : ''].filter(Boolean);
-    i11x[code] = 'ICD-11: suy giảm ≥ 2 lĩnh vực nhận thức (trí nhớ không bắt buộc), ảnh hưởng rõ tự lập; ghi mức độ nhẹ / trung bình / nặng' + (bpsd.length ? '; ghi kèm rối loạn hành vi – tâm lý: ' + bpsd.join(', ') : '') + '.';
+    const SEV11 = ['XS5W', 'XS0T', 'XS25'], base11 = lewy ? '6D82' : ((icd11Of(code) || [])[1] || '6D8Z');
+    const sev11 = d6 != null ? `; mức độ ${['nhẹ', 'trung bình', 'nặng'][d6]} → ${base11}&${SEV11[d6]}` : '; ghi mức độ: nhẹ XS5W / trung bình XS0T / nặng XS25 (nối sau mã bằng &)';
+    i11x[code] = 'ICD-11: suy giảm rõ ≥ 2 lĩnh vực nhận thức so với trước (trí nhớ không bắt buộc), có test chuẩn hoá hoặc đánh giá định lượng, ảnh hưởng rõ tự lập' + (lewy ? '; thể Lewy → 6D82' : '') + sev11 + (bpsd.length ? '; ghi kèm rối loạn hành vi – tâm lý: ' + bpsd.join(', ') : '') + '.';
   } else if(has('dem_mem') || has('dem_cog')) todo.push('Có suy giảm nhận thức: đánh giá đủ mục "Sa sút trí tuệ" và làm MMSE / MoCA.');
   // Hội chứng quên thực tổn F04 — ICD-10 bản VN tr. 56–57
   if(['amn_recent', 'amn_past'].some(has)){

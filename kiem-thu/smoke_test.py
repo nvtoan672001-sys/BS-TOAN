@@ -201,6 +201,18 @@ def main():
             r = pg.evaluate("() => { const p = JSON.parse(JSON.stringify(curP())), v = JSON.parse(JSON.stringify(curV())); p.conds = []; p.condNote = ''; p.meds = []; v.dx = {icd: '', text: ''}; v.rx = [{id: 'r_mph', drugId: 'mph18er', name: 'Concerta', dose: [1, 0, 0, 0], days: 30, how: ''}]; return checkAll(p, v).items.map(i => i.kind + ': ' + i.m); }")
             assert any(x.startswith('Liều (quy tắc phòng khám): Tăng 18 mg mỗi tuần') for x in r), r
             assert pg.evaluate("() => drugById('mph18er').dnote.includes('18–72 mg/ngày') && drugById('mph5').dnote === 'Tăng 5–10 mg mỗi tuần, tối đa 60 mg/ngày.'")
+            # Sàng lọc rối loạn nhận thức (bác sĩ đặt 2026-11-06), chu kỳ 6 tháng
+            CG = "(o) => { const p = Object.assign(JSON.parse(JSON.stringify(curP())), {conds: [], condNote: '', visits: [], dob: ''}, o); const r = screenList(p).find(x => x.r.id === 'cog'); return r ? r.every : 0; }"
+            def yob(a): return str(int(pg.evaluate("() => todayISO().slice(0,4)")) - a) + '-01-01'
+            assert pg.evaluate(CG, {'dob': yob(70)}) == 0
+            assert pg.evaluate(CG, {'dob': yob(70), 'condNote': 'Hay quên, giảm trí nhớ 1 năm'}) == 6
+            assert pg.evaluate(CG, {'dob': yob(55), 'condNote': 'Hay quên'}) == 0
+            assert pg.evaluate(CG, {'dob': yob(55), 'condNote': 'Đột quỵ nhồi máu não 2024'}) == 6
+            assert pg.evaluate(CG, {'dob': yob(50), 'conds': ['parkinson']}) == 6
+            assert pg.evaluate(CG, {'dob': yob(50), 'conds': ['diabetes']}) == 6
+            assert pg.evaluate(CG, {'dob': yob(62), 'conds': ['depression']}) == 6
+            assert pg.evaluate(CG, {'dob': yob(40), 'conds': ['depression']}) == 0
+            assert pg.evaluate(CG, {'dob': yob(70), 'conds': ['dementia', 'diabetes']}) == 0
             # Atomoxetin (bác sĩ đặt 2026-11-05)
             assert pg.evaluate("() => CONDS.some(c => c.k === 'malnutrition')"), 'thiếu ô suy dinh dưỡng'
             assert pg.evaluate(MB, ['atomox', {'conds': [], 'condNote': ''}]) == ''
@@ -867,6 +879,16 @@ def main():
             assert pg.evaluate("() => ['F02.8', 'F06.70', 'F06.71'].every(c => ICD.some(r => r[0] === c)) && icd11Of('F02.3')[1] === '6D85.0' && icd11Of('F04')[1] === '6D72'")
             assert ['F01.0', True] in pg.evaluate(SG, {'sx': dg + ['dem_vasc', 'dem_uneven', 'dem_focal', 'dem_step'], 'weeks': 40})
             assert ['F01.9', False] in pg.evaluate(SG, {'sx': dg + ['dem_vasc'], 'weeks': 40}), 'F01 cần G2, G3'
+            # Cập nhật F00–F03 theo BYT 2020 Bài 1–3, ICD-11 (2026-11-06)
+            lbd = ['dem_lbd_vh', 'dem_lbd_rbd']
+            assert ['F02.8', True] in pg.evaluate(SG, {'sx': dg + lbd + ['dem_f02_excl'], 'weeks': 40})
+            r = dict((x[0], x) for x in pg.evaluate(I11, {'sx': dg + lbd + ['dem_f02_excl', 'dem_sev2'], 'weeks': 40}))
+            assert '6D82&XS0T' in r['F02.8'][1] and 'G31.8' in r['F02.8'][2], r['F02.8']
+            assert ['F02.3', False] in pg.evaluate(SG, {'sx': dg + ['dem_pd', 'dem_lbd_vh', 'dem_pd_1y'], 'weeks': 40})
+            assert ['F02.8', False] in pg.evaluate(SG, {'sx': dg + ['dem_pd', 'dem_f02_excl'] + lbd, 'weeks': 40}), 'Parkinson + 2 dấu Lewy, chưa đủ 1 năm → thể Lewy'
+            assert ['F02.3', True] in pg.evaluate(SG, {'sx': dg + ['dem_pd', 'dem_pd_1y', 'dem_f02_excl'] + lbd, 'weeks': 40})
+            r = dict((x[0], x) for x in pg.evaluate(I11, {'sx': dg + ['dem_vasc', 'dem_uneven', 'dem_focal', 'dem_step'], 'weeks': 40}))
+            assert 'CT / MRI' in r['F01.0'][2] and '3 tháng' in r['F01.0'][2] and 'XS5W' in r['F01.0'][1], r['F01.0']
             assert ['F05.1', True] in pg.evaluate(SG, {'sx': ['del_cons', 'del_cog', 'del_psymo', 'del_sleep', 'del_acute', 'del_cause'] + dg, 'weeks': 40})
             assert ['F05.0', True] in pg.evaluate(SG, {'sx': ['del_cons', 'del_cog', 'del_psymo', 'del_sleep', 'del_acute', 'del_cause'], 'weeks': 0})
             assert ['F51.0', True] in pg.evaluate(SG, {'sx': ['ins_compl', 'ins_freq', 'slp_impair', 'slp_excl'], 'weeks': 6})
