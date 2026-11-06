@@ -42,3 +42,4 @@ Mỗi lần làm xong, thêm một mục ở **cuối file**: ngày · agent · 
 
 ## 2026-11-06 · Claude
 - Cờ đỏ Alzheimer (bác sĩ cung cấp): 10 mục `ad_rf1`–`ad_rf10` đầu phần F00 của nhóm `dem` → `psyDx` cảnh báo mức 3 "Cờ đỏ Alzheimer" (không tự gợi ý mã), nhắc MMSE / MoCA, đánh giá G1–G4, loại trừ nguyên nhân điều trị được.
+- Diễn giải MMSE (bác sĩ đặt): `SCALE_BANDS.mmse` = Bình thường (24–30) / Nhẹ (19–23) / Vừa (10–18) / Nặng (< 10) — bác sĩ sửa lại cùng ngày; khoảng tham chiếu trong `LABS` sửa theo. Rối loạn nhận thức nhẹ F06.7 vẫn tính "trắc nghiệm bất thường" khi MMSE < 24.

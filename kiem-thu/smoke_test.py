@@ -471,7 +471,8 @@ def main():
             assert pg.evaluate("() => ['diaz5','diaz5f'].every(id => { const d = drugById(id); return d && expandTags(d.tags).has('bzd') && /5–20 mg/.test(d.how); }) && drugById('diaz5f').o === 'Ngoại'"), 'thiếu diazepam Ngoại / liều'
             assert pg.evaluate("() => [[118, 78], [125, 78], [135, 82], [150, 85], [165, 102], [185, 95]].map(([s, d]) => bpClass(s, d))") == ['Huyết áp bình thường', 'Huyết áp bình thường cao', 'Tiền tăng huyết áp', 'Tăng huyết áp độ 1 (tâm thu đơn độc)', 'Tăng huyết áp độ 2', 'Tăng huyết áp độ 2 — ≥ 180/110: đánh giá ngay tổn thương cơ quan đích'], 'phân độ huyết áp theo VNHA 2026'
             assert pg.evaluate("() => [['pss', 20], ['pcptsd5', 4]].map(([k, v]) => scaleResult(k, v).t)") == ['Stress cảm nhận vừa', 'Dương tính — đánh giá thêm bằng PCL-5 / CAPS-5']
-            assert pg.evaluate("() => [['gad7', 12], ['gad2', 3], ['phq4_d', 1], ['phq9', 20], ['mmse', 23], ['moca', 27]].map(([k, v]) => (scaleResult(k, v) || {}).t)") == ['Lo âu vừa', 'Dương tính — làm GAD-7', 'Âm tính', 'Trầm cảm nặng', 'Suy giảm nhận thức (< 24; đối chiếu trình độ học vấn)', 'Bình thường']
+            assert pg.evaluate("() => [['gad7', 12], ['gad2', 3], ['phq4_d', 1], ['phq9', 20], ['mmse', 23], ['moca', 27]].map(([k, v]) => (scaleResult(k, v) || {}).t)") == ['Lo âu vừa', 'Dương tính — làm GAD-7', 'Âm tính', 'Trầm cảm nặng', 'Nhẹ', 'Bình thường']
+            assert pg.evaluate("() => [30, 24, 23, 19, 18, 10, 9, 0].map(x => scaleResult('mmse', x).t).join()") == 'Bình thường,Bình thường,Nhẹ,Nhẹ,Vừa,Vừa,Nặng,Nặng'
             assert pg.evaluate("() => Object.keys(SCALE_BANDS).every(k => LABS.some(x => x[1] === k))"), 'SCALE_BANDS có key không có trong LABS'
             # bộ chỉ định "Điện giải đồ (Na, K, Clo)": tích -> thêm 3 dòng Na, K, Clo; bỏ tích -> bỏ cả 3
             pg.evaluate("go({name: 'visit', pid: curP().id, vid: curV().id, step: 2})"); pg.wait_for_timeout(300)

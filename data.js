@@ -1213,7 +1213,7 @@ const LABS = [
   ['Trắc nghiệm tâm lý','epds','EPDS (trầm cảm chu sinh)','điểm','< 10 bình thường; 10–12 theo dõi; ≥ 13 nghi trầm cảm; câu 10 > 0: hỏi ý tưởng tự sát','n'],
   ['Trắc nghiệm tâm lý','gds','GDS-15 (trầm cảm người cao tuổi)','điểm','0–4 bình thường; 5–8 nhẹ; 9–11 vừa; 12–15 nặng','n'],
   ['Trắc nghiệm tâm lý','cssrs','C-SSRS (nguy cơ tự sát)','','Ghi ý tưởng/hành vi và mức nguy cơ','t'],
-  ['Trắc nghiệm tâm lý','mmse','MMSE','/30','≥ 24 bình thường (tuỳ trình độ học vấn)','n'],
+  ['Trắc nghiệm tâm lý','mmse','MMSE','/30','24–30 bình thường; 19–23 nhẹ; 10–18 vừa; < 10 nặng','n'],
   ['Trắc nghiệm tâm lý','moca','MoCA','/30','≥ 26 bình thường (+1 điểm nếu học vấn ≤ 12 năm)','n'],
   ['Trắc nghiệm tâm lý','epi','Nhân cách Eysenck (EPI)','','Ghi điểm E, N, L; L ≥ 5 kết quả kém tin cậy','t'],
   ['Trắc nghiệm tâm lý','psqi','Chất lượng giấc ngủ Pittsburgh (PSQI)','điểm','≤ 5 tốt; > 5 chất lượng giấc ngủ kém','n'],
@@ -1299,7 +1299,7 @@ const SCALE_BANDS = {
   mdq: [[6,'Chưa đủ điểm câu 1',0],[13,'Đủ ≥ 7 câu "có" — dương tính nếu thêm cùng lúc + ảnh hưởng vừa/nặng',2]],
   hcl32: [[13,'Không gợi ý hưng cảm nhẹ',0],[32,'Gợi ý hưng cảm nhẹ',2]],
   gds: [[4,'Bình thường',0],[8,'Trầm cảm nhẹ',1],[11,'Trầm cảm vừa',2],[15,'Trầm cảm nặng',3]],
-  mmse: [[23,'Suy giảm nhận thức (< 24; đối chiếu trình độ học vấn)',2],[30,'Bình thường',0]],
+  mmse: [[9,'Nặng',3],[18,'Vừa',2],[23,'Nhẹ',1],[30,'Bình thường',0]],   // bác sĩ đặt 2026-11-06: nhẹ 19–23, vừa 10–18, nặng < 10
   moca: [[25,'Suy giảm nhận thức (< 26; +1 điểm nếu học vấn ≤ 12 năm)',2],[30,'Bình thường',0]],
   psqi: [[5,'Chất lượng giấc ngủ tốt',0],[21,'Chất lượng giấc ngủ kém',2]],
   hamd: [[7,'Bình thường',0],[16,'Trầm cảm nhẹ',1],[23,'Trầm cảm vừa',2],[52,'Trầm cảm nặng',3]],
