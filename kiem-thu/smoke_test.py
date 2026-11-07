@@ -163,6 +163,8 @@ def main():
             assert any(x.startswith('3|') and 'carbamazepin' in x for x in pg.evaluate(CHK, ['carba200n', 'clari500'])), 'carbamazepin + clarithromycin phải cảnh báo mức 3'
             assert any('an thần' in x for x in pg.evaluate(CHK, ['alpra05n', 'zopi7n'])), 'hai thuốc an thần phải cảnh báo'
             assert any('cholinergic' in x for x in pg.evaluate(CHK, ['done5n', 'parox20n'])), 'donepezil + paroxetin phải cảnh báo đối kháng'
+            assert any(x.startswith('3|') and 'serotonin' in x for x in pg.evaluate(CHK, ['seleg5', 'sert50'])), 'selegilin + sertralin phải cảnh báo mức 3'
+            assert any('chảy máu' in x for x in pg.evaluate(CHK, ['omega1000', 'aceno4'])), 'omega-3 + kháng đông phải cảnh báo'
             r = pg.evaluate("""() => { const p = curP(), c = p.conds; p.conds = c.concat(['dementia']);
                        const out = checkAll(p, curV(), [{line: {id: 'y'}, drug: drugById('olan10n')}]).items.some(w => w.lv === 3 && /đột quỵ/.test(w.m)); p.conds = c; return out; }""")
             assert r, 'olanzapin ở bệnh nhân sa sút trí tuệ phải cảnh báo mức 3'
@@ -186,7 +188,7 @@ def main():
             r = pg.evaluate("""async () => { const d = S.drugs.find(x => x.id === 'tiane12'); d.p = 9999; delete d.preg; d.warn = 'cũ';
                 await Store.put('drugs', d); S.settings.seedUpdated = []; await saveSettings(); await loadAll();
                 const e = S.drugs.find(x => x.id === 'tiane12'); return {p: e.p, preg: e.preg && e.preg.lv, warn: e.warn, ver: S.settings.seedUpdated}; }""")
-            assert r['p'] == 9999 and r['preg'] == 3 and r['warn'] != 'cũ' and r['ver'] == ['stahl-2026-10', 'moi-2026-10', 'tha-abcd-2026-10-30', 'zolpidem-2026-11-02', 'trazodon-2026-11-02', 'mirtazapin-2026-11-02', 'tca-2026-11-02', 'diazepam-2026-11-02', 'piracetam-2026-11-05'], r
+            assert r['p'] == 9999 and r['preg'] == 3 and r['warn'] != 'cũ' and r['ver'] == ['stahl-2026-10', 'moi-2026-10', 'tha-abcd-2026-10-30', 'zolpidem-2026-11-02', 'trazodon-2026-11-02', 'mirtazapin-2026-11-02', 'tca-2026-11-02', 'diazepam-2026-11-02', 'piracetam-2026-11-05', 'donepezil-2026-11-07', 'piracetam400-2026-11-07'], r
             assert pg.evaluate("S.drugs.find(x => x.id === 'quet100n').lact.lv") == 1, 'quetiapin cho con bú phải theo LactMed (mức lưu ý)'
             # Methylphenidat (bác sĩ đặt 2026-11-05): chặn theo tiền sử; cách dùng chọn sẵn; lưu ý chỉnh liều
             MB = "([id, o]) => { const p = JSON.parse(JSON.stringify(curP())), v = JSON.parse(JSON.stringify(curV())); Object.assign(p, o); v.hpi = ''; v.dx = {icd: '', text: ''}; p.meds = []; return drugBlockReasons(p, v, drugById(id)).join(' | '); }"
@@ -201,6 +203,23 @@ def main():
             r = pg.evaluate("() => { const p = JSON.parse(JSON.stringify(curP())), v = JSON.parse(JSON.stringify(curV())); p.conds = []; p.condNote = ''; p.meds = []; v.dx = {icd: '', text: ''}; v.rx = [{id: 'r_mph', drugId: 'mph18er', name: 'Concerta', dose: [1, 0, 0, 0], days: 30, how: ''}]; return checkAll(p, v).items.map(i => i.kind + ': ' + i.m); }")
             assert any(x.startswith('Liều (quy tắc phòng khám): Tăng 18 mg mỗi tuần') for x in r), r
             assert pg.evaluate("() => drugById('mph18er').dnote.includes('18–72 mg/ngày') && drugById('mph5').dnote === 'Tăng 5–10 mg mỗi tuần, tối đa 60 mg/ngày.'")
+            # Tự tích chuyển tuyến (bác sĩ đặt 2026-11-07)
+            RR = "(o) => { const v = JSON.parse(JSON.stringify(curV())); v.mental = {sx: o.sx || []}; v.hpi = o.hpi || ''; v.exam = o.exam || ''; return referReasons(curP(), v).join(' | '); }"
+            assert pg.evaluate(RR, {'sx': [], 'hpi': 'Có ý định tự sát'}) == '', 'chưa khám tâm thần thì không gợi ý'
+            assert pg.evaluate(RR, {'sx': ['dep_mood']}) == ''
+            for h, w in [('Có ý định tự sát', 'tự sát'), ('Hay tự hại', 'tự hại'), ('Có hành vi bạo lực', 'bạo lực'), ('Đe doạ gây hại người khác', 'gây hại người khác'), ('Kích động nặng về đêm', 'kích động nặng'), ('3 ngày nay không ăn uống', 'không ăn uống')]:
+                assert w in pg.evaluate(RR, {'sx': ['dep_mood'], 'hpi': h}), h
+            _r = pg.evaluate(RR, {'sx': ['dep_mood'], 'hpi': 'Không có ý định tự sát'}); assert _r == '', _r
+            for ex, w in [('Thể trạng suy kiệt', 'suy kiệt'), ('Dấu hiệu mất nước (+)', 'mất nước'), ('Rối loạn định hướng thời gian', 'định hướng')]:
+                assert w in pg.evaluate(RR, {'sx': ['dep_mood'], 'exam': ex}), ex
+            assert pg.evaluate(RR, {'sx': ['dep_mood'], 'exam': 'Dấu hiệu mất nước (-)'}) == ''
+            assert pg.evaluate(RR, {'sx': ['dep_mood'], 'exam': 'Không có dấu hiệu mất nước'}) == ''
+            assert 'hoang tưởng' in pg.evaluate(RR, {'sx': ['psy_delus']})
+            st = pg.evaluate("""() => { const v = curV(), p = curP(); v.mental = {sx: ['psy_halluc']}; v.dx = Object.assign(v.dx || {}, {disp: 'outpatient', dispManual: false, dispAuto: false});
+              autoRefer(v, p); const a = v.dx.disp; v.mental.sx = []; autoRefer(v, p); const b = v.dx.disp;
+              v.dx.dispManual = true; v.dx.disp = 'admit'; v.mental.sx = ['psy_halluc']; autoRefer(v, p); const c = v.dx.disp;
+              v.dx = Object.assign(v.dx, {disp: '', dispManual: false, dispAuto: false}); v.mental = {sx: []}; return [a, b, c]; }""")
+            assert st == ['refer', 'outpatient', 'admit'], st
             # Sàng lọc rối loạn nhận thức (bác sĩ đặt 2026-11-06), chu kỳ 6 tháng
             CG = "(o) => { const p = Object.assign(JSON.parse(JSON.stringify(curP())), {conds: [], condNote: '', visits: [], dob: ''}, o); const r = screenList(p).find(x => x.r.id === 'cog'); return r ? r.every : 0; }"
             def yob(a): return str(int(pg.evaluate("() => todayISO().slice(0,4)")) - a) + '-01-01'
@@ -213,6 +232,76 @@ def main():
             assert pg.evaluate(CG, {'dob': yob(62), 'conds': ['depression']}) == 6
             assert pg.evaluate(CG, {'dob': yob(40), 'conds': ['depression']}) == 0
             assert pg.evaluate(CG, {'dob': yob(70), 'conds': ['dementia', 'diabetes']}) == 0
+            # Ức chế cholinesterase (bác sĩ đặt 2026-11-07)
+            assert pg.evaluate("() => { const d = drugById('mema5'); return d && d.how === '' && d.howOpts[0] === 'Ngày uống 1 viên cùng bữa ăn sáng' && d.dnote.includes('10 mg × 2 lần (liều đích)') && d.dose.join() === '1,0,0,0'; }")
+            RB2 = "([id, o]) => { const p = JSON.parse(JSON.stringify(curP())), v = JSON.parse(JSON.stringify(curV())); Object.assign(p, o); v.vitals = {}; v.hpi = ''; v.dx = {icd: '', text: ''}; p.meds = []; return drugBlockReasons(p, v, drugById(id)).join(' | '); }"
+            assert pg.evaluate("() => ['cbcl', 'cbcl_tot', 'cbcl_int', 'cbcl_ext'].every(k => LABS.some(x => x[1] === k)) && scaleResult('cbcl_tot', 58).lv === 0 && scaleResult('cbcl_tot', 62).lv === 1 && scaleResult('cbcl_ext', 70).lv === 3")
+            # Cận lâm sàng tự chọn khi tiền sử rối loạn nhận thức (bác sĩ đặt 2026-11-07)
+            assert pg.evaluate("() => ['adl', 'iadl', 'gds', 'psqi'].every(k => LABS.some(x => x[1] === k)) && scaleResult('adl', 2).lv === 3 && scaleResult('adl', 6).lv === 0")
+            CO = """(o) => { const p = Object.assign(JSON.parse(JSON.stringify(curP())), {conds: [], condNote: ''}, o.p || {}); p.visits = o.visits || [];
+              const v = {id: 'vnew', date: '2026-11-07', orders: [], dx: {}}; p.visits.push(v); const n = autoCogOrders(p, v); return v.orders.map(x => x.key).join(','); }"""
+            assert pg.evaluate(CO, {}) == ''
+            full = 'ctm,glu,na,k,cl,ast,alt,ure,creat,ldl,hdl,chol,tg,ecg,adl,iadl,gds,psqi'
+            assert pg.evaluate(CO, {'p': {'conds': ['dementia']}}) == full
+            assert pg.evaluate(CO, {'p': {'condNote': 'Alzheimer 2 năm'}}) == full
+            assert pg.evaluate(CO, {'visits': [{'id': 'v1', 'date': '2026-05-01', 'dx': {'icd': 'F06.70 – x'}, 'orders': []}]}) == full
+            recent = [{'id': 'v1', 'date': '2026-10-01', 'dx': {'icd': 'F03 – x'}, 'orders': [{'key': 'ldl', 'value': '2,5'}, {'key': 'ecg', 'value': 'Nhịp xoang'}]}]
+            assert pg.evaluate(CO, {'visits': recent}) == 'ctm,glu,na,k,cl,ast,alt,ure,creat,hdl,chol,tg,adl,iadl,gds,psqi', pg.evaluate(CO, {'visits': recent})
+            # Lời dặn rối loạn nhận thức (bác sĩ soạn 2026-11-07)
+            assert pg.evaluate("() => { const t = TEMPLATES_SEED.find(x => x.id === 'adv_cog'); return t && t.text.split(String.fromCharCode(10)).length === 5 && t.text.includes('MIND') && t.text.includes('dán nhãn đồ vật') && t.text.endsWith('người xung quanh.') && ['F00.1', 'F01.9', 'F03', 'F04', 'F05.1', 'F06.70'].every(c => ICD.find(r => r[0] === c)[2].includes('cog_dis')) && TPL_ADDED.includes('adv_cog'); }")
+            # 13 thuốc theo Long Châu (2026-11-07)
+            NEW13 = ['vinpo5', 'nicer10', 'aminol200', 'sily140', 'boganicf', 'vite400', 'seleg5', 'coq10_30', 'omega1000', 'vitb1_250', 'b12_500', 'folic5', 'vit3b']
+            assert pg.evaluate("(ids) => ids.every(id => { const d = drugById(id); return d && d.how === '' && (d.howOpts || []).length === 1 && d.dnote; })", NEW13)
+            assert pg.evaluate("() => RULES.some(r => r.a === 'maob' && r.b === 'serotonergic' && r.lv === 3) && TAGS.maob && TAGS.bleed_supp")
+            # Cholin alfoscerat 400 mg (bác sĩ đặt 2026-11-07)
+            CA = lambda o: pg.evaluate(RB2, ['cholalf400', dict({'conds': [], 'condNote': '', 'visits': []}, **o)])
+            assert pg.evaluate("() => { const d = drugById('cholalf400'); return d && d.how === '' && d.howOpts[0] === 'Uống mỗi lần 1 viên, ngày uống 2 viên sau ăn sáng, tối' && d.dnote.startsWith('Loại 800 mg'); }")
+            assert CA({}) == '', CA({})
+            for cd in ['asthma', 'af', 'peptic']:
+                assert 'cholin alfoscerat' in CA({'conds': [cd]}), cd
+            assert 'mang thai' in CA({'conds': ['pregnant'], 'sex': 'Nữ'}) and 'cho con bú' in CA({'conds': ['breastfeeding'], 'sex': 'Nữ'})
+            # Citicolin 200 mg (bác sĩ đặt 2026-11-07)
+            CI = lambda o: pg.evaluate(RB2, ['citi200', dict({'conds': [], 'condNote': '', 'visits': []}, **o)])
+            assert pg.evaluate("() => { const d = drugById('citi200'); return d && d.how === '' && d.howOpts[0] === 'Mỗi lần uống 1 viên, ngày uống 3 lần sau ăn sáng, trưa, tối' && d.dnote.startsWith('Thời gian điều trị: 9 – 12 tháng'); }")
+            assert CI({}) == '', CI({})
+            for cd, w in [('ckd', 'thận'), ('liver', 'xơ gan'), ('epilepsy', 'động kinh'), ('depression', 'trầm cảm')]:
+                assert w in CI({'conds': [cd]}), cd
+            assert 'xơ gan' in CI({'condNote': 'Xơ gan do rượu'}) and 'trầm cảm' in CI({'condNote': 'Trầm cảm 2022'})
+            assert CI({'condNote': 'Không động kinh'}) == ''
+            # Ginkgo biloba 40 mg (bác sĩ đặt 2026-11-07)
+            G = lambda o: pg.evaluate(RB2, ['ginkgo40', dict({'conds': [], 'condNote': '', 'visits': []}, **o)])
+            assert pg.evaluate("() => { const d = drugById('ginkgo40'); return d && d.how === '' && d.howOpts[0] === 'Ngày uống 2 viên trong hoặc sau bữa ăn'; }")
+            assert G({}) == '', G({})
+            assert 'chống đông' in G({'condNote': 'Đang dùng aspirin 81 mg'})
+            assert 'chống đông' in G({'condNote': 'Đang uống thuốc chống đông'})
+            assert G({'condNote': 'Đã ngừng aspirin'}) == ''
+            assert 'tai biến' in G({'condNote': 'Tai biến nhồi máu não cách 2 tuần'})
+            assert 'nhồi máu cơ tim' in G({'condNote': 'Nhồi máu cơ tim 20 ngày trước'})
+            assert G({'condNote': 'Nhồi máu cơ tim cách 3 tháng'}) == ''
+            assert 'tâm thần phân liệt' in G({'condNote': 'Tâm thần phân liệt 5 năm'})
+            for cd in ['epilepsy', 'peptic', 'asthma', 'erectile_dysf']:
+                assert 'tích' in G({'conds': [cd]}), cd
+            assert pg.evaluate("() => CONDS.some(c => c.k === 'erectile_dysf')")
+            assert pg.evaluate("() => { const d = drugById('cere10'); return d && d.how === '' && d.howOpts.length === 2 && d.howOpts[1] === 'Tiêm tĩnh mạch chậm 1 ống' && d.u === 'ống' && d.dnote.startsWith('1 liệu trình 10–20 ngày'); }")
+            assert pg.evaluate(RB2, ['cere10', {'conds': [], 'condNote': '', 'visits': [], 'renalManual': {'egfr': 90, 'date': '2026-11-01'}}]) == ''
+            assert 'động kinh' in pg.evaluate(RB2, ['cere10', {'conds': ['epilepsy'], 'condNote': '', 'visits': [], 'renalManual': {'egfr': 90, 'date': '2026-11-01'}}])
+            assert 'động kinh' not in pg.evaluate(RB2, ['cere10', {'conds': [], 'condNote': 'Động kinh', 'visits': [], 'renalManual': {'egfr': 90, 'date': '2026-11-01'}}]), 'chỉ ô tích'
+            assert 'MLCT' in pg.evaluate(RB2, ['cere10', {'conds': [], 'condNote': '', 'visits': [], 'renalManual': {'egfr': 50, 'date': '2026-11-01'}}])
+            assert 'MLCT' in pg.evaluate(RB2, ['mema5', {'conds': [], 'condNote': '', 'visits': [], 'renalManual': {'egfr': 45, 'date': '2026-11-01'}}])
+            assert 'MLCT' not in pg.evaluate(RB2, ['mema5', {'conds': [], 'condNote': '', 'visits': [], 'renalManual': {'egfr': 75, 'date': '2026-11-01'}}])
+            assert pg.evaluate("() => { const d = drugById('gala4'); return d && d.how === '' && d.howOpts[0] === 'Uống mỗi lần 1 viên, ngày uống 2 viên buổi sáng, tối cùng bữa ăn' && d.dnote.endsWith('Dừng thuốc không cần giảm dần.') && d.dose.join() === '1,0,1,0' && d.tags.includes('ache_inh'); }")
+            assert 'cholinesterase' in pg.evaluate(MB, ['gala4', {'conds': ['epilepsy'], 'condNote': ''}])
+            assert pg.evaluate("() => { const d = drugById('riva15'); return d && d.how === '' && d.howOpts[0] === 'Uống mỗi lần 1 viên, ngày uống 2 viên buổi sáng, tối sau ăn' && d.dnote.includes('12 mg/ngày') && d.dose.join() === '1,0,1,0'; }")
+            RB = "([id, o]) => { const p = JSON.parse(JSON.stringify(curP())), v = JSON.parse(JSON.stringify(curV())); Object.assign(p, o); v.vitals = {}; v.hpi = ''; v.dx = {icd: '', text: ''}; p.meds = []; return drugBlockReasons(p, v, drugById(id)).join(' | '); }"
+            assert 'BMI' in pg.evaluate(RB, ['riva15', {'conds': [], 'condNote': '', 'weight': 45, 'height': 160}])
+            assert 'BMI' not in pg.evaluate(RB, ['riva3', {'conds': [], 'condNote': '', 'weight': 45, 'height': 160}])
+            assert 'BMI' not in pg.evaluate(RB, ['riva15', {'conds': [], 'condNote': '', 'weight': 60, 'height': 160}])
+            assert pg.evaluate("() => ['done5n', 'done5f'].every(id => { const d = drugById(id); return d.how === '' && d.howOpts[0].startsWith('Ngày uống 1 viên buổi tối sau ăn') && d.dnote.includes('23 mg') && d.dnote.endsWith('hội chứng cai.'); })")
+            for mid in ['done5n', 'riva3', 'gala8']:
+                _r = pg.evaluate(MB, [mid, {'conds': [], 'condNote': ''}]); assert 'cholinesterase' not in _r, (mid, _r)
+            for cd in ['depression', 'asthma', 'vestibular', 'af', 'peptic', 'epilepsy']:
+                assert 'cholinesterase' in pg.evaluate(MB, ['done5n', {'conds': [cd], 'condNote': ''}]), cd
+            assert 'cholinesterase' not in pg.evaluate(MB, ['riva3', {'conds': [], 'condNote': 'Trầm cảm 2020'}]), 'chỉ xét ô tích'
             # Atomoxetin (bác sĩ đặt 2026-11-05)
             assert pg.evaluate("() => CONDS.some(c => c.k === 'malnutrition')"), 'thiếu ô suy dinh dưỡng'
             assert pg.evaluate(MB, ['atomox', {'conds': [], 'condNote': ''}]) == ''
@@ -241,7 +330,9 @@ def main():
             assert 'đột quỵ' in pg.evaluate(PB, {'conds': [], 'condNote': 'Nhồi máu não 2024'})
             assert 'đột quỵ' not in pg.evaluate(PB, {'conds': [], 'condNote': 'Không có đột quỵ'})
             assert 'mang thai' in pg.evaluate(PB, {'conds': ['pregnant'], 'condNote': '', 'sex': 'Nữ'})
-            assert pg.evaluate("() => { const d = drugById('pirac400'); return d.howOpts[0] === 'Dùng mỗi lần 2 viên, ngày 3 lần sau ăn sáng, trưa, tối' && d.renal.map(r => r.lt).join() === '80,50,30,20' && d.renal[3].lv === 3; }")
+            assert pg.evaluate("() => { const d = drugById('pirac400'); return d.howOpts[0] === 'Uống mỗi lần 1 viên, ngày 3 lần sau ăn sáng, trưa, tối' && d.dose.join() === '1,1,0,1' && d.dnote.startsWith('30–160 mg/kg/ngày') && d.dnote.includes('24 g/ngày') && d.renal.map(r => r.lt).join() === '80,50,30,20' && d.renal[3].lv === 3; }")
+            assert 'xuất huyết não' in pg.evaluate(PB, {'conds': [], 'condNote': 'Xuất huyết não 2023'})
+            assert 'MLCT' in pg.evaluate(PB, {'conds': [], 'condNote': '', 'weight': None, 'visits': [], 'renalManual': {'egfr': 15, 'date': '2026-11-01'}})
 
             # 6g. Có chẩn đoán mà chưa có thuốc -> không sang được bước 4, trừ khi chọn lý do "Không kê đơn"
             pg.evaluate("go({name: 'visit', pid: 'p_demoA', vid: 'v_demo_now', step: 3})"); pg.wait_for_timeout(200)
@@ -895,9 +986,36 @@ def main():
             assert ['F10.2', True] in pg.evaluate(SG, {'sx': ['sud_alc', 'sud_crave', 'sud_control', 'sud_withdraw', 'sud_12m'], 'weeks': 20})
             assert ['F17.1', False] in pg.evaluate(SG, {'sx': ['sud_tob', 'sud_harm'], 'weeks': 20})
             assert ['F63.0', True] in pg.evaluate(SG, {'sx': ['gam_2ep', 'gam_cont', 'gam_urge', 'gam_preocc'], 'weeks': 60})
-            assert ['F91.3', True] in pg.evaluate(SG, {'sx': ['cd_odd', 'cd_pattern'], 'weeks': 30})
+            assert ['F91.3', False] in pg.evaluate(SG, {'sx': ['cd_odd', 'cd_pattern'], 'weeks': 30}), 'khoá cũ: F91.3 nay cần C, loại trừ'
+            # F91, F63.8 theo ICD-10 bản VN tr. 177–181, ICD-11 6C73 (2026-11-07)
+            _age = pg.evaluate("() => { const p = curP(), o = [p.dob, p.birthYear]; p.dob = ''; p.birthYear = Number(todayISO().slice(0, 4)) - 12; return o; }")
+            assert ['F91.3', True] in pg.evaluate(SG, {'sx': ['cd1', 'cd2', 'cd3', 'cd7', 'cd_6m', 'cd_odd_c', 'cd_excl'], 'weeks': 30})
+            assert ['F91.3', False] in pg.evaluate(SG, {'sx': ['cd1', 'cd2', 'cd3', 'cd7', 'cd_odd_c', 'cd_excl'], 'weeks': 8}), 'F91.3 cần ≥ 6 tháng'
+            _r = pg.evaluate(SG, {'sx': ['cd10', 'cd17', 'cd18', 'cd_6m', 'cd_excl'], 'weeks': 30}); assert ['F91.2', True] in _r, _r
+            assert ['F91.0', True] in pg.evaluate(SG, {'sx': ['cd10', 'cd15', 'cd9', 'cd_6m', 'cd_excl', 'cd_family'], 'weeks': 30})
+            assert ['F91.1', True] in pg.evaluate(SG, {'sx': ['cd10', 'cd15', 'cd22', 'cd_6m', 'cd_excl', 'cd_peer'], 'weeks': 30})
+            r = pg.evaluate(SG, {'sx': ['cd1', 'cd2', 'cd10', 'cd15', 'cd22', 'cd_6m', 'cd_excl'], 'weeks': 30})
+            assert ['F91.2', True] in r and not any(x[0] == 'F91.3' for x in r), r
+            ied = ['ied_ep', 'ied_dispro', 'ied_3m', 'ied_imp', 'ied_excl', 'ied_impair']
+            assert ['F63.8', True] in pg.evaluate(SG, {'sx': ied, 'weeks': 20})
+            assert ['F63.8', False] in pg.evaluate(SG, {'sx': ied[:3], 'weeks': 20})
+            r = dict((x[0], x) for x in pg.evaluate(I11, {'sx': ied, 'weeks': 20}))
+            assert '6C73' in r['F63.8'][1], r
+            pg.evaluate("(o) => { const p = curP(); p.dob = o[0]; p.birthYear = o[1]; }", _age)
             assert ['F44', True] in pg.evaluate(SG, {'sx': ['dis_sx', 'dis_noorg', 'dis_time'], 'weeks': 2})
-            assert ['F45.0', True] in pg.evaluate(SG, {'sx': ['som_2y', 'som_visits', 'som_refuse', 'som_6sx'], 'weeks': 110})
+            # F45 theo ICD-10 bản VN tr. 125–129 (2026-11-07)
+            assert ['F45.0', True] in pg.evaluate(SG, {'sx': ['som_2y', 'som_visits', 'som_refuse', 'som_6sx', 'som_excl'], 'weeks': 110})
+            assert ['F45.0', False] in pg.evaluate(SG, {'sx': ['som_2y', 'som_visits', 'som_refuse', 'som_6sx'], 'weeks': 110}), 'F45.0 cần E'
+            assert ['F45.1', True] in pg.evaluate(SG, {'sx': ['som_6m', 'som_visits', 'som_refuse', 'som_excl'], 'weeks': 30})
+            assert ['F45.1', False] in pg.evaluate(SG, {'sx': ['som_visits', 'som_refuse', 'som_excl'], 'weeks': 8}), 'F45.1 cần ≥ 6 tháng'
+            assert ['F45.2', True] in pg.evaluate(SG, {'sx': ['hyp_a1', 'hyp_b', 'hyp_c', 'hyp_excl'], 'weeks': 30})
+            assert ['F45.2', False] in pg.evaluate(SG, {'sx': ['hyp_b', 'hyp_c', 'hyp_excl'], 'weeks': 30})
+            assert ['F45.30', True] in pg.evaluate(SG, {'sx': ['aut_a', 'aut_cv', 'aut_b', 'aut_c', 'aut_d', 'aut_excl'], 'weeks': 30})
+            assert ['F45.3', False] in pg.evaluate(SG, {'sx': ['aut_a', 'aut_cv', 'aut_ugi', 'aut_b'], 'weeks': 30})
+            assert ['F45.4', True] in pg.evaluate(SG, {'sx': ['pain_a', 'pain_excl'], 'weeks': 30})
+            r = dict((x[0], x) for x in pg.evaluate(I11, {'sx': ['hyp_a2', 'hyp_b', 'hyp_c', 'hyp_excl'], 'weeks': 30}))
+            assert '6B21' in r['F45.2'][1], r
+            assert pg.evaluate("() => ['F45.30', 'F45.31', 'F45.32', 'F45.33', 'F45.34', 'F45.38'].every(c => ICD.some(r => r[0] === c)) && icd11Of('F45.2')[1] === '6B23'")
             # khoá cũ adhd_inatt / adhd_hyper / adhd_imp vẫn được tính (hồ sơ trước 2026-11-04)
             assert ['F90.0', True] in pg.evaluate(SG, {'sx': ['adhd_inatt', 'adhd_hyper', 'adhd_imp', 'adhd_7y', 'adhd_perv', 'adhd_impair', 'adhd_excl'], 'weeks': 30})
             # ADHD theo BYT 2020 Bài 30 (ICD-10): giảm chú ý ≥ 6/9, tăng động ≥ 3/5, xung động ≥ 1/4

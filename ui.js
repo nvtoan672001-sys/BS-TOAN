@@ -62,12 +62,23 @@ function afterChange(path){
         const it = m && ICD.find(x => x[0] === m[1]); const add = it ? it[2].filter(k => CHRONIC.includes(k) && !(p.conds || []).includes(k)) : [];
         if(add.length){ p.conds = (p.conds || []).concat(add); toast('Đã thêm vào bệnh nền: ' + add.map(condLabel).join(', ')); } }
     }
+    if(v){ if(path === 'v.dx.disp'){ v.dx.dispManual = true; v.dx.dispAuto = false; }
+      else if(/^v\.(mental|hpi$|exam$)/.test(path)) autoRefer(v, p); }
     if(p) savePatient(p);
     if(path === 'p.name' || path === 'p.phone') renderPlist();
   } else if(root === 's'){ saveSettings(); if(path === 's.doctor') $('#docname').textContent = '· ' + (S.settings.doctor || ''); }
   updateLive();
 }
 const CHRONIC = ['ckd','htn','diabetes','dyslipid','af','heart_failure','gout','oa','asthma','hbv','depression','liver','cvd','bipolar','dementia','parkinson','epilepsy','sexual_dysf'];
+// Tự tích "Chuyển tuyến" khi referReasons có lý do; bác sĩ tự chọn hướng xử trí thì không ghi đè; hết lý do thì trả lại lựa chọn cũ
+function autoRefer(v, p){
+  if(!v.dx) v.dx = {};
+  if(v.dx.dispManual) return;
+  const why = referReasons(p, v);
+  if(why.length && v.dx.disp !== 'refer'){ v.dx.dispPrev = v.dx.disp || ''; v.dx.disp = 'refer'; v.dx.dispAuto = true; toast('Đã tự tích "Chuyển tuyến": ' + why.join('; ')); }
+  else if(!why.length && v.dx.dispAuto){ v.dx.disp = v.dx.dispPrev || ''; v.dx.dispAuto = false; }
+  $$('input[name="v.dx.disp"]').forEach(el => { el.checked = el.value === v.dx.disp; });
+}
 function isLatestVisit(p, v){ return !p.visits.some(x => x !== v && x.date > v.date); }
 
 // ================= KHUNG CẬP NHẬT TỨC THỜI =================
@@ -76,6 +87,7 @@ function getChk(){ if(!_chk){ const p = curP(), v = curV(); _chk = p && v ? chec
 function updateLive(){ _chk = null; $$('[data-live]').forEach(el => { const f = LIVE[el.dataset.live]; if(f){ try { el.innerHTML = f(el); } catch(e){ console.error(e); el.innerHTML = '<span class="muted">—</span>'; } } }); }
 
 const LIVE = {
+  referWhy: () => { const p = curP(), v = curV(), w = p && v ? referReasons(p, v) : []; return w.length ? `<div class="small" style="color:var(--r3, #b42318)">⚑ Gợi ý chuyển tuyến: ${esc(w.join('; '))}${v.dx.dispManual && v.dx.disp !== 'refer' ? ' — bác sĩ đã chọn hướng xử trí khác' : ''}</div>` : ''; },
   phead: () => pheadHTML(curP()),
   ctx: () => ctxHTML(),
   warn: () => warnHTML(),
@@ -239,6 +251,12 @@ function newVisitObj(p, kind){
     dx: {main: '', icd: '', secondary: '', disp: 'outpatient', note: ''}, rx: [], rxNote: '', plan: {followDays: null, followDate: '', followReason: '', returnSigns: '', notes: ''},
     nutrition: {}, activity: {}, rehab: {text: ''}, tcm: {text: ''}, psych: {text: ''}, mental: {sx: [], hist: [], excl: []},
     print: {reason: true, dx: true, labs: true, rx: true, ae: true, plan: true, ret: true, diet: true, act: true, rehab: true, tcm: true, psych: false, price: false}};
+}
+// Tự chọn cận lâm sàng khi bệnh nhân có tiền sử rối loạn nhận thức (lượt khám mới tại phòng khám)
+function autoCogOrders(p, v){
+  const keys = cogAutoOrderKeys(p, v).filter(k => !v.orders.some(o => o.key === k) && LABS.some(x => x[1] === k));
+  keys.forEach(k => { const l = LABS.find(x => x[1] === k); v.orders.push({id: uid('o'), key: k, name: l[2], unit: l[3], ref: l[4], type: l[5], value: '', flag: '', note: ''}); });
+  return keys.length;
 }
 function nextCode(){ const n = S.patients.map(p => parseInt(String(p.code || '').replace(/\D/g, '')) || 0); return 'BN' + String(Math.max(0, ...n) + 1).padStart(4, '0'); }
 
@@ -452,7 +470,7 @@ function step3(p, v){
   return `<div class="card"><h3>3. Chẩn đoán</h3><div class="g2">
     <div class="dxcol">${F('Mã ICD-10 chẩn đoán chính (gõ để chọn nhanh)', I('v.dx.icd', v.dx.icd, {list: 'dlIcd', ph: 'vd. K29.7 hoặc "viêm dạ dày"'}))}${F('Chẩn đoán chính', T('v.dx.main', v.dx.main, {rows: 2}))}</div>
     <div class="dxcol">${F('Mã ICD-10 chẩn đoán phụ', I('v.dx.icd2', v.dx.icd2, {list: 'dlIcd', ph: 'vd. I10 hoặc "tăng huyết áp"'}))}${F('Chẩn đoán phụ', T('v.dx.secondary', v.dx.secondary, {rows: 2}))}</div>
-    <div class="field spanall"><label>Hướng xử trí</label><div class="row">${RAD('v.dx.disp', v.dx.disp, 'outpatient', 'Điều trị ngoại trú')}${RAD('v.dx.disp', v.dx.disp, 'admit', 'Nhập viện')}${RAD('v.dx.disp', v.dx.disp, 'refer', 'Chuyển tuyến')}</div></div>
+    <div class="field spanall"><label>Hướng xử trí</label><div class="row">${RAD('v.dx.disp', v.dx.disp, 'outpatient', 'Điều trị ngoại trú')}${RAD('v.dx.disp', v.dx.disp, 'admit', 'Nhập viện')}${RAD('v.dx.disp', v.dx.disp, 'refer', 'Chuyển tuyến')}</div><div data-live="referWhy"></div></div>
   </div></div>
   ${hasMental(v) ? '<div class="card"><h3>Gợi ý chẩn đoán tâm thần</h3><div data-live="dxsug"></div></div>' : ''}
   <div class="card"><div class="ch"><h3>Đơn thuốc</h3><div class="row"><select id="cmpG" style="width:auto" title="Chọn nhóm: ô tên thuốc chỉ hiện thuốc của nhóm này">${[['', 'Tất cả nhóm thuốc'], ...Object.entries(GROUPS)].map(([k, l]) => `<option value="${k}"${k === (S.rxG || '') ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select><button class="btn sm" data-act="cmpOpen"${S.rxG ? '' : ' disabled title="Chọn một nhóm thuốc trước"'}>So sánh lựa chọn trong nhóm</button></div></div>
@@ -733,12 +751,12 @@ const ACT = {
       conds: [], allergies: [], meds: [], risk: {smoke: 'never', alcohol: 'no'}, fam: [], screen: {}, recalls: [], visits: [], activity: 'sedentary'};
     S.patients.push(p);
     if(a.dataset.only){ savePatient(p); go({name: 'patient', pid: p.id, tab: 'profile'}); return; }
-    const v = newVisitObj(p, 'clinic'); v.reason = n.reason || ''; p.visits.push(v); savePatient(p);
-    go({name: 'visit', pid: p.id, vid: v.id, step: 1});
+    const v = newVisitObj(p, 'clinic'); v.reason = n.reason || ''; p.visits.push(v); const nAuto = autoCogOrders(p, v); savePatient(p);
+    go({name: 'visit', pid: p.id, vid: v.id, step: 1}); if(nAuto) toast(`Tiền sử rối loạn nhận thức: đã tự chọn ${nAuto} chỉ định cận lâm sàng`);
   },
   openP: a => go({name: 'patient', pid: a.dataset.id, tab: a.dataset.tab || 'visits'}),
   ptab: a => { S.view.tab = a.dataset.tab; renderMain(); },
-  newVisit: a => { const p = curP(), v = newVisitObj(p, a.dataset.kind); if(a.dataset.kind === 'old'){ v.status = 'done'; v.print.reason = false; } p.visits.push(v); savePatient(p); go({name: 'visit', pid: p.id, vid: v.id, step: 1}); if(a.dataset.kind === 'old') toast('Nhập ngày khám, nơi khám, chẩn đoán, xét nghiệm, đơn thuốc cũ'); },
+  newVisit: a => { const p = curP(), v = newVisitObj(p, a.dataset.kind); if(a.dataset.kind === 'old'){ v.status = 'done'; v.print.reason = false; } p.visits.push(v); const nAuto = a.dataset.kind === 'clinic' ? autoCogOrders(p, v) : 0; if(nAuto) setTimeout(() => toast(`Tiền sử rối loạn nhận thức: đã tự chọn ${nAuto} chỉ định cận lâm sàng`), 50); savePatient(p); go({name: 'visit', pid: p.id, vid: v.id, step: 1}); if(a.dataset.kind === 'old') toast('Nhập ngày khám, nơi khám, chẩn đoán, xét nghiệm, đơn thuốc cũ'); },
   openV: a => go({name: 'visit', pid: S.view.pid, vid: a.dataset.id, step: 1}),
   step: a => { const n = Number(a.dataset.step), m = n >= 4 && rxGate(curV());
     if(m){ toast(m); if((S.view.step || 1) !== 3){ S.view.step = 3; renderMain(); } updateLive(); const c = $('#norxCard'); if(c) c.scrollIntoView({block: 'center', behavior: 'smooth'}); return; }
@@ -928,7 +946,7 @@ async function loadAll(){
   await updateSeedTpls();
 }
 // Mẫu lời dặn bổ sung sau khi phát hành: chỉ thêm id chưa có, mỗi id đúng một lần (BS đã xoá thì không thêm lại)
-const TPL_ADDED = ['adv_psych', 'adv_viagra', 'adv_ed', 'adv_pe', 'adv_sex_f', 'adv_relax', 'adv_trazo', 'adv_sleep', 'adv_child_psy', 'adv_asd', 'adv_stutter'];
+const TPL_ADDED = ['adv_psych', 'adv_viagra', 'adv_ed', 'adv_pe', 'adv_sex_f', 'adv_relax', 'adv_trazo', 'adv_sleep', 'adv_child_psy', 'adv_asd', 'adv_stutter', 'adv_cog'];
 // Sửa nội dung mẫu đã phát hành: thay đoạn `from` bằng `to` một lần (nhớ ở settings.tplUpdated); mẫu bác sĩ đã sửa đoạn đó thì giữ nguyên
 const TPL_UPDATES = [{ver: 'psych-mang-thai-2026-10-28', id: 'adv_psych', from: 'không tự ý ngừng thuốc. Báo bác sĩ', to: 'không tự ý ngừng thuốc. Tránh mang thai trong thời gian sử dụng thuốc. Báo bác sĩ'},
   {ver: 'tre-em-theo-doi-2026-11-05', id: 'adv_child_psy', from: 'hỗ trợ trẻ.', to: 'hỗ trợ trẻ.\nTheo dõi phát triển: cân nặng, chiều cao, kỹ năng ngôn ngữ, xã hội, học tập. Theo dõi đáp ứng của giáo viên, người xung quanh. Tái khám sau 2 tuần.'}];
@@ -965,7 +983,23 @@ const SEED_ADDED = ['gavis10',
   // atomoxetin — 2026-11-05
   'atomox',
   // clonidin 0,025 mg — 2026-11-05
-  'clon025'];
+  'clon025',
+  // rivastigmin 1,5 mg — 2026-11-07
+  'riva15',
+  // galantamin 4 mg — 2026-11-07
+  'gala4',
+  // memantin 5 mg — 2026-11-07
+  'mema5',
+  // cerebrolysin 10 ml — 2026-11-07
+  'cere10',
+  // ginkgo biloba 40 mg — 2026-11-07
+  'ginkgo40',
+  // citicolin 200 mg — 2026-11-07
+  'citi200',
+  // cholin alfoscerat 400 mg — 2026-11-07
+  'cholalf400',
+  // 13 thuốc theo tờ HDSD / giá Long Châu — 2026-11-07
+  'vinpo5', 'nicer10', 'aminol200', 'sily140', 'boganicf', 'vite400', 'seleg5', 'coq10_30', 'omega1000', 'vitb1_250', 'b12_500', 'folic5', 'vit3b'];
 async function addNewSeedDrugs(){
   const done = S.settings.seedAdded || [], todo = SEED_ADDED.filter(id => !done.includes(id));
   if(!todo.length) return;
@@ -981,14 +1015,16 @@ const SEED_UPDATES = [{ver: 'stahl-2026-10', ids: SEED_ADDED.slice(1)},   // 44 
   {ver: 'mirtazapin-2026-11-02', ids: ['mirta30n', 'mirta30f']},
   {ver: 'tca-2026-11-02', ids: ['amitri25']},
   {ver: 'diazepam-2026-11-02', ids: ['diaz5']},
-  {ver: 'piracetam-2026-11-05', ids: ['piracetam']}];                          // ưu tiên khuyến cáo mới hơn Stahl 2004 (LactMed, FDA/EMA, SmPC)
+  {ver: 'piracetam-2026-11-05', ids: ['piracetam']},
+  {ver: 'donepezil-2026-11-07', ids: ['done5n', 'done5f']},
+  {ver: 'piracetam400-2026-11-07', ids: ['pirac400'], extra: ['dose']}];                          // ưu tiên khuyến cáo mới hơn Stahl 2004 (LactMed, FDA/EMA, SmPC)
 const SEED_CLIN = ['tags', 'how', 'howOpts', 'dnote', 'ae', 'warn', 'pro', 'con', 'renal', 'hep', 'old', 'preg', 'lact', 'cond'];
 async function updateSeedDrugs(){
   const done = S.settings.seedUpdated || [], todo = SEED_UPDATES.filter(u => !done.includes(u.ver));
   if(!todo.length) return;
   for(const u of todo) for(const id of u.ids){
     const d = S.drugs.find(x => x.id === id), s = DRUGS_SEED.find(x => x.id === id); if(!d || !s) continue;
-    SEED_CLIN.forEach(k => { if(s[k] === undefined) delete d[k]; else d[k] = clone(s[k]); });
+    SEED_CLIN.concat(u.extra || []).forEach(k => { if(s[k] === undefined) delete d[k]; else d[k] = clone(s[k]); });   // u.extra: trường thêm của đợt (vd. 'dose')
     await Store.put('drugs', d);
   }
   S.settings.seedUpdated = done.concat(todo.map(u => u.ver)); await saveSettings();
