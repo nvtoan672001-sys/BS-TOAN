@@ -615,6 +615,25 @@ function drugBlockReasons(p, v, d, ctx, line){
     const rn = renalOf(p);
     if(rn && rn.egfr != null && rn.egfr < 60) out.push(`memantin: MLCT ≈ ${fmtN(rn.egfr)} mL/phút/1,73 m² (< 60)`);
   }
+  // Risperidon (bác sĩ đặt 2026-11-07, áp cho mọi risperidon): < 18 tuổi kèm cân nặng < 50 kg; ô tiền sử ghi điều trị paroxetin, furosemid, chẹn alpha giao cảm, levodopa
+  // (hoặc thuốc dài hạn có các thuốc này); tích ô động kinh, uống rượu (mục nguy cơ), rối loạn / lo ngại chức năng tình dục, rối loạn cương; Parkinson, sa sút trí tuệ thể Lewy,
+  // bệnh mạch ngoại biên (chữ hoặc ô tích). Mang thai / cho con bú: quy tắc chung nhóm neuro. Xơ gan, bệnh thận mạn → cảnh báo giảm liều ở checkAll (risperidonDoseWarn)
+  if(norm(d.hc || '').includes('risperidon')){
+    const r = [], pcs = p.conds || [], say = k => mentionsSymptom(p.condNote || '', k), a = ageOf(p, v.date);
+    const vt = v.vitals || {}, w = num(vt.weight) || num(p.weight);
+    if(a != null && a < 18 && w != null && w < 50) r.push(`${a} tuổi, cân nặng ${fmtN(w)} kg (< 18 tuổi và < 50 kg)`);
+    const ALPHA = ['chen alpha', 'doxazosin', 'prazosin', 'terazosin', 'tamsulosin', 'alfuzosin', 'silodosin'];
+    const DRUGS = [['paroxetin', ['paroxetin', 'paroxetine']], ['furosemid', ['furosemid', 'furosemide']], ['thuốc chẹn alpha giao cảm', ALPHA], ['levodopa', ['levodopa']]];
+    const longN = ctxOf(p, v).longMeds.map(lm => norm(lm.name));
+    DRUGS.forEach(([l, kws]) => { if(kws.some(say) || kws.some(k => longN.some(n => n.includes(k)))) r.push('đang điều trị ' + l); });
+    if(pcs.includes('epilepsy')) r.push('tích ô động kinh');
+    if(['some', 'heavy'].includes((p.risk || {}).alcohol)) r.push('có uống rượu bia');
+    if(pcs.includes('sexual_dysf') || pcs.includes('erectile_dysf')) r.push('rối loạn / lo ngại chức năng tình dục');
+    if(pcs.includes('parkinson') || say('parkinson')) r.push('Parkinson');
+    if(say('lewy') || say('the lewy')) r.push('sa sút trí tuệ thể Lewy');
+    if(pcs.includes('pad') || say('benh mach ngoai bien') || say('benh dong mach ngoai bien')) r.push('bệnh mạch ngoại biên');
+    if(r.length) out.push('risperidon: ' + r.join('; '));
+  }
   // Rivastigmin 1,5 mg (bác sĩ đặt 2026-11-07, chỉ bản 1,5 mg): BMI < 19 (cân nặng / chiều cao lượt khám, thiếu thì lấy hồ sơ) → không kê
   if(d.id === 'riva15' || /rivastigmin\s*1[,.]5\s*mg/i.test(d.n || '')){
     const vt = v.vitals || {}, b = bmiOf(num(vt.weight) || p.weight, num(vt.height) || p.height);
@@ -959,6 +978,11 @@ function checkAll(p, v, entries){
       if(block.length) items.push({lv: 3, kind: 'Quy tắc phòng khám', title: e.name, m: 'Không kê thuốc này vì ' + block.join('; ') + '. Chọn thuốc khác.', lines: [e.id]});
       const half = halfDoseReasons(p, v, e.drug, ctx);
       if(e.drug.dnote) items.push({lv: 2, kind: 'Liều (quy tắc phòng khám)', title: `${e.name} — chỉnh liều`, m: e.drug.dnote, lines: [e.id]});
+      if(norm(e.drug.hc || '').includes('risperidon')){   // bác sĩ đặt 2026-11-07: xơ gan, bệnh thận mạn → cảnh báo giảm liều
+        const pc = p.conds || [], sy = k => mentionsSymptom(p.condNote || '', k), why = [];
+        if(pc.includes('liver') || sy('xo gan')) why.push('xơ gan'); if(pc.includes('ckd') || sy('benh than man') || sy('suy than')) why.push('bệnh thận mạn');
+        if(why.length) items.push({lv: 2, kind: 'Liều (quy tắc phòng khám)', title: `${e.name} — giảm liều`, m: `Tiền sử ${why.join(', ')}: giảm liều (khởi đầu 0,5 mg × 2 lần/ngày, tăng chậm).`, lines: [e.id]});
+      }
       const htnC = htnCautions(p, v, e.drug, ctx);
       if(htnC.length) items.push({lv: 2, kind: 'Thận trọng (VNHA 2026)', title: `${e.name} — ${HTN_GNAME[htnGroup(e.drug)]}`, m: 'Thận trọng: ' + htnC.join('; ') + '.', lines: [e.id]});
       const zl = zolpidemLowStart(p, v, e.drug);
@@ -1391,14 +1415,14 @@ function psyDx(p, v){
     const early = has('cd_onset10') || (age != null && age < 10);
     add(code, 'ICD-10 (bản VN) tr. 177–181; LEC11', [`Nhóm 9–23: ${cdC} triệu chứng (cần ≥ 3)`].concat(cdMet).concat(['cd_6m', 'cd_excl', 'cd_family', 'cd_peer'].filter(has).map(cdLab)), miss,
       (early ? 'Loại khởi phát ở trẻ em (trước 10 tuổi). ' : 'Ghi loại khởi phát (trước / sau 10 tuổi). ') + (code === 'F91.2' ? 'F91.2 cần: rối loạn ở cả ngoài nhà và quan hệ bạn bè bình thường. ' : '') +
-      'Ghi mức độ nhẹ / trung bình / nặng theo số triệu chứng và tổn hại cho người khác. Có cả tăng động → F90.1.');
+      (has('cd_sev3') ? 'Mức độ: nặng. ' : has('cd_sev2') ? 'Mức độ: trung bình. ' : has('cd_sev1') ? 'Mức độ: nhẹ. ' : 'Đánh dấu mức độ nhẹ / trung bình / nặng. ') + 'Có cả tăng động → F90.1.');
     i11x[code] = `ICD-11 6C91 rối loạn hành vi – chống đối xã hội: ${early ? '6C91.0 khởi phát thời thơ ấu' : '6C91.1 khởi phát tuổi vị thành niên'}; ghi kèm có / không cảm xúc hướng xã hội hạn chế.`;
   } else if(cdO + cdC >= 4 && cdO >= 1){
     const miss = need('cond', ['cd_odd_c']);
     if(!cdDur) miss.push('D. ≥ 4 triệu chứng kéo dài ≥ 6 tháng');
     miss.push(...need('cond', ['cd_excl']));
     add('F91.3', 'ICD-10 (bản VN) tr. 181; LEC11', [`${cdO + cdC} triệu chứng (cần ≥ 4), nhóm 9–23: ${cdC} (tối đa 2)`].concat(cdMet).concat(['cd_6m', 'cd_odd_c', 'cd_excl'].filter(has).map(cdLab)), miss,
-      'Thường gặp kèm ADHD; ≥ 3 triệu chứng nhóm 9–23 → F91.0–F91.2.');
+      (has('odd_sev3') ? 'Mức độ: nặng (≥ 3 bối cảnh). ' : has('odd_sev2') ? 'Mức độ: trung bình (≥ 2 bối cảnh). ' : has('odd_sev1') ? 'Mức độ: nhẹ (1 bối cảnh). ' : 'Đánh dấu mức độ theo số bối cảnh (nhà, trường, nơi làm việc, bạn bè). ') + 'Thường gặp kèm ADHD; ≥ 3 triệu chứng nhóm 9–23 → F91.0–F91.2.');
     i11x['F91.3'] = 'ICD-11 6C90: ghi 6C90.0 nếu có cáu giận – dễ kích thích mạn tính, 6C90.1 nếu không; ' + (has('cd1') || has('cd6') || has('cd7') ? 'bảng kiểm có cáu giận / dễ tự ái → nghĩ 6C90.0.' : 'chưa đánh dấu cáu giận → nghĩ 6C90.1.');
   } else if(CDO.concat(CDC).some(has)) todo.push(`Rối loạn hành vi: ${cdO} triệu chứng nhóm 1–8, ${cdC} nhóm 9–23 — F91.3 cần ≥ 4 (≤ 2 thuộc 9–23), F91.0–F91.2 cần ≥ 3 thuộc 9–23.`);
   // Rối loạn bùng nổ từng giai đoạn — ICD-10 xếp F63.8 (không có tiêu chuẩn riêng); tiêu chuẩn theo ICD-11 6C73 (bác sĩ yêu cầu 2026-11-07)
@@ -1407,7 +1431,7 @@ function psyDx(p, v){
     if(age != null && age < 6) miss.push('Dưới 6 tuổi — chưa chẩn đoán');
     if(cdFull) miss.push('Đã đủ rối loạn hành vi F91 — bùng nổ cần không do rối loạn khác');
     add('F63.8', 'ICD-11 6C73; ICD-10 F63.8; LEC11', ['ied_ep', 'ied_dispro', 'ied_3m', 'ied_imp', 'ied_excl', 'ied_impair'].filter(has).map(cdLab), miss,
-      'Rối loạn bùng nổ từng giai đoạn: ICD-10 không có tiêu chuẩn riêng, xếp vào F63.8 "rối loạn thói quen và xung động khác"; tiêu chuẩn lấy theo ICD-11 6C73.');
+      (has('ied_sev2') ? 'Mức độ: A2 gây thiệt hại, thương tích. ' : has('ied_sev1') ? 'Mức độ: A1 không gây thương tích. ' : 'Đánh dấu mức độ A1 / A2. ') + 'Rối loạn bùng nổ từng giai đoạn: ICD-10 không có tiêu chuẩn riêng, xếp vào F63.8 "rối loạn thói quen và xung động khác"; tiêu chuẩn lấy theo ICD-11 6C73.');
     i11x['F63.8'] = 'ICD-11 6C73 rối loạn bùng nổ từng giai đoạn.' + (has('game_net') ? ' (Nghiện trò chơi điện tử: 6C51.)' : '');
   }
   // Cờ đỏ Alzheimer (bác sĩ đặt 2026-11-06): có bất kỳ dấu hiệu nào → cảnh báo cần đánh giá nhận thức

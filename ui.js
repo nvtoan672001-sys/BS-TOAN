@@ -946,7 +946,7 @@ async function loadAll(){
   await updateSeedTpls();
 }
 // Mẫu lời dặn bổ sung sau khi phát hành: chỉ thêm id chưa có, mỗi id đúng một lần (BS đã xoá thì không thêm lại)
-const TPL_ADDED = ['adv_psych', 'adv_viagra', 'adv_ed', 'adv_pe', 'adv_sex_f', 'adv_relax', 'adv_trazo', 'adv_sleep', 'adv_child_psy', 'adv_asd', 'adv_stutter', 'adv_cog'];
+const TPL_ADDED = ['adv_psych', 'adv_viagra', 'adv_ed', 'adv_pe', 'adv_sex_f', 'adv_relax', 'adv_trazo', 'adv_sleep', 'adv_child_psy', 'adv_asd', 'adv_stutter', 'adv_cog', 'adv_behav'];
 // Sửa nội dung mẫu đã phát hành: thay đoạn `from` bằng `to` một lần (nhớ ở settings.tplUpdated); mẫu bác sĩ đã sửa đoạn đó thì giữ nguyên
 const TPL_UPDATES = [{ver: 'psych-mang-thai-2026-10-28', id: 'adv_psych', from: 'không tự ý ngừng thuốc. Báo bác sĩ', to: 'không tự ý ngừng thuốc. Tránh mang thai trong thời gian sử dụng thuốc. Báo bác sĩ'},
   {ver: 'tre-em-theo-doi-2026-11-05', id: 'adv_child_psy', from: 'hỗ trợ trẻ.', to: 'hỗ trợ trẻ.\nTheo dõi phát triển: cân nặng, chiều cao, kỹ năng ngôn ngữ, xã hội, học tập. Theo dõi đáp ứng của giáo viên, người xung quanh. Tái khám sau 2 tuần.'}];
@@ -999,7 +999,9 @@ const SEED_ADDED = ['gavis10',
   // cholin alfoscerat 400 mg — 2026-11-07
   'cholalf400',
   // 13 thuốc theo tờ HDSD / giá Long Châu — 2026-11-07
-  'vinpo5', 'nicer10', 'aminol200', 'sily140', 'boganicf', 'vite400', 'seleg5', 'coq10_30', 'omega1000', 'vitb1_250', 'b12_500', 'folic5', 'vit3b'];
+  'vinpo5', 'nicer10', 'aminol200', 'sily140', 'boganicf', 'vite400', 'seleg5', 'coq10_30', 'omega1000', 'vitb1_250', 'b12_500', 'folic5', 'vit3b',
+  // Risperdal 1 mg — 2026-11-07
+  'risperdal1'];
 async function addNewSeedDrugs(){
   const done = S.settings.seedAdded || [], todo = SEED_ADDED.filter(id => !done.includes(id));
   if(!todo.length) return;
