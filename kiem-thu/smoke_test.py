@@ -188,7 +188,7 @@ def main():
             r = pg.evaluate("""async () => { const d = S.drugs.find(x => x.id === 'tiane12'); d.p = 9999; delete d.preg; d.warn = 'cũ';
                 await Store.put('drugs', d); S.settings.seedUpdated = []; await saveSettings(); await loadAll();
                 const e = S.drugs.find(x => x.id === 'tiane12'); return {p: e.p, preg: e.preg && e.preg.lv, warn: e.warn, ver: S.settings.seedUpdated}; }""")
-            assert r['p'] == 9999 and r['preg'] == 3 and r['warn'] != 'cũ' and r['ver'] == ['stahl-2026-10', 'moi-2026-10', 'tha-abcd-2026-10-30', 'zolpidem-2026-11-02', 'trazodon-2026-11-02', 'mirtazapin-2026-11-02', 'tca-2026-11-02', 'diazepam-2026-11-02', 'piracetam-2026-11-05', 'donepezil-2026-11-07', 'piracetam400-2026-11-07', 'amitriptylin-2026-11-09', 'alprazolam-bo-05-2026-11-09', 'fluoxetin-bo-20-2026-11-12', 'sertralin-2026-11-12', 'fluvoxamin-2026-11-12', 'venlafaxin-2026-11-12', 'mirtazapin-2026-11-12', 'amitriptylin-luu-y-2026-11-12', 'tuong-tac-tam-than-2026-11-09'], r
+            assert r['p'] == 9999 and r['preg'] == 3 and r['warn'] != 'cũ' and r['ver'] == ['stahl-2026-10', 'moi-2026-10', 'tha-abcd-2026-10-30', 'zolpidem-2026-11-02', 'trazodon-2026-11-02', 'mirtazapin-2026-11-02', 'tca-2026-11-02', 'diazepam-2026-11-02', 'piracetam-2026-11-05', 'donepezil-2026-11-07', 'piracetam400-2026-11-07', 'amitriptylin-2026-11-09', 'alprazolam-bo-05-2026-11-09', 'fluoxetin-bo-20-2026-11-12', 'sertralin-2026-11-12', 'fluvoxamin-2026-11-12', 'venlafaxin-2026-11-12', 'mirtazapin-2026-11-12', 'amitriptylin-luu-y-2026-11-12', 'valproat-2026-11-12', 'olanzapin-2026-11-12', 'quetiapin-2026-11-12', 'risperidon-luu-y-2026-11-12', 'sulpirid-2026-11-12', 'sulpirid-than-2026-11-12', 'tuong-tac-tam-than-2026-11-09'], r
             assert pg.evaluate("S.drugs.find(x => x.id === 'quet100n').lact.lv") == 1, 'quetiapin cho con bú phải theo LactMed (mức lưu ý)'
             # Methylphenidat (bác sĩ đặt 2026-11-05): chặn theo tiền sử; cách dùng chọn sẵn; lưu ý chỉnh liều
             MB = "([id, o]) => { const p = JSON.parse(JSON.stringify(curP())), v = JSON.parse(JSON.stringify(curV())); Object.assign(p, o); v.hpi = ''; v.dx = {icd: '', text: ''}; p.meds = []; return drugBlockReasons(p, v, drugById(id)).join(' | '); }"
@@ -1162,6 +1162,31 @@ def main():
               p.conds = c0; p.condNote = n0; v.hpi = h0; return [b0, b1, b2, b3, b4, b5, d.how, d.howOpts[0], /Theo dõi cân nặng/.test(d.dnote)]; }""")
             assert r == [0, 1, 1, 1, 1, 0, '', 'Uống mỗi lần 1/2 viên, ngày uống 1 lần sau ăn tối', True], r
             assert pg.evaluate("() => ['amitri25', 'amitri25f'].every(id => /Duy trì > 3 tháng/.test(drugById(id).dnote) && /đau mạn thường chỉ cần liều thấp/.test(drugById(id).dnote))"), 'lưu ý amitriptylin'
+            # Natri valproat (bác sĩ đặt 2026-11-12)
+            r = pg.evaluate("""() => { const p = curP(), v = curV(), c0 = p.conds, n0 = p.condNote, h0 = v.hpi, m0 = p.meds, rx0 = v.rx, a0 = p.allergyText, by0 = p.birthYear, dob0 = p.dob, d = drugById('valp500n');
+              const B = () => drugBlockReasons(p, v, d).filter(x => /^natri valproat:/.test(x)).length;
+              p.conds = []; p.condNote = ''; v.hpi = ''; p.meds = []; v.rx = []; p.allergyText = ''; const b0 = B();
+              p.condNote = 'Xơ gan'; const b1 = B(); p.condNote = 'Dị ứng Depakine'; const b2 = B(); p.condNote = 'Dị ứng penicillin'; const b2n = B(); p.condNote = '';
+              p.conds = ['vestibular']; const b3 = B(); p.conds = [];
+              p.condNote = 'Đang dùng aspirin 81 mg'; const b4 = B(); p.condNote = ''; p.meds = [{id: 'm1', text: 'Ibuprofen 400 mg'}]; const b5 = B(); p.meds = [];
+              v.hpi = 'Tiêu chảy 3 ngày'; const b6 = B(); v.hpi = 'Buồn nôn, nôn'; const b7 = B(); v.hpi = 'Run tay'; const b8 = B(); v.hpi = 'Không nôn, không run'; const b9 = B(); v.hpi = '';
+              p.dob = ''; p.birthYear = +v.date.slice(0, 4) - 8; const b10 = B(); p.birthYear = +v.date.slice(0, 4) - 30; const b11 = B();
+              p.conds = c0; p.condNote = n0; v.hpi = h0; p.meds = m0; v.rx = rx0; p.allergyText = a0; p.birthYear = by0; p.dob = dob0;
+              return [b0, b1, b2, b2n, b3, b4, b5, b6, b7, b8, b9, b10, b11, d.how, d.howOpts[0]]; }""")
+            assert r == [0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 0, '', 'Uống mỗi lần 1 viên, ngày uống 2 lần sau ăn sáng, tối'], r
+            # Olanzapin (bác sĩ đặt 2026-11-12)
+            r = pg.evaluate("""() => { const p = curP(), v = curV(), c0 = p.conds, n0 = p.condNote, d = drugById('olan10n');
+              const B = () => drugBlockReasons(p, v, d).filter(x => /^olanzapin: tiền sử/.test(x)).length;
+              p.conds = []; p.condNote = ''; const b0 = B();
+              const c = ['glaucoma', 'diabetes', 'dyslipid', 'vestibular', 'epilepsy'].map(k => { p.conds = [k]; return B(); }); p.conds = [];
+              p.condNote = 'Đái tháo đường type 2'; const b1 = B(); p.condNote = 'Không đái tháo đường'; const b2 = B();
+              p.conds = c0; p.condNote = n0; return [b0, c, b1, b2, d.how, d.howOpts[0], d.dose.join(',')]; }""")
+            assert r == [0, [1, 1, 1, 1, 1], 1, 0, '', 'Uống mỗi lần 1 viên, ngày uống 1 lần sau ăn tối', '0,0,0,1'], r
+            assert pg.evaluate("() => ['quet100n', 'quet100f'].every(id => { const d = drugById(id); return d.how === '' && /^Ngày 1 uống 1\/2 viên/.test(d.howOpts[0]) && /tối đa 200 mg/.test(d.dnote); })"), 'quetiapin cách dùng + lưu ý'
+            assert pg.evaluate("() => ['risp2n', 'risp2f', 'risperdal1'].every(id => /đặc biệt khi có rung nhĩ/.test(drugById(id).dnote)) && /Thiếu niên/.test(drugById('risperdal1').dnote)"), 'lưu ý risperidon'
+            r = pg.evaluate("""() => { const p = curP(), v = curV(), by0 = p.birthYear, dob0 = p.dob, d = drugById('sulpi50'), B = () => drugBlockReasons(p, v, d).filter(x => /^sulpirid:/.test(x)).length;
+              p.dob = ''; p.birthYear = +v.date.slice(0, 4) - 12; const a = B(); p.birthYear = +v.date.slice(0, 4) - 16; const b = B(); p.birthYear = by0; p.dob = dob0; return [a, b, d.how, d.howOpts[0], d.dnote]; }""")
+            assert r[:4] == [1, 0, '', '150–300 mg/ngày'] and r[4].startswith('15–18 tuổi: 3–5 mg/kg') and 'Clcr < 10 mL/phút' in r[4], r
             # Khám lâm sàng theo cơ quan (bác sĩ đặt 2026-11-12)
             r = pg.evaluate("""() => { const v = curV(), s0 = S.view.step, e0 = JSON.stringify(v.examSys || {}); v.examSys = {};
               go({name: 'visit', pid: S.view.pid, vid: v.id, step: 1}); const sel = document.querySelector('select.howpick[data-for="v.examSys.cv"]');

@@ -754,6 +754,36 @@ function drugBlockReasons(p, v, d, ctx, line){
     if(mentionsSymptom(v.hpi || '', 'tao bon')) r.push('bệnh sử táo bón');
     if(r.length) out.push('mirtazapin: ' + r.join('; '));
   }
+  // Natri valproat (bác sĩ đặt 2026-11-12, mọi valproat): tiền sử xơ gan (ô `liver` đã chặn ở khối bệnh gan; thêm chữ), dị ứng valproat, rối loạn tiền đình (ô hoặc chữ),
+  // đang dùng aspirin / ibuprofen (chữ tiền sử, thuốc dài hạn, đơn); bệnh sử tiêu chảy, nôn, run; < 10 tuổi. Mang thai / cho con bú: quy tắc chung nhóm thần kinh.
+  if(norm(d.hc || '').includes('valpro')){
+    const r = [], pcs = p.conds || [], note = p.condNote || '', say = k => mentionsSymptom(note, k), hs = k => mentionsSymptom(v.hpi || '', k);
+    if(!C.has('liver') && say('xo gan')) r.push('tiền sử xơ gan');
+    const VP = ['valproat', 'valproic', 'depakin', 'depakine', 'depakote', 'divalproex'];
+    const alg = norm((p.allergyText || '') + ' . ' + note);
+    if(VP.some(k => alg.includes(k)) && (/di ung/.test(alg) || norm(p.allergyText || '').trim())) r.push('tiền sử dị ứng valproat');
+    if(pcs.includes('vestibular') || ['roi loan tien dinh', 'hoi chung tien dinh'].some(say)) r.push('tiền sử rối loạn tiền đình');
+    const AI = ['aspirin', 'acetylsalicylic', 'ibuprofen'];
+    const meds = (v.rx || []).map(l => drugById(l.drugId)).filter(Boolean).map(x => norm(x.hc + ' ' + x.n)).concat((ctx || ctxOf(p, v)).longMeds.map(m => norm(m.name || '')));
+    const ai = AI.filter(k => say(k) || meds.some(m => m.includes(k)));
+    if(ai.length) r.push('đang dùng ' + [...new Set(ai.map(k => k === 'acetylsalicylic' ? 'aspirin' : k))].join(', '));
+    const sx = [['tieu chay', 'tiêu chảy'], ['non', 'nôn'], ['buon non', 'nôn'], ['run', 'run']].filter(([k]) => hs(k)).map(([, l]) => l);
+    if(sx.length) r.push('bệnh sử ' + [...new Set(sx)].join(', '));
+    const age = ageOf(p, v.date); if(age != null && age < 10) r.push(`${age} tuổi (< 10)`);
+    if(r.length) out.push('natri valproat: ' + r.join('; '));
+  }
+  // Olanzapin (bác sĩ đặt 2026-11-12): tiền sử glôcôm góc đóng, đái tháo đường, rối loạn lipid, rối loạn tiền đình, động kinh (ô tích hoặc ghi chữ ở ô tiền sử).
+  // Béo phì (BMI ≥ 25 / E66 / ghi chữ) đã chặn ở smokeObeseReasons.
+  if(norm(d.hc || '').includes('olanzapin')){
+    const pcs = p.conds || [], say = k => mentionsSymptom(p.condNote || '', k);
+    const L = [['glaucoma', ['glocom', 'glaucoma', 'tang nhan ap'], 'glôcôm góc đóng'], ['diabetes', ['dai thao duong', 'tieu duong'], 'đái tháo đường'],
+      ['dyslipid', ['roi loan lipid', 'roi loan mo mau', 'mo mau cao', 'tang mo mau', 'tang cholesterol', 'tang triglycerid'], 'rối loạn lipid máu'],
+      ['vestibular', ['roi loan tien dinh', 'hoi chung tien dinh'], 'rối loạn tiền đình'], ['epilepsy', ['dong kinh'], 'động kinh']];
+    const r = L.filter(([k, kws]) => pcs.includes(k) || kws.some(say)).map(([, , l]) => l);
+    if(r.length) out.push('olanzapin: tiền sử ' + r.join(', '));
+  }
+  // Sulpirid (bác sĩ đặt 2026-11-12): < 15 tuổi → không kê
+  if(norm(d.hc || '').includes('sulpirid')){ const age = ageOf(p, v.date); if(age != null && age < 15) out.push(`sulpirid: ${age} tuổi (< 15)`); }
   // Sertralin (bác sĩ đặt 2026-11-12): ô "Tiền sử bệnh, phẫu thuật, nhập viện" ghi đang dùng NSAID (tên nhóm hoặc tên thuốc) hoặc rối loạn đông máu;
   // ô bệnh nền tích glôcôm góc đóng; nghề nghiệp lái xe; điện tim mới nhất ghi QTc dài (qtcLong)
   if(norm(d.hc || '').includes('sertralin')){

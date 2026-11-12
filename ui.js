@@ -1058,6 +1058,12 @@ const SEED_UPDATES = [{ver: 'stahl-2026-10', ids: SEED_ADDED.slice(1)},   // 44 
   {ver: 'venlafaxin-2026-11-12', ids: ['venla75n', 'venla75f'], only: ['dose', 'how', 'howOpts', 'dnote']},
   {ver: 'mirtazapin-2026-11-12', ids: ['mirta30n', 'mirta30f'], only: ['how', 'howOpts', 'dnote']},
   {ver: 'amitriptylin-luu-y-2026-11-12', ids: ['amitri25', 'amitri25f'], only: ['dnote']},
+  {ver: 'valproat-2026-11-12', ids: ['valp500n', 'valp500f'], only: ['how', 'howOpts', 'dnote']},
+  {ver: 'olanzapin-2026-11-12', ids: ['olan10n', 'olan10f'], only: ['dose', 'how', 'howOpts', 'dnote']},
+  {ver: 'quetiapin-2026-11-12', ids: ['quet100n', 'quet100f'], only: ['how', 'howOpts', 'dnote']},
+  {ver: 'risperidon-luu-y-2026-11-12', ids: ['risp2n', 'risp2f', 'risperdal1'], only: ['dnote']},
+  {ver: 'sulpirid-2026-11-12', ids: ['sulpi50'], only: ['how', 'howOpts', 'dnote']},
+  {ver: 'sulpirid-than-2026-11-12', ids: ['sulpi50'], only: ['dnote', 'renal']},
   {ver: 'tuong-tac-tam-than-2026-11-09', ids: DRUGS_SEED.filter(d => PSY_EXTRA_TAGS[d.hc]).map(d => d.id), only: ['tags']}];                          // ưu tiên khuyến cáo mới hơn Stahl 2004 (LactMed, FDA/EMA, SmPC)
 const SEED_CLIN = ['tags', 'how', 'howOpts', 'dnote', 'ae', 'warn', 'pro', 'con', 'renal', 'hep', 'old', 'preg', 'lact', 'cond'];
 async function updateSeedDrugs(){
