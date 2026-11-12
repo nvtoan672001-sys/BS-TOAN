@@ -1095,6 +1095,10 @@ def main():
             assert pg.evaluate("() => [7, 8, 13, 14, 18, 19, 22, 23, 52].map(x => scaleResult('hamd', x).t).join('|')") == 'Bình thường|Nhẹ|Nhẹ|Vừa|Vừa|Nặng|Nặng|Rất nặng|Rất nặng', 'ngưỡng HAM-D'
             # Ngưỡng MADRS (bác sĩ đặt 2026-11-12)
             assert pg.evaluate("() => [6, 7, 19, 20, 30, 31, 39, 40, 60].map(x => scaleResult('madrs', x).t).join('|')") == 'Bình thường / không có triệu chứng|Nhẹ|Nhẹ|Mức độ vừa phải|Mức độ vừa phải|Nghiêm trọng|Nghiêm trọng|Cực kỳ nghiêm trọng|Cực kỳ nghiêm trọng'
+            # Trắc nghiệm tâm lý: sàng lọc trước, chẩn đoán / mức độ sau (bác sĩ đặt 2026-11-12)
+            r = pg.evaluate("""() => { const ks = LABS.filter(l => l[0] === 'Trắc nghiệm tâm lý').map(l => l[1]);
+              return [ks.length === new Set(ks).size, ks[0], ks.indexOf('bdi') > ks.indexOf('scs_f'), ks.indexOf('mmse') < ks.indexOf('bdi'), ks.length]; }""")
+            assert r == [True, 'phq2', True, True, 70], r
             # Link MDCalc khi chọn MADRS (bác sĩ đặt 2026-11-12)
             r = pg.evaluate("""() => { const v = curV(), o0 = v.orders, s0 = S.view.step; const l = LABS.find(x => x[1] === 'madrs');
               v.orders = [{id: 'om', key: 'madrs', name: l[2], unit: l[3], ref: l[4], type: l[5], value: '', flag: '', note: ''}];
