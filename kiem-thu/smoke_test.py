@@ -188,7 +188,7 @@ def main():
             r = pg.evaluate("""async () => { const d = S.drugs.find(x => x.id === 'tiane12'); d.p = 9999; delete d.preg; d.warn = 'cũ';
                 await Store.put('drugs', d); S.settings.seedUpdated = []; await saveSettings(); await loadAll();
                 const e = S.drugs.find(x => x.id === 'tiane12'); return {p: e.p, preg: e.preg && e.preg.lv, warn: e.warn, ver: S.settings.seedUpdated}; }""")
-            assert r['p'] == 9999 and r['preg'] == 3 and r['warn'] != 'cũ' and r['ver'] == ['stahl-2026-10', 'moi-2026-10', 'tha-abcd-2026-10-30', 'zolpidem-2026-11-02', 'trazodon-2026-11-02', 'mirtazapin-2026-11-02', 'tca-2026-11-02', 'diazepam-2026-11-02', 'piracetam-2026-11-05', 'donepezil-2026-11-07', 'piracetam400-2026-11-07', 'amitriptylin-2026-11-09', 'alprazolam-bo-05-2026-11-09', 'fluoxetin-bo-20-2026-11-12', 'sertralin-2026-11-12', 'fluvoxamin-2026-11-12', 'venlafaxin-2026-11-12', 'tuong-tac-tam-than-2026-11-09'], r
+            assert r['p'] == 9999 and r['preg'] == 3 and r['warn'] != 'cũ' and r['ver'] == ['stahl-2026-10', 'moi-2026-10', 'tha-abcd-2026-10-30', 'zolpidem-2026-11-02', 'trazodon-2026-11-02', 'mirtazapin-2026-11-02', 'tca-2026-11-02', 'diazepam-2026-11-02', 'piracetam-2026-11-05', 'donepezil-2026-11-07', 'piracetam400-2026-11-07', 'amitriptylin-2026-11-09', 'alprazolam-bo-05-2026-11-09', 'fluoxetin-bo-20-2026-11-12', 'sertralin-2026-11-12', 'fluvoxamin-2026-11-12', 'venlafaxin-2026-11-12', 'mirtazapin-2026-11-12', 'amitriptylin-luu-y-2026-11-12', 'tuong-tac-tam-than-2026-11-09'], r
             assert pg.evaluate("S.drugs.find(x => x.id === 'quet100n').lact.lv") == 1, 'quetiapin cho con bú phải theo LactMed (mức lưu ý)'
             # Methylphenidat (bác sĩ đặt 2026-11-05): chặn theo tiền sử; cách dùng chọn sẵn; lưu ý chỉnh liều
             MB = "([id, o]) => { const p = JSON.parse(JSON.stringify(curP())), v = JSON.parse(JSON.stringify(curV())); Object.assign(p, o); v.hpi = ''; v.dx = {icd: '', text: ''}; p.meds = []; return drugBlockReasons(p, v, drugById(id)).join(' | '); }"
@@ -623,7 +623,7 @@ def main():
                 TEMPLATES_SEED.some(t => t.id === 'adv_trazo' && t.tags.includes('tag:trazodone') && /rối loạn cương dương/.test(t.text))]; }""")
             assert tz == [False, True, True, True, True, True, True, True], 'quy tắc trazodon sai: ' + str(tz)
             mz = pg.evaluate("""() => { const z = drugById('mirta30f'), v0 = {date:'2026-11-02', hpi:'', dx:{}, rx:[], vitals:{}}, B = p => { const q = {sex:'Nam', condNote:'', job:'', ...p}; return drugBlockReasons(q, v0, z, ctxOf(q, v0)).length > 0; };
-              return [B({}), B({job:'Tài xế taxi'}), B({job:'Giáo viên'}), B({weight:70, height:165}), /7,5–15 mg/.test(z.how)]; }""")
+              return [B({}), B({job:'Tài xế taxi'}), B({job:'Giáo viên'}), B({weight:70, height:165}), /7,5 mg/.test(z.dnote)]; }""")
             assert mz == [False, True, False, True, True], 'quy tắc mirtazapin sai: ' + str(mz)
             sa = pg.evaluate("""() => { const t = TEMPLATES_SEED.find(x => x.id === 'adv_sleep'); if(!t) return null;
               const M = icd => tplMatches(t, ctxOf({sex:'Nam', condNote:''}, {date:'2026-11-02', dx:{icd}, rx:[]}));
@@ -1142,6 +1142,26 @@ def main():
             assert pg.evaluate("() => { const d = drugById('fluvo100'); return [d.how, d.howOpts.join('|'), d.dose.join(','), /8–17 tuổi \(OCD\)/.test(d.dnote)]; }") == ['', 'Uống mỗi lần 1/2 viên, ngày uống 1 lần sau ăn tối', '0,0,0,0.5', True]
             # Venlafaxin: cách dùng 2 lựa chọn + lưu ý liều (bác sĩ đặt 2026-11-12)
             assert pg.evaluate("() => ['venla75n', 'venla75f'].map(id => { const d = drugById(id); return [d.how, d.howOpts.join('|'), d.dose.join(','), /tối đa thường 375 mg/.test(d.dnote)]; })") == [['', 'Uống mỗi lần 1/2 viên, ngày uống 1 lần sau ăn sáng', '0.5,0,0,0', True]] * 2
+            # Bupropion 150 mg (bác sĩ đặt 2026-11-12)
+            r = pg.evaluate("""() => { const p = curP(), v = curV(), c0 = p.conds, n0 = p.condNote, h0 = v.hpi, dx0 = JSON.stringify(v.dx), d = drugById('bupro150');
+              const B = () => drugBlockReasons(p, v, d).filter(x => /bupropion|động kinh|ăn uống/.test(x)).length;
+              p.conds = []; p.condNote = ''; v.hpi = 'Buồn chán 1 tháng'; v.dx = {...v.dx, icd: '', icd2: ''}; const b0 = B();
+              p.conds = ['epilepsy']; const b1 = B(); p.conds = [];
+              p.condNote = 'Rối loạn ăn uống 2 năm trước'; const b2 = B(); p.condNote = '';
+              const H = t => { v.hpi = t; return B(); };
+              const h = [H('Khó vào giấc, nằm 1 tiếng mới ngủ'), H('Mỗi đêm ngủ 4 tiếng'), H('Ngủ < 6h/ngày'), H('Ngủ 7 tiếng'), H('Tỉnh giữa giấc 3 lần'), H('Tỉnh giữa giấc 1 lần'),
+                H('Sáng thức sớm, khó vào giấc lại'), H('Không khó vào giấc')];
+              p.conds = c0; p.condNote = n0; v.hpi = h0; v.dx = JSON.parse(dx0);
+              return [d.howOpts.length, d.how, b0, b1, b2, h]; }""")
+            assert r == [1, '', 0, 1, 1, [1, 1, 1, 0, 1, 0, 1, 0]], r
+            # Mirtazapin: chặn tiền đình, rối loạn lipid, táo bón; cách dùng + lưu ý (bác sĩ đặt 2026-11-12)
+            r = pg.evaluate("""() => { const p = curP(), v = curV(), c0 = p.conds, n0 = p.condNote, h0 = v.hpi, d = drugById('mirta30n');
+              const B = () => drugBlockReasons(p, v, d).filter(x => /^mirtazapin:/.test(x)).length;
+              p.conds = []; p.condNote = ''; v.hpi = ''; const b0 = B(); p.conds = ['vestibular']; const b1 = B(); p.conds = ['dyslipid']; const b2 = B(); p.conds = [];
+              p.condNote = 'Rối loạn lipid máu'; const b3 = B(); p.condNote = ''; v.hpi = 'Táo bón 2 tuần'; const b4 = B(); v.hpi = 'Không táo bón'; const b5 = B();
+              p.conds = c0; p.condNote = n0; v.hpi = h0; return [b0, b1, b2, b3, b4, b5, d.how, d.howOpts[0], /Theo dõi cân nặng/.test(d.dnote)]; }""")
+            assert r == [0, 1, 1, 1, 1, 0, '', 'Uống mỗi lần 1/2 viên, ngày uống 1 lần sau ăn tối', True], r
+            assert pg.evaluate("() => ['amitri25', 'amitri25f'].every(id => /Duy trì > 3 tháng/.test(drugById(id).dnote) && /đau mạn thường chỉ cần liều thấp/.test(drugById(id).dnote))"), 'lưu ý amitriptylin'
             # Khám lâm sàng theo cơ quan (bác sĩ đặt 2026-11-12)
             r = pg.evaluate("""() => { const v = curV(), s0 = S.view.step, e0 = JSON.stringify(v.examSys || {}); v.examSys = {};
               go({name: 'visit', pid: S.view.pid, vid: v.id, step: 1}); const sel = document.querySelector('select.howpick[data-for="v.examSys.cv"]');

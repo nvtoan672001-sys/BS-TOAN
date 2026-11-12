@@ -1031,7 +1031,7 @@ const SEED_ADDED = ['gavis10',
   // Risperdal 1 mg — 2026-11-07
   'risperdal1',
   // alprazolam 0,25 mg thay 0,5 mg — 2026-11-09
-  'alpra025n', 'alpra025f', 'prozac10'];
+  'alpra025n', 'alpra025f', 'prozac10', 'bupro150'];
 async function addNewSeedDrugs(){
   const done = S.settings.seedAdded || [], todo = SEED_ADDED.filter(id => !done.includes(id));
   if(!todo.length) return;
@@ -1056,6 +1056,8 @@ const SEED_UPDATES = [{ver: 'stahl-2026-10', ids: SEED_ADDED.slice(1)},   // 44 
   {ver: 'sertralin-2026-11-12', ids: ['sert50', 'sert50f'], only: ['how', 'howOpts', 'dnote']},
   {ver: 'fluvoxamin-2026-11-12', ids: ['fluvo100'], only: ['dose', 'how', 'howOpts', 'dnote']},
   {ver: 'venlafaxin-2026-11-12', ids: ['venla75n', 'venla75f'], only: ['dose', 'how', 'howOpts', 'dnote']},
+  {ver: 'mirtazapin-2026-11-12', ids: ['mirta30n', 'mirta30f'], only: ['how', 'howOpts', 'dnote']},
+  {ver: 'amitriptylin-luu-y-2026-11-12', ids: ['amitri25', 'amitri25f'], only: ['dnote']},
   {ver: 'tuong-tac-tam-than-2026-11-09', ids: DRUGS_SEED.filter(d => PSY_EXTRA_TAGS[d.hc]).map(d => d.id), only: ['tags']}];                          // ưu tiên khuyến cáo mới hơn Stahl 2004 (LactMed, FDA/EMA, SmPC)
 const SEED_CLIN = ['tags', 'how', 'howOpts', 'dnote', 'ae', 'warn', 'pro', 'con', 'renal', 'hep', 'old', 'preg', 'lact', 'cond'];
 async function updateSeedDrugs(){

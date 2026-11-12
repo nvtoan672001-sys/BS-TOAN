@@ -728,6 +728,32 @@ function drugBlockReasons(p, v, d, ctx, line){
     }
     if(r.length) out.push('chống chỉ định / thận trọng: ' + [...new Set(r)].join('; '));
   }
+  // Bupropion (bác sĩ đặt 2026-11-12): tiền sử động kinh (ô tích — đã chặn ở khối động kinh), rối loạn ăn uống (ô tiền sử ghi chữ hoặc mã F50.x);
+  // bệnh sử mất ngủ: khó vào giấc (kể cả khó vào giấc lại), ngủ < 6 giờ/ngày, tỉnh giữa giấc > 2 lần, sáng thức sớm
+  if(norm(d.hc || '').includes('bupropion')){
+    const r = [], say = k => mentionsSymptom(p.condNote || '', k), hpi = v.hpi || '', hs = k => mentionsSymptom(hpi, k);
+    if(!C.has('anorexia') && !C.has('bulimia') && (['roi loan an uong', 'chan an tam than', 'an vo do', 'an uong vo do', 'roi loan an'].some(say) || dxCodes(v).some(c => /^F50/i.test(c)))) r.push('tiền sử / chẩn đoán rối loạn ăn uống');
+    const hn = ' ' + norm(hpi).replace(/,/g, '.') + ' ';
+    const sl = [];
+    if(hs('kho vao giac') || hs('kho ngu') && hs('vao giac')) sl.push('khó vào giấc');
+    const hr = [...hn.matchAll(/ngu\s*(?:<|duoi|chi|khoang|tam|it hon|~)?\s*(\d+(?:\.\d+)?)\s*(?:h|gio|tieng)\b/g)].map(m => Number(m[1]));
+    if(hr.some(x => x < 6) || /ngu\s*(<|duoi|it hon)\s*6\s*(h|gio|tieng)/.test(hn)) sl.push('ngủ < 6 giờ/ngày');
+    if(hs('tinh giua giac') || hs('thuc giua giac') || hs('thuc giac giua dem')){
+      const n = [...hn.matchAll(/(?:tinh|thuc)(?: giac)? giua (?:giac|dem)\s*(>|tren|hon)?\s*(\d+)\s*lan/g)];
+      if(!n.length || n.some(m => m[1] || Number(m[2]) > 2)) sl.push('tỉnh giữa giấc > 2 lần');
+    }
+    if(hs('thuc som') || hs('thuc giac som') || hs('day som')) sl.push('sáng thức sớm');
+    if(sl.length) r.push('bệnh sử mất ngủ: ' + sl.join(', '));
+    if(r.length) out.push('bupropion: ' + r.join('; '));
+  }
+  // Mirtazapin (bác sĩ đặt 2026-11-12): tiền sử rối loạn tiền đình, rối loạn lipid máu (ô tích hoặc ghi chữ ở ô tiền sử); bệnh sử táo bón (bỏ câu phủ định)
+  if(norm(d.hc || '').includes('mirtazapin')){
+    const r = [], pcs = p.conds || [], say = k => mentionsSymptom(p.condNote || '', k);
+    if(pcs.includes('vestibular') || ['roi loan tien dinh', 'hoi chung tien dinh'].some(say)) r.push('tiền sử rối loạn tiền đình');
+    if(pcs.includes('dyslipid') || ['roi loan lipid', 'roi loan mo mau', 'mo mau cao', 'tang mo mau', 'tang cholesterol', 'tang triglycerid'].some(say)) r.push('tiền sử rối loạn lipid máu');
+    if(mentionsSymptom(v.hpi || '', 'tao bon')) r.push('bệnh sử táo bón');
+    if(r.length) out.push('mirtazapin: ' + r.join('; '));
+  }
   // Sertralin (bác sĩ đặt 2026-11-12): ô "Tiền sử bệnh, phẫu thuật, nhập viện" ghi đang dùng NSAID (tên nhóm hoặc tên thuốc) hoặc rối loạn đông máu;
   // ô bệnh nền tích glôcôm góc đóng; nghề nghiệp lái xe; điện tim mới nhất ghi QTc dài (qtcLong)
   if(norm(d.hc || '').includes('sertralin')){
