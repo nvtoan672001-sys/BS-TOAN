@@ -669,6 +669,9 @@ def main():
             pg.click('input[data-act="ordPanel"][data-id="dgd"]'); pg.wait_for_timeout(300)
             assert pg.evaluate("curV().orders.filter(o => ['na','k','cl'].includes(o.key)).length") == 0
             pg.evaluate("(s) => { curV().orders = JSON.parse(s); renderMain(true); }", od0)
+            assert pg.evaluate("() => [20, 44, 45, 59, 60, 69, 70, 80].map(x => scaleResult('zung_d', x).t).join('|')") == 'Bình thường hoặc tối thiểu|Bình thường hoặc tối thiểu|Nhẹ|Nhẹ|Vừa|Vừa|Nặng|Nặng', 'ngưỡng Zung SDS'
+            assert pg.evaluate("() => [0, 4, 5, 7, 8, 9, 10, 15].map(x => scaleResult('gds', x).t).join('|')") == 'Bình thường|Bình thường|Nhẹ|Nhẹ|Vừa|Vừa|Nặng|Nặng', 'ngưỡng GDS-15'
+            assert pg.evaluate("() => [0, 9, 10, 12, 13, 30].map(x => scaleResult('epds', x).t).join('|')") == 'Nguy cơ thấp|Nguy cơ thấp|Theo dõi|Theo dõi|Nguy cơ cao|Nguy cơ cao', 'ngưỡng EPDS'
             # Zung SAS: ô đánh giá chỉ có Bình thường / Nhẹ – vừa / Nặng / Rất nặng
             pg.click('input[data-act="ord"][data-key="zung_a"]'); pg.wait_for_timeout(300)
             zid = pg.evaluate("curV().orders.find(o => o.key === 'zung_a').id")
@@ -1097,7 +1100,7 @@ def main():
               v.orders = [{id: 'om', key: 'madrs', name: l[2], unit: l[3], ref: l[4], type: l[5], value: '', flag: '', note: ''}];
               go({name: 'visit', pid: S.view.pid, vid: v.id, step: 2}); const a = document.querySelector('a[href*="mdcalc.com/calc/4058"]');
               const ok = !!a && a.target === '_blank' && /noopener/.test(a.rel); v.orders = o0; go({name: 'visit', pid: S.view.pid, vid: v.id, step: s0 || 1});
-              return [ok, scaleLinkHTML('phq9') === '' && scaleLinkHTML('hamd').includes('mdcalc.com/calc/10043/hamilton-depression-rating-scale-hamd')]; }""")
+              return [ok, scaleLinkHTML('phq9') === '' && scaleLinkHTML('hamd').includes('mdcalc.com/calc/10043/hamilton-depression-rating-scale-hamd') && scaleLinkHTML('gds').includes('mdcalc.com/calc/10566/geriatric-depression-scale-gds-15') && scaleLinkHTML('epds').includes('mdcalc.com/calc/10466/edinburgh-postnatal-depression-scale-epds')]; }""")
             assert r == [True, True], r
             # Bảng kiểm dạng cây (2026-11-09): bệnh → tiêu chuẩn → danh sách; mọi nhóm vẫn đủ mục, không trùng khoá
             r = pg.evaluate("""() => { const g = MENTAL_SX.find(x => x.g === 'som'), h = checklistHTML(g, []), d = document.createElement('div'); d.innerHTML = '<div class="checks">' + h + '</div>';
@@ -1204,6 +1207,10 @@ def main():
             assert pg.evaluate("() => FLAG_OPTS.ess") == ['Bình thường', 'Buồn ngủ quá mức']
             assert pg.evaluate("() => FLAG_OPTS.madrs") == ['Bình thường', 'Nhẹ', 'Vừa', 'Nghiêm trọng', 'Cực kỳ nghiêm trọng']
             assert pg.evaluate("() => FLAG_OPTS.hamd") == ['Bình thường', 'Nhẹ', 'Vừa', 'Nặng', 'Rất nặng']
+            assert pg.evaluate("() => FLAG_OPTS.bdi") == ['Tối thiểu', 'Nhẹ', 'Vừa', 'Nặng']
+            assert pg.evaluate("() => FLAG_OPTS.zung_d") == ['Bình thường', 'Nhẹ', 'Vừa', 'Nặng']
+            assert pg.evaluate("() => FLAG_OPTS.gds") == ['Bình thường', 'Nhẹ', 'Vừa', 'Nặng']
+            assert pg.evaluate("() => FLAG_OPTS.epds") == ['Nguy cơ thấp', 'Theo dõi', 'Nguy cơ cao']
             assert pg.evaluate("() => [FLAG_OPTS.isi, LABS.find(x => x[1] === 'isi')[2]]") == [['Không mất ngủ', 'Dưới ngưỡng', 'Vừa', 'Nặng'], 'ISI – Chỉ số mức độ mất ngủ']
             assert pg.evaluate("() => [2, 3, 6].map(n => scaleResult('stopbang', n).lv)") == [0, 1, 2]
             # giao diện: bảng kiểm ở bước 1 cập nhật tức thời, bước 3 hiện gợi ý và chọn được

@@ -104,3 +104,12 @@ Mỗi lần làm xong, thêm một mục ở **cuối file**: ngày · agent · 
 - HAM-D: ô "đánh giá" ở bước 2 có 5 lựa chọn Bình thường, Nhẹ, Vừa, Nặng, Cực kỳ nặng (`FLAG_OPTS.hamd`, bác sĩ đặt 2026-11-12).
 - HAM-D: thêm link "Tính điểm HAM-D trên MDCalc" (`SCALE_LINKS.hamd`, bác sĩ cung cấp 2026-11-12).
 - HAM-D: bác sĩ chốt dùng "Rất nặng" cho mức ≥ 23 ở cả tham chiếu và ô đánh giá (thay "Cực kỳ nặng").
+- Beck (BDI-II): ô "đánh giá" ở bước 2 có 4 lựa chọn Tối thiểu, Nhẹ, Vừa, Nặng (`FLAG_OPTS.bdi`, bác sĩ đặt 2026-11-12).
+- Zung SDS (bác sĩ đặt 2026-11-12): tham chiếu và `SCALE_BANDS` đổi thành 20–44 bình thường hoặc tối thiểu, 45–59 nhẹ, 60–69 vừa, ≥ 70 nặng (trước: < 50 bình thường). Tên bỏ chữ "– chỉ số" vì ngưỡng mới tính theo điểm thô.
+- Zung SDS: ô "đánh giá" có 4 lựa chọn Bình thường, Nhẹ, Vừa, Nặng (`FLAG_OPTS.zung_d`, bác sĩ đặt 2026-11-12).
+- Link MDCalc cho GDS-15 (bác sĩ cung cấp): thêm `gds` vào `SCALE_LINKS` → https://www.mdcalc.com/calc/10566/geriatric-depression-scale-gds-15.
+- GDS-15 (bác sĩ đặt 2026-11-12): tham chiếu và `SCALE_BANDS` đổi thành ≤ 4 bình thường, 5–7 nhẹ, 8–9 vừa, ≥ 10 nặng (trước: 5–8 nhẹ, 9–11 vừa, 12–15 nặng).
+- GDS-15: ô "đánh giá" có 4 lựa chọn Bình thường, Nhẹ, Vừa, Nặng (`FLAG_OPTS.gds`, bác sĩ đặt 2026-11-12).
+- Link MDCalc cho EPDS (bác sĩ cung cấp): thêm `epds` vào `SCALE_LINKS` → https://www.mdcalc.com/calc/10466/edinburgh-postnatal-depression-scale-epds.
+- EPDS (bác sĩ đặt 2026-11-12): tham chiếu đổi thành 0–9 nguy cơ thấp, 10–12 theo dõi, ≥ 13 nguy cơ cao; thêm `SCALE_BANDS.epds` (trước chưa có). Bỏ ghi chú "câu 10 > 0: hỏi ý tưởng tự sát" theo văn bản bác sĩ.
+- EPDS: ô "đánh giá" có 3 lựa chọn Nguy cơ thấp, Theo dõi, Nguy cơ cao (`FLAG_OPTS.epds`, bác sĩ đặt 2026-11-12).

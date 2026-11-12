@@ -1365,7 +1365,7 @@ const LABS = [
   ['Nội soi','ns_dd','Nội soi dạ dày – tá tràng','','','t'],
   ['Nội soi','ns_dt','Nội soi đại tràng','','','t'],
   ['Trắc nghiệm tâm lý','bdi','Trầm cảm Beck (BDI-II)','điểm','0–13 tối thiểu; 14–19 nhẹ; 20–28 vừa; ≥ 29 nặng','n'],
-  ['Trắc nghiệm tâm lý','zung_d','Trầm cảm Zung (SDS) – chỉ số','điểm','< 50 bình thường; 50–59 nhẹ; 60–69 vừa; ≥ 70 nặng','n'],
+  ['Trắc nghiệm tâm lý','zung_d','Trầm cảm Zung (SDS)','điểm','20–44 bình thường hoặc tối thiểu; 45–59 nhẹ; 60–69 vừa; ≥ 70 nặng','n'],
   ['Trắc nghiệm tâm lý','zung_a','Lo âu Zung (SAS) – chỉ số','điểm','< 45 bình thường; 45–59 nhẹ–vừa; 60–74 nặng; ≥ 75 rất nặng','n'],
   ['Trắc nghiệm tâm lý','phq9','PHQ-9','điểm','0–4 tối thiểu; 5–9 nhẹ; 10–14 vừa; 15–19 vừa–nặng; ≥ 20 nặng','n'],
   ['Trắc nghiệm tâm lý','gad7','GAD-7 (lo âu lan toả)','/21','0–4 tối thiểu; 5–9 nhẹ; 10–14 vừa; 15–21 vừa–nặng','n'],
@@ -1374,10 +1374,10 @@ const LABS = [
   ['Trắc nghiệm tâm lý','phq4_d','PHQ-4 – trầm cảm (câu 3 + 4)','/6','≥ 3: sàng lọc thêm bằng PHQ-9','n'],
   ['Trắc nghiệm tâm lý','mdq','MDQ (sàng lọc lưỡng cực)','câu','Dương tính: ≥ 7/13 câu "có" + xảy ra cùng lúc + ảnh hưởng vừa/nặng','n'],
   ['Trắc nghiệm tâm lý','hcl32','HCL-32 (hưng cảm nhẹ)','điểm','≥ 14 gợi ý hưng cảm nhẹ','n'],
-  ['Trắc nghiệm tâm lý','epds','EPDS (trầm cảm chu sinh)','điểm','< 10 bình thường; 10–12 theo dõi; ≥ 13 nghi trầm cảm; câu 10 > 0: hỏi ý tưởng tự sát','n'],
+  ['Trắc nghiệm tâm lý','epds','EPDS (trầm cảm chu sinh)','điểm','0–9 nguy cơ thấp; 10–12 theo dõi; ≥ 13 nguy cơ cao','n'],
   ['Trắc nghiệm tâm lý','adl','ADL – hoạt động sinh hoạt cơ bản (Katz)','/6','6 độc lập; 5 suy giảm nhẹ; 3–4 vừa; ≤ 2 nặng (tham khảo, Katz)','n'],
   ['Trắc nghiệm tâm lý','iadl','IADL – hoạt động sinh hoạt có dùng dụng cụ (Lawton)','/8','8 độc lập; điểm càng thấp càng phụ thuộc (tham khảo, Lawton)','n'],
-  ['Trắc nghiệm tâm lý','gds','GDS-15 (trầm cảm người cao tuổi)','điểm','0–4 bình thường; 5–8 nhẹ; 9–11 vừa; 12–15 nặng','n'],
+  ['Trắc nghiệm tâm lý','gds','GDS-15 (trầm cảm người cao tuổi)','điểm','≤ 4 bình thường; 5–7 nhẹ; 8–9 vừa; ≥ 10 nặng','n'],
   ['Trắc nghiệm tâm lý','cssrs','C-SSRS (nguy cơ tự sát)','','Ghi ý tưởng/hành vi và mức nguy cơ','t'],
   ['Trắc nghiệm tâm lý','mmse','MMSE','/30','24–30 bình thường; 19–23 nhẹ; 10–18 vừa; < 10 nặng','n'],
   ['Trắc nghiệm tâm lý','moca','MoCA','/30','≥ 26 bình thường (+1 điểm nếu học vấn ≤ 12 năm)','n'],
@@ -1442,6 +1442,8 @@ const LABS = [
 const SCALE_LINKS = {
   madrs: [['Tính điểm MADRS trên MDCalc', 'https://www.mdcalc.com/calc/4058/montgomery-asberg-depression-rating-scale-madrs']],
   hamd: [['Tính điểm HAM-D trên MDCalc', 'https://www.mdcalc.com/calc/10043/hamilton-depression-rating-scale-hamd']],
+  gds: [['Tính điểm GDS-15 trên MDCalc', 'https://www.mdcalc.com/calc/10566/geriatric-depression-scale-gds-15']],
+  epds: [['Tính điểm EPDS trên MDCalc', 'https://www.mdcalc.com/calc/10466/edinburgh-postnatal-depression-scale-epds']],
 };
 const CV_LINKS = [['CAREME – Yêu lấy mình', 'https://caremeyeulayminh.com/khao-sat'], ['PREVENT-CVD (AHA)', 'https://professional.heart.org/en/guidelines-and-statements/prevent-calculator'],
   ['SCORE2 (40–69 tuổi, MDCalc)', 'https://www.mdcalc.com/calc/10499/systematic-coronary-risk-evaluation-score2'], ['SCORE2-OP (≥ 70 tuổi, MDCalc)', 'https://www.mdcalc.com/calc/10503/score2-older-persons-score2-op'],
@@ -1456,13 +1458,13 @@ const LAB_PANELS = [{id: 'dgd', g: 'Máu', name: 'Điện giải đồ (Na, K, C
 
 // Lựa chọn ô "đánh giá" riêng theo key (bác sĩ đặt 2026-10-27); key khác dùng Bình thường / Cao / Thấp / Bất thường
 const DASS_FLAGS = ['Bình thường', 'Nhẹ', 'Vừa', 'Nặng', 'Rất nặng'];
-const FLAG_OPTS = {hamd: ['Bình thường', 'Nhẹ', 'Vừa', 'Nặng', 'Rất nặng'], madrs: ['Bình thường', 'Nhẹ', 'Vừa', 'Nghiêm trọng', 'Cực kỳ nghiêm trọng'], zung_a: ['Bình thường', 'Nhẹ – vừa', 'Nặng', 'Rất nặng'], psqi: ['Tốt', 'Kém'], dass_d: DASS_FLAGS, dass_a: DASS_FLAGS, dass_s: DASS_FLAGS, ess: ['Bình thường', 'Buồn ngủ quá mức'], isi: ['Không mất ngủ', 'Dưới ngưỡng', 'Vừa', 'Nặng']};
+const FLAG_OPTS = {epds: ['Nguy cơ thấp', 'Theo dõi', 'Nguy cơ cao'], gds: ['Bình thường', 'Nhẹ', 'Vừa', 'Nặng'], zung_d: ['Bình thường', 'Nhẹ', 'Vừa', 'Nặng'], bdi: ['Tối thiểu', 'Nhẹ', 'Vừa', 'Nặng'], hamd: ['Bình thường', 'Nhẹ', 'Vừa', 'Nặng', 'Rất nặng'], madrs: ['Bình thường', 'Nhẹ', 'Vừa', 'Nghiêm trọng', 'Cực kỳ nghiêm trọng'], zung_a: ['Bình thường', 'Nhẹ – vừa', 'Nặng', 'Rất nặng'], psqi: ['Tốt', 'Kém'], dass_d: DASS_FLAGS, dass_a: DASS_FLAGS, dass_s: DASS_FLAGS, ess: ['Bình thường', 'Buồn ngủ quá mức'], isi: ['Không mất ngủ', 'Dưới ngưỡng', 'Vừa', 'Nặng']};
 
 // Diễn giải tổng điểm trắc nghiệm (ô "Kết quả" ở bước 2 và trên phiếu): key → [[điểm tối đa của khoảng, kết luận, mức 0–3]].
 // Ngưỡng lấy từ cột tham chiếu đã có của từng thang; GAD-7, GAD-2, PHQ-4 theo phiếu trong thư mục Tâm thần (Spitzer 2006, Kroenke 2007).
 const SCALE_BANDS = {
   bdi: [[13,'Trầm cảm tối thiểu',0],[19,'Trầm cảm nhẹ',1],[28,'Trầm cảm vừa',2],[63,'Trầm cảm nặng',3]],
-  zung_d: [[49,'Không trầm cảm',0],[59,'Trầm cảm nhẹ',1],[69,'Trầm cảm vừa',2],[100,'Trầm cảm nặng',3]],
+  zung_d: [[44,'Bình thường hoặc tối thiểu',0],[59,'Nhẹ',1],[69,'Vừa',2],[100,'Nặng',3]],   // bác sĩ đặt 2026-11-12
   zung_a: [[44,'Bình thường',0],[59,'Lo âu nhẹ – vừa',1],[74,'Lo âu nặng',2],[100,'Lo âu rất nặng',3]],
   phq9: [[4,'Trầm cảm tối thiểu',0],[9,'Trầm cảm nhẹ',1],[14,'Trầm cảm vừa',2],[19,'Trầm cảm vừa – nặng',3],[27,'Trầm cảm nặng',3]],
   phq2: [[2,'Âm tính',0],[6,'Dương tính — làm PHQ-9',2]],
@@ -1475,7 +1477,8 @@ const SCALE_BANDS = {
   adl: [[2,'Suy giảm chức năng nặng',3],[4,'Suy giảm chức năng vừa',2],[5,'Suy giảm chức năng nhẹ',1],[6,'Độc lập',0]],   // Katz — tham khảo
   iadl: [[7,'Phụ thuộc một phần (tham khảo)',1],[8,'Độc lập',0]],   // Lawton — tham khảo
   cbcl_tot: [[59,'Bình thường',0],[63,'Ranh giới',1],[200,'Mức lâm sàng',3]], cbcl_int: [[59,'Bình thường',0],[63,'Ranh giới',1],[200,'Mức lâm sàng',3]], cbcl_ext: [[59,'Bình thường',0],[63,'Ranh giới',1],[200,'Mức lâm sàng',3]],   // CBCL điểm T — Achenbach, tham khảo
-  gds: [[4,'Bình thường',0],[8,'Trầm cảm nhẹ',1],[11,'Trầm cảm vừa',2],[15,'Trầm cảm nặng',3]],
+  epds: [[9,'Nguy cơ thấp',0],[12,'Theo dõi',1],[30,'Nguy cơ cao',3]],   // bác sĩ đặt 2026-11-12
+  gds: [[4,'Bình thường',0],[7,'Nhẹ',1],[9,'Vừa',2],[15,'Nặng',3]],   // bác sĩ đặt 2026-11-12
   mmse: [[9,'Nặng',3],[18,'Vừa',2],[23,'Nhẹ',1],[30,'Bình thường',0]],   // bác sĩ đặt 2026-11-06: nhẹ 19–23, vừa 10–18, nặng < 10
   moca: [[25,'Suy giảm nhận thức (< 26; +1 điểm nếu học vấn ≤ 12 năm)',2],[30,'Bình thường',0]],
   psqi: [[5,'Chất lượng giấc ngủ tốt',0],[21,'Chất lượng giấc ngủ kém',2]],
