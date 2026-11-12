@@ -1019,7 +1019,7 @@ const SEED_ADDED = ['gavis10',
   // Risperdal 1 mg — 2026-11-07
   'risperdal1',
   // alprazolam 0,25 mg thay 0,5 mg — 2026-11-09
-  'alpra025n', 'alpra025f'];
+  'alpra025n', 'alpra025f', 'prozac10'];
 async function addNewSeedDrugs(){
   const done = S.settings.seedAdded || [], todo = SEED_ADDED.filter(id => !done.includes(id));
   if(!todo.length) return;
@@ -1040,6 +1040,7 @@ const SEED_UPDATES = [{ver: 'stahl-2026-10', ids: SEED_ADDED.slice(1)},   // 44 
   {ver: 'piracetam400-2026-11-07', ids: ['pirac400'], extra: ['dose']},
   {ver: 'amitriptylin-2026-11-09', ids: ['amitri25', 'amitri25f'], extra: ['dose']},
   {ver: 'alprazolam-bo-05-2026-11-09', ids: ['alpra05n', 'alpra05f'], extra: ['off']},
+  {ver: 'fluoxetin-bo-20-2026-11-12', ids: ['fluox20n', 'fluox20f'], only: ['off']},
   {ver: 'tuong-tac-tam-than-2026-11-09', ids: DRUGS_SEED.filter(d => PSY_EXTRA_TAGS[d.hc]).map(d => d.id), only: ['tags']}];                          // ưu tiên khuyến cáo mới hơn Stahl 2004 (LactMed, FDA/EMA, SmPC)
 const SEED_CLIN = ['tags', 'how', 'howOpts', 'dnote', 'ae', 'warn', 'pro', 'con', 'renal', 'hep', 'old', 'preg', 'lact', 'cond'];
 async function updateSeedDrugs(){

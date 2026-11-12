@@ -555,6 +555,10 @@ function smokeObeseReasons(p, v){
 }
 // IMAO chống trầm cảm (không tính selegilin / rasagilin – ức chế MAO-B điều trị Parkinson)
 const isMaoi = d => !!d && (/imao|maoi/.test(norm(d.cls || '')) || ['moclobemid', 'phenelzin', 'tranylcypromin', 'isocarboxazid'].some(k => norm(d.hc || '').includes(k)));
+const MAOI_KW = ['imao', 'maoi', 'uc che mao', 'uc che monoamin oxidase', 'moclobemid', 'phenelzin', 'tranylcypromin', 'isocarboxazid'];
+// Thuốc chống trầm cảm (SSRI, SNRI, TCA, IMAO, NaSSA, nhóm khác) — không tính ức chế MAO-B điều trị Parkinson
+const isAntidep = d => !!d && (/chong tram cam|ssri|snri/.test(norm(d.cls || '')) || isMaoi(d) || isTca(d) || ['bupropion', 'agomelatin', 'vortioxetin', 'tianeptin', 'trazodon', 'mirtazapin', 'nefazodon'].some(k => norm(d.hc || '').includes(k)));
+const TYPICAL_AP = ['haloperidol', 'chlorpromazin', 'clorpromazin', 'levomepromazin', 'fluphenazin', 'flufenazin', 'perphenazin', 'flupentixol', 'zuclopenthixol', 'sulpirid', 'thioridazin', 'trifluoperazin', 'pimozid'];
 const isTca = d => !!d && (/3 vong|ba vong|tca/.test(norm(d.cls || '')) || ['amitriptylin', 'clomipramin', 'imipramin', 'nortriptylin', 'doxepin'].some(k => norm(d.hc || '').includes(k)));
 const TCA_EPI_MAX = 150;   // mg/ngày — ngưỡng "liều cao" của TCA ở bệnh nhân động kinh (bác sĩ có thể đổi)
 // Liều mg/ngày của một dòng đơn: (sáng + trưa + chiều + tối) × hàm lượng ghi trong tên thuốc ("… 25 mg")
@@ -673,6 +677,76 @@ function drugBlockReasons(p, v, d, ctx, line){
     const rn = renalOf(p);
     if(rn && rn.egfr != null && rn.egfr < 60) out.push(`memantin: MLCT ≈ ${fmtN(rn.egfr)} mL/phút/1,73 m² (< 60)`);
   }
+  // Bảng chống chỉ định / thận trọng thuốc tâm thần (bác sĩ đặt 2026-11-12, ảnh bảng bác sĩ gửi): chỉ xét ô tích ở hồ sơ nền (rối loạn nhịp → ô `af`,
+  // nhồi máu cơ tim → ô `cvd`), đơn hiện tại + thuốc dài hạn, và cận lâm sàng β-hCG, AST, ALT, điện tim. Mục không có ô / xét nghiệm (dị ứng, u não, porphyria, HLA-B*1502,
+  // POLG, viêm tuỵ, hội chứng an thần kinh ác tính, phát ban do lamotrigin…) chưa tự nhận được.
+  {
+    const pcs = p.conds || [], r = [], hc = norm(d.hc || '');
+    const oth = (v.rx || []).map(l => drugById(l.drugId)).filter(x => x && x.id !== d.id).map(x => ({name: x.n, drug: x, tags: expandTags(x.tags), t: norm(x.hc + ' ' + x.n)}))
+      .concat((ctx || ctxOf(p, v)).longMeds.map(m => ({name: m.short || m.name, drug: m.drug, tags: m.tags || new Set(), t: norm(m.name || '')})));
+    const maoiLike = o => isMaoi(o.drug) || MAOI_KW.some(k => o.t.includes(k));
+    const qtLong = pcs.includes('qt_long') || !!qtcLong(p, v);
+    if(isAntidep(d)){
+      if(pcs.includes('bipolar')) r.push('hồ sơ nền tích rối loạn cảm xúc lưỡng cực (thuốc chống trầm cảm: nguy cơ chuyển pha hưng cảm)');
+      if(!isMaoi(d)){ const m = oth.find(maoiLike); if(m) r.push(`đang dùng thuốc IMAO (${m.name}) — cần khoảng nghỉ ≥ 2 tuần`); }
+      else { const m = oth.find(o => !maoiLike(o) && (isAntidep(o.drug) || o.tags.has('serotonergic') || o.tags.has('ssri'))); if(m) r.push(`đang dùng thuốc chống trầm cảm / tăng serotonin (${m.name}) — ≥ 5 tuần sau fluoxetin`); }
+    }
+    if(hc.includes('citalopram') && pcs.includes('qt_long')) r.push('hồ sơ nền tích QT kéo dài');
+    if(isTca(d)){
+      if(pcs.includes('cvd')) r.push('hồ sơ nền tích bệnh mạch vành / nhồi máu cơ tim');
+      if(pcs.includes('af')) r.push('hồ sơ nền tích rối loạn nhịp');
+      if(avBlock(p, v)) r.push('điện tim có block dẫn truyền');
+      if(pcs.includes('glaucoma')) r.push('hồ sơ nền tích glôcôm góc đóng');
+      if(pcs.includes('bph')) r.push('hồ sơ nền tích phì đại tiền liệt tuyến (bí tiểu)');
+      if(pcs.includes('epilepsy')) r.push('hồ sơ nền tích động kinh');
+    }
+    // Bất kỳ tiền sử tim mạch nào (ô tích: THA, bệnh mạch vành / đột quỵ, mạch ngoại biên, rối loạn nhịp, suy tim, QT kéo dài) → chặn TCA, citalopram, venlafaxin (bác sĩ đặt 2026-11-12)
+    const CV_CONDS = [['htn', 'tăng huyết áp'], ['cvd', 'bệnh mạch vành / đột quỵ'], ['pad', 'bệnh mạch ngoại biên'], ['af', 'rối loạn nhịp'], ['heart_failure', 'suy tim'], ['qt_long', 'QT kéo dài']];
+    if(isTca(d) || hc === 'citalopram' || hc.includes('venlafaxin')){ const cv = CV_CONDS.filter(([k]) => pcs.includes(k)).map(([, l]) => l); if(cv.length) r.push('tiền sử tim mạch: ' + cv.join(', ')); }
+    if(hc.includes('duloxetin') && pcs.includes('glaucoma')) r.push('hồ sơ nền tích glôcôm góc đóng');
+    if(isMaoi(d)){ const m = oth.find(o => o.tags.has('sympathomimetic') || /tramadol|pethidin|meperidin/.test(o.t)); if(m) r.push(`đang dùng ${m.name} (cường giao cảm / pethidin / tramadol)`); }
+    if(/tramadol|pethidin|meperidin/.test(hc)){ const m = oth.find(maoiLike); if(m) r.push(`đang dùng thuốc IMAO (${m.name})`); }
+    if(hc.includes('lithi')){
+      if(pcs.includes('ckd')) r.push('hồ sơ nền tích bệnh thận mạn / suy thận');
+      if(pcs.includes('heart_failure')) r.push('hồ sơ nền tích suy tim (bệnh tim nặng)');
+      const m = oth.find(o => ['thiazide', 'acei', 'nsaid'].some(k => o.tags.has(k))); if(m) r.push(`đang dùng ${m.name} (lợi tiểu thiazid / ức chế men chuyển / NSAID làm tăng nồng độ lithi)`);
+    } else if(['thiazide', 'acei', 'nsaid'].some(k => expandTags(d.tags).has(k))){ const m = oth.find(o => o.t.includes('lithi')); if(m) r.push(`đang dùng lithi (${m.name}) — tăng nồng độ lithi`); }
+    if(hc.includes('carbamazepin')){
+      if(pcs.includes('af')) r.push('hồ sơ nền tích rối loạn nhịp');
+      const m = oth.find(maoiLike); if(m) r.push(`đang dùng thuốc IMAO (${m.name})`);
+    }
+    if(/chong loan than/.test(norm(d.cls || ''))){
+      const age = ageOf(p, v.date);
+      if(age != null && age >= 65 && pcs.includes('dementia')) r.push(`người cao tuổi (${age}) có sa sút trí tuệ (tăng tử vong)`);
+      if(qtLong && !hc.includes('olanzapin')) r.push(pcs.includes('qt_long') ? 'hồ sơ nền tích QT kéo dài' : 'điện tim ghi QTc dài');
+      if(pcs.includes('parkinson') && TYPICAL_AP.some(k => hc.includes(k))) r.push('hồ sơ nền tích Parkinson (thuốc chống loạn thần cổ điển)');
+    }
+    if(r.length) out.push('chống chỉ định / thận trọng: ' + [...new Set(r)].join('; '));
+  }
+  // Sertralin (bác sĩ đặt 2026-11-12): ô "Tiền sử bệnh, phẫu thuật, nhập viện" ghi đang dùng NSAID (tên nhóm hoặc tên thuốc) hoặc rối loạn đông máu;
+  // ô bệnh nền tích glôcôm góc đóng; nghề nghiệp lái xe; điện tim mới nhất ghi QTc dài (qtcLong)
+  if(norm(d.hc || '').includes('sertralin')){
+    const r = [], say = k => mentionsSymptom(p.condNote || '', k);
+    if(['nsaid', 'nsaids', 'chong viem khong steroid', 'khang viem khong steroid'].concat(LONG_KW.nsaid).some(say)) r.push('tiền sử ghi đang dùng thuốc nhóm NSAID');
+    if(say('roi loan dong mau')) r.push('tiền sử ghi rối loạn đông máu');
+    if((p.conds || []).includes('glaucoma')) r.push('hồ sơ nền tích glôcôm góc đóng');
+    if(['lai xe', 'tai xe', 'xe om', 'taxi', 'xe tai', 'xe khach', 'giao hang'].some(k => mentionsSymptom(p.job || '', k))) r.push(`nghề nghiệp lái xe (${p.job})`);
+    if(qtcLong(p, v)) r.push('điện tim ghi QTc dài');
+    if(r.length) out.push('sertralin: ' + r.join('; '));
+  }
+  // (lưỡng cực, IMAO, động kinh của Prozac: một phần đã có ở khối "Bảng chống chỉ định" phía trên; giữ lại để lý do ghi rõ tên thuốc)
+  // Prozac 10 mg (fluoxetin; bác sĩ đặt 2026-11-12, thay fluoxetin 20 mg): tuổi < 18; ô bệnh nền tích lưỡng cực, động kinh; eGFR < 10;
+  // ô "Tiền sử bệnh, phẫu thuật, nhập viện" ghi rối loạn cảm xúc lưỡng cực hoặc đang điều trị IMAO (chữ, hoặc thuốc dài hạn là IMAO)
+  if(d.id === 'prozac10'){
+    const r = [], pcs = p.conds || [], say = k => mentionsSymptom(p.condNote || '', k), rn = renalOf(p);
+    const age = ageOf(p, v.date); if(age != null && age < 18) r.push(`${age} tuổi (< 18)`);
+    if(pcs.includes('bipolar')) r.push('hồ sơ nền tích rối loạn cảm xúc lưỡng cực');
+    if(pcs.includes('epilepsy')) r.push('hồ sơ nền tích động kinh');
+    if(rn && rn.egfr != null && rn.egfr < 10) r.push(`eGFR ≈ ${fmtN(rn.egfr)} (< 10)`);
+    if(say('roi loan cam xuc luong cuc')) r.push('tiền sử ghi rối loạn cảm xúc lưỡng cực');
+    if(MAOI_KW.some(say) || ctxOf(p, v).longMeds.some(lm => isMaoi(lm.drug) || MAOI_KW.some(k => norm(lm.name || '').includes(k)))) r.push('đang điều trị thuốc nhóm IMAO (MAOI)');
+    if(r.length) out.push('prozac (fluoxetin 10 mg): ' + r.join('; '));
+  }
   // Risperidon (bác sĩ đặt 2026-11-07, áp cho mọi risperidon): < 18 tuổi kèm cân nặng < 50 kg; ô tiền sử ghi điều trị paroxetin, furosemid, chẹn alpha giao cảm, levodopa
   // (hoặc thuốc dài hạn có các thuốc này); tích ô động kinh, uống rượu (mục nguy cơ), rối loạn / lo ngại chức năng tình dục, rối loạn cương; Parkinson, sa sút trí tuệ thể Lewy,
   // bệnh mạch ngoại biên (chữ hoặc ô tích). Mang thai / cho con bú: quy tắc chung nhóm neuro. Xơ gan, bệnh thận mạn → cảnh báo giảm liều ở checkAll (risperidonDoseWarn)
@@ -783,9 +857,9 @@ function drugBlockReasons(p, v, d, ctx, line){
   const tcaAI = ['amitriptylin', 'imipramin'].find(x => H.includes(x));
   if(tcaAI){
     const say = k => mentionsSymptom(p.condNote || '', k), r = [];
-    if(C.has('cvd') || ['benh mach vanh', 'dau that nguc', 'thieu mau co tim', 'nhoi mau co tim', 'dat stent'].some(say)) r.push('bệnh mạch vành');
-    if(C.has('af') || ['roi loan nhip', 'rung nhi', 'ngoai tam thu', 'nhip nhanh'].some(say)) r.push('rối loạn nhịp');
-    if(C.has('bph') || ['phi dai tien liet tuyen', 'phi dai tuyen tien liet', 'tang san tien liet tuyen'].some(say)) r.push('phì đại tiền liệt tuyến (bí tiểu)');
+    if((C.has('cvd') && !(p.conds || []).includes('cvd')) || ['benh mach vanh', 'dau that nguc', 'thieu mau co tim', 'nhoi mau co tim', 'dat stent'].some(say)) r.push('bệnh mạch vành');
+    if((C.has('af') && !(p.conds || []).includes('af')) || ['roi loan nhip', 'rung nhi', 'ngoai tam thu', 'nhip nhanh'].some(say)) r.push('rối loạn nhịp');
+    if((C.has('bph') && !(p.conds || []).includes('bph')) || ['phi dai tien liet tuyen', 'phi dai tuyen tien liet', 'tang san tien liet tuyen'].some(say)) r.push('phì đại tiền liệt tuyến (bí tiểu)');
     if(r.length) out.push(tcaAI + ': tiền sử ' + r.join('; '));
   }
   // Alprazolam (bác sĩ đặt 2026-11-09): hồ sơ nền tích xơ gan, glôcôm góc đóng, hen / COPD, rối loạn tình dục; nghề nghiệp lái xe
@@ -799,7 +873,7 @@ function drugBlockReasons(p, v, d, ctx, line){
   // mang thai / cho con bú: quy tắc chung nhóm neuro; < 12 tuổi nằm trong quy tắc TCA < 18 tuổi bên dưới)
   if(H.includes('amitriptylin')){
     const pcs = p.conds || [];
-    const r = [[['sexual_dysf', 'erectile_dysf'], 'rối loạn chức năng tình dục'], [['heart_failure'], 'suy tim'], [['liver'], 'bệnh gan mạn / xơ gan'], [['bipolar'], 'rối loạn cảm xúc lưỡng cực'], [['epilepsy'], 'động kinh']].filter(([ks]) => ks.some(k => pcs.includes(k))).map(([, l]) => l);
+    const r = [[['sexual_dysf', 'erectile_dysf'], 'rối loạn chức năng tình dục'], [['heart_failure'], 'suy tim'], [['liver'], 'bệnh gan mạn / xơ gan'], ].filter(([ks]) => ks.some(k => pcs.includes(k))).map(([, l]) => l);
     if(r.length) out.push('amitriptylin: hồ sơ nền tích ' + r.join(', '));
     if(['lai xe', 'tai xe', 'xe om', 'taxi', 'xe tai', 'xe khach', 'giao hang'].some(k => mentionsSymptom(p.job || '', k))) out.push(`nghề nghiệp lái xe (${p.job}) — amitriptylin gây an thần, buồn ngủ`);
   }
@@ -829,7 +903,8 @@ function drugBlockReasons(p, v, d, ctx, line){
   // fluoxetin và chất chuyển hoá có thời gian bán thải dài, tích luỹ ở trẻ bú mẹ)
   if(norm(d.hc || '').includes('fluoxetin') && breastfeeding(p, v, ctx)) out.push('tiền sử ghi đang cho con bú (fluoxetin bán thải dài, tích luỹ ở trẻ bú mẹ)');
   // Đang cho con bú → không kê mọi thuốc nhóm thần kinh – tâm thần (bác sĩ đặt 2026-10-27, cùng quy tắc mang thai)
-  else if(d.g === 'neuro' && breastfeeding(p, v, ctx)) out.push('đang cho con bú (quy tắc phòng khám: không kê thuốc nhóm thần kinh – tâm thần khi cho con bú)');
+  // Sertralin, paroxetin: được kê khi cho con bú (bác sĩ đặt 2026-11-12)
+  else if(d.g === 'neuro' && !['sertralin', 'paroxetin'].some(k => norm(d.hc || '').includes(k)) && breastfeeding(p, v, ctx)) out.push('đang cho con bú (quy tắc phòng khám: không kê thuốc nhóm thần kinh – tâm thần khi cho con bú)');
   // Carbamazepin: điện tim có block nhĩ thất → không kê (bác sĩ đặt 2026-10-25; carbamazepin làm chậm dẫn truyền nhĩ thất)
   if(norm(d.hc || '').includes('carbamazepin')){
     const e = avBlock(p, v); if(e) out.push(`điện tim ${e.current ? 'lần khám này' : 'ngày ' + fmtDate(e.date)} có block nhĩ thất (carbamazepin làm chậm dẫn truyền nhĩ thất)`);

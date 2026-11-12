@@ -188,7 +188,7 @@ def main():
             r = pg.evaluate("""async () => { const d = S.drugs.find(x => x.id === 'tiane12'); d.p = 9999; delete d.preg; d.warn = 'cũ';
                 await Store.put('drugs', d); S.settings.seedUpdated = []; await saveSettings(); await loadAll();
                 const e = S.drugs.find(x => x.id === 'tiane12'); return {p: e.p, preg: e.preg && e.preg.lv, warn: e.warn, ver: S.settings.seedUpdated}; }""")
-            assert r['p'] == 9999 and r['preg'] == 3 and r['warn'] != 'cũ' and r['ver'] == ['stahl-2026-10', 'moi-2026-10', 'tha-abcd-2026-10-30', 'zolpidem-2026-11-02', 'trazodon-2026-11-02', 'mirtazapin-2026-11-02', 'tca-2026-11-02', 'diazepam-2026-11-02', 'piracetam-2026-11-05', 'donepezil-2026-11-07', 'piracetam400-2026-11-07', 'amitriptylin-2026-11-09', 'alprazolam-bo-05-2026-11-09', 'tuong-tac-tam-than-2026-11-09'], r
+            assert r['p'] == 9999 and r['preg'] == 3 and r['warn'] != 'cũ' and r['ver'] == ['stahl-2026-10', 'moi-2026-10', 'tha-abcd-2026-10-30', 'zolpidem-2026-11-02', 'trazodon-2026-11-02', 'mirtazapin-2026-11-02', 'tca-2026-11-02', 'diazepam-2026-11-02', 'piracetam-2026-11-05', 'donepezil-2026-11-07', 'piracetam400-2026-11-07', 'amitriptylin-2026-11-09', 'alprazolam-bo-05-2026-11-09', 'fluoxetin-bo-20-2026-11-12', 'tuong-tac-tam-than-2026-11-09'], r
             assert pg.evaluate("S.drugs.find(x => x.id === 'quet100n').lact.lv") == 1, 'quetiapin cho con bú phải theo LactMed (mức lưu ý)'
             # Methylphenidat (bác sĩ đặt 2026-11-05): chặn theo tiền sử; cách dùng chọn sẵn; lưu ý chỉnh liều
             MB = "([id, o]) => { const p = JSON.parse(JSON.stringify(curP())), v = JSON.parse(JSON.stringify(curV())); Object.assign(p, o); v.hpi = ''; v.dx = {icd: '', text: ''}; p.meds = []; return drugBlockReasons(p, v, drugById(id)).join(' | '); }"
@@ -472,7 +472,7 @@ def main():
             assert pg.evaluate("curV().rx.length") == 0, 'escitalopram phải bị chặn khi QTc dài'
             assert any('QTc dài' in r for r in pg.evaluate("() => drugBlockReasons(curP(), curV(), drugById('escit10n'))"))
             pg.evaluate("addRx('sert50')"); pg.wait_for_timeout(200)
-            assert pg.evaluate("curV().rx.map(l => l.drugId)") == ['sert50'], 'sertralin không bị chặn vì QTc'
+            assert pg.evaluate("curV().rx.length") == 0, 'sertralin bị chặn khi QTc dài (bác sĩ đặt 2026-11-12)'
             assert pg.evaluate("checkAll(curP(), curV()).ctx.conds.has('qt_long')"), 'QTc dài phải được tính là bệnh kèm QT kéo dài'
             pg.evaluate("(s) => { const p = curP(), v = curV(), o = JSON.parse(s); p.meds = o.meds; p.conds = o.conds; v.hpi = o.hpi; v.reason = o.reason; v.mental = o.mental || {sx: [], hist: [], excl: []}; v.rx = o.rx; v.orders = v.orders.filter(x => x.id !== 'o_ecg_t'); savePatient(p); }", st)
 
@@ -521,7 +521,7 @@ def main():
             pg.evaluate("() => { const p = curP(); p.sex = 'Nữ'; p.conds = (p.conds || []).filter(k => k !== 'breastfeeding'); p.condNote = 'Sinh con 3 tháng, không cho con bú'; }")
             assert pg.evaluate(FB, 'fluox20n') == 0, 'câu phủ định không được tính'
             pg.evaluate("() => { curP().condNote = 'Sinh con 3 tháng, đang cho con bú'; }")
-            assert pg.evaluate(FB, 'fluox20n') == 1 and pg.evaluate(FB, 'sert50') == 1
+            assert pg.evaluate(FB, 'fluox20n') == 1 and pg.evaluate(FB, 'sert50') == 0 and pg.evaluate(FB, 'parox20n') == 0 and pg.evaluate(FB, 'mirta30n') == 1, 'sertralin, paroxetin được kê khi cho con bú (2026-11-12)'
             pg.evaluate("() => { const p = curP(); p.condNote = ''; p.conds = p.conds.concat(['breastfeeding']); }")
             assert pg.evaluate(FB, 'fluox20f') == 1, 'ô "Đang cho con bú" phải chặn fluoxetin'
             pg.evaluate("([s, sx]) => { const p = curP(), o = JSON.parse(s); p.conds = o.conds; p.condNote = o.note; p.sex = sx; }", [nb, sex0])
@@ -559,7 +559,7 @@ def main():
             assert [pg.evaluate(LB, i) for i in ['agome25', 'dulox30n', 'valp500n', 'valp500f', 'sert50']] == [1, 1, 1, 1, 0]
             assert pg.evaluate("() => drugBlockReasons(curP(), curV(), {id: 'x', n: 'Nefazodon 100 mg', hc: 'nefazodon', tags: []}).length") == 1
             pg.evaluate("() => { curP().conds = curP().conds.filter(k => k !== 'liver').concat(['epilepsy']); }")
-            assert pg.evaluate("() => drugBlockReasons(curP(), curV(), {id: 'y', n: 'Clomipramin 25 mg', hc: 'clomipramin', cls: 'Chống trầm cảm 3 vòng', tags: []}).length") == 1
+            assert pg.evaluate("() => drugBlockReasons(curP(), curV(), {id: 'y', n: 'Clomipramin 25 mg', hc: 'clomipramin', cls: 'Chống trầm cảm 3 vòng', tags: []}).filter(r => /động kinh/.test(r)).length") >= 1
             assert pg.evaluate("() => drugBlockReasons(curP(), curV(), {id: 'z', n: 'Bupropion 150 mg', hc: 'bupropion', tags: []}).length") == 1
             ami = "(n) => checkAll(curP(), curV(), [{line: {id: 'L', s: 0, tr: 0, c: 0, t: n}, drug: drugById('amitri25')}]).items.some(w => w.kind === 'Quy tắc phòng khám' && /liều cao/.test(w.m))"
             assert not pg.evaluate(ami, 2) and pg.evaluate(ami, 8), 'amitriptylin 50 mg/ngày được; 200 mg/ngày phải bị chặn ở động kinh'
@@ -740,7 +740,7 @@ def main():
             pg.evaluate("() => { const p = curP(); p.conds = p.conds.filter(k => k !== 'breastfeeding'); p.condNote = ''; curV().hpi = ''; }")
             assert pg.evaluate(BB, 'sert50') == 0
             pg.evaluate("() => { curP().conds.push('breastfeeding'); curP().sex = 'Nữ'; }")
-            neuro_b = pg.evaluate("() => DRUGS_SEED.filter(d => d.g === 'neuro').map(d => d.id)")
+            neuro_b = pg.evaluate("() => DRUGS_SEED.filter(d => d.g === 'neuro' && !/sertralin|paroxetin/.test(d.hc)).map(d => d.id)")
             assert all(pg.evaluate(BB, x) == 1 for x in neuro_b), 'cho con bú phải chặn mọi thuốc thần kinh – tâm thần'
             assert pg.evaluate(BB, 'cipro500') == 0
             pg.evaluate("(s) => { const p = curP(), o = JSON.parse(s); p.conds = o.conds; p.condNote = o.note; p.sex = o.sex; curV().hpi = o.hpi; }", bb0)
@@ -870,7 +870,7 @@ def main():
             assert pg.evaluate(HD, 'sert50') == 0
             pg.evaluate("() => { curP().conds.push('liver'); }")
             assert pg.evaluate(HD, 'sert50') == 1 and pg.evaluate(HD, 'fluox20n') == 0, 'gan mạn + trầm cảm phải cảnh báo ½ liều sertralin'
-            assert 'Quy tắc phòng khám' not in pg.evaluate("() => checkAll(curP(), curV(), [{line: {id: 'L_hd', drugId: 'sert50'}, drug: drugById('sert50')}]).items.map(w => w.kind)"), 'chỉ cảnh báo, không chặn'
+            assert 'Quy tắc phòng khám' not in pg.evaluate("() => { const p = curP(), j0 = p.job; p.job = ''; const k = checkAll(p, curV(), [{line: {id: 'L_hd', drugId: 'sert50'}, drug: drugById('sert50')}]).items.map(w => w.kind); p.job = j0; return k; }"), 'chỉ cảnh báo, không chặn'
             pg.evaluate("() => { const p = curP(); p.conds = p.conds.filter(k => k !== 'liver'); p.dob = (Number(curV().date.slice(0, 4)) - 9) + '-01-01'; }")
             assert pg.evaluate(HD, 'sert50') == 1, 'trẻ 9 tuổi + trầm cảm phải cảnh báo ½ liều'
             assert pg.evaluate("() => halfDoseReasons(curP(), curV(), drugById('fluvo100')).length") == 1, 'fluvoxamin cũng cảnh báo ½ liều'
@@ -911,7 +911,7 @@ def main():
             assert pg.evaluate(XB, 'parox20f') == 1, 'ô hồ sơ "Rối loạn / lo ngại chức năng tình dục" phải chặn paroxetin'
             pg.evaluate("(s) => { const p = curP(), o = JSON.parse(s); p.conds = o.conds; p.condNote = o.note; }", sx0)
             # venlafaxin: bệnh nền tăng huyết áp -> chặn (ca mẫu có THA)
-            VH = "(id) => drugBlockReasons(curP(), curV(), drugById(id)).filter(r => /tăng huyết áp/.test(r)).length"
+            VH = "(id) => drugBlockReasons(curP(), curV(), drugById(id)).filter(r => /^bệnh nền tăng huyết áp/.test(r)).length"
             assert pg.evaluate("curP().conds.includes('htn')") and pg.evaluate(VH, 'venla75n') == 1 and pg.evaluate(VH, 'dulox30n') == 0
             dx0 = pg.evaluate("() => JSON.stringify(curV().dx)")
             pg.evaluate("() => { const v = curV(); curP().conds = curP().conds.filter(k => k !== 'htn'); v.dx = {...v.dx, icd: '', main: 'Viêm dạ dày', secondary: ''}; }")
@@ -1099,6 +1099,43 @@ def main():
             r = pg.evaluate("""() => { const ks = LABS.filter(l => l[0] === 'Trắc nghiệm tâm lý').map(l => l[1]);
               return [ks.length === new Set(ks).size, ks[0], ks.indexOf('bdi') > ks.indexOf('scs_f'), ks.indexOf('mmse') < ks.indexOf('bdi'), ks.length]; }""")
             assert r == [True, 'phq2', True, True, 70], r
+            # Bảng chống chỉ định thuốc tâm thần + tiền sử tim mạch (bác sĩ đặt 2026-11-12)
+            r = pg.evaluate("""() => { const p = curP(), v = curV(), c0 = p.conds, m0 = p.meds, rx0 = v.rx, o0 = v.orders, n0 = p.condNote;
+              const K = id => drugBlockReasons(p, v, drugById(id)).filter(x => /^chống chỉ định/.test(x)).join('|');
+              const has = (id, re) => re.test(K(id));
+              p.conds = []; p.meds = []; v.rx = []; v.orders = []; p.condNote = '';
+              const z = ['sert50', 'amitri25', 'venla75n', 'carba200n', 'olan10n'].map(K).join('');
+              p.conds = ['htn']; const a = [has('amitri25', /tim mạch/), has('venla75n', /tim mạch/), has('sert50', /tim mạch/), has('escit10n', /tim mạch/)];
+              p.conds = ['bipolar']; const b = [has('sert50', /lưỡng cực/), has('mirta30n', /lưỡng cực/), has('olan10n', /lưỡng cực/)];
+              p.conds = ['glaucoma']; const c = [has('dulox30n', /glôcôm/), has('amitri25', /glôcôm/)];
+              p.conds = ['af']; const dd = has('carba200n', /rối loạn nhịp/);
+              p.conds = ['dementia']; p.dob = ''; const by0 = p.birthYear; p.birthYear = +v.date.slice(0, 4) - 70; const e = has('quet100n', /sa sút/); p.birthYear = by0;
+              p.conds = ['qt_long']; const f = [has('escit10n', /QT/), has('quet100n', /QT/)];
+              p.conds = []; p.meds = [{id: 'mm', text: 'Moclobemid 150 mg'}]; const g = [has('sert50', /IMAO/), has('carba200n', /IMAO/)];
+              p.conds = c0; p.meds = m0; v.rx = rx0; v.orders = o0; p.condNote = n0; return [z, a, b, c, dd, e, f, g]; }""")
+            assert r == ['', [True, True, False, False], [True, True, False], [True, True], True, True, [True, True], [True, True]], r
+            # Sertralin: NSAID / rối loạn đông máu (chữ), glôcôm (ô), lái xe, QTc dài (bác sĩ đặt 2026-11-12)
+            r = pg.evaluate("""() => { const p = curP(), v = curV(), c0 = p.conds, n0 = p.condNote, j0 = p.job, o0 = v.orders, d = drugById('sert50');
+              const B = () => drugBlockReasons(p, v, d).filter(x => /^sertralin:/.test(x)).length;
+              p.conds = []; p.condNote = ''; p.job = 'Giáo viên'; v.orders = []; const b0 = B();
+              p.condNote = 'Đang sử dụng các thuốc thuộc nhóm NSAIDs'; const b1 = B(); p.condNote = 'Đang dùng diclofenac'; const b2 = B();
+              p.condNote = 'Rối loạn đông máu'; const b3 = B(); p.condNote = 'Không rối loạn đông máu'; const b3n = B(); p.condNote = '';
+              p.conds = ['glaucoma']; const b4 = B(); p.conds = []; p.job = 'Lái xe taxi'; const b5 = B(); p.job = 'Giáo viên';
+              v.orders = [{id: 'qe', key: 'ecg', name: 'Điện tim', type: 't', value: 'Nhịp xoang, QTc dài 490 ms', flag: '', note: ''}]; const b6 = B();
+              const f = drugBlockReasons(p, v, drugById('prozac10')).filter(x => /^sertralin:/.test(x)).length;
+              p.conds = c0; p.condNote = n0; p.job = j0; v.orders = o0; return [b0, b1, b2, b3, b3n, b4, b5, b6, f]; }""")
+            assert r == [0, 1, 1, 1, 0, 1, 1, 1, 0], r
+            # Prozac 10 mg thay fluoxetin 20 mg (bác sĩ đặt 2026-11-12)
+            r = pg.evaluate("""() => { const p = curP(), v = curV(), c0 = p.conds, n0 = p.condNote, m0 = p.meds, r0 = p.renalManual, d = drugById('prozac10');
+              const B = () => drugBlockReasons(p, v, d).filter(x => /^prozac/.test(x)).length;
+              const hits = drugSearch('fluox').map(x => x.id);
+              p.conds = []; p.condNote = ''; p.meds = []; p.renalManual = null; const b0 = B();
+              p.conds = ['bipolar']; const b1 = B(); p.conds = ['epilepsy']; const b2 = B(); p.conds = [];
+              p.renalManual = {egfr: 8, date: v.date}; const b3 = B(); p.renalManual = {egfr: 40, date: v.date}; const b3b = B(); p.renalManual = null;
+              p.condNote = 'Rối loạn cảm xúc lưỡng cực'; const b4 = B(); p.condNote = 'Đang điều trị thuốc nhóm MAOI'; const b5 = B(); p.condNote = 'Không có rối loạn cảm xúc lưỡng cực'; const b6 = B(); const y0 = p.birthYear, dob0 = p.dob; p.dob = ''; p.birthYear = +v.date.slice(0, 4) - 15; const b7 = B(); p.birthYear = +v.date.slice(0, 4) - 30; const b8 = B(); p.birthYear = y0; p.dob = dob0;
+              p.conds = c0; p.condNote = n0; p.meds = m0; p.renalManual = r0;
+              return [hits.includes('prozac10'), hits.includes('fluox20n') || hits.includes('fluox20f'), d.howOpts[0], d.dose.join(''), b0, b1, b2, b3, b3b, b4, b5, b6, b7, b8]; }""")
+            assert r == [True, False, 'Uống mỗi lần 2 viên, ngày uống 1 lần sau ăn sáng', '2000', 0, 1, 1, 1, 0, 1, 1, 0, 1, 0], r
             # Link MDCalc khi chọn MADRS (bác sĩ đặt 2026-11-12)
             r = pg.evaluate("""() => { const v = curV(), o0 = v.orders, s0 = S.view.step; const l = LABS.find(x => x[1] === 'madrs');
               v.orders = [{id: 'om', key: 'madrs', name: l[2], unit: l[3], ref: l[4], type: l[5], value: '', flag: '', note: ''}];
