@@ -1089,12 +1089,15 @@ def main():
             assert 'Mức độ: A2' in r['F63.8'][2], r
             pg.evaluate("(o) => { const p = curP(); p.dob = o[0]; p.birthYear = o[1]; }", _age)
             assert ['F44', True] in pg.evaluate(SG, {'sx': ['dis_sx', 'dis_noorg', 'dis_time'], 'weeks': 2})
+            assert pg.evaluate("() => [7, 8, 13, 14, 18, 19, 22, 23, 52].map(x => scaleResult('hamd', x).t).join('|')") == 'Bình thường|Nhẹ|Nhẹ|Vừa|Vừa|Nặng|Nặng|Rất nặng|Rất nặng', 'ngưỡng HAM-D'
+            # Ngưỡng MADRS (bác sĩ đặt 2026-11-12)
+            assert pg.evaluate("() => [6, 7, 19, 20, 30, 31, 39, 40, 60].map(x => scaleResult('madrs', x).t).join('|')") == 'Bình thường / không có triệu chứng|Nhẹ|Nhẹ|Mức độ vừa phải|Mức độ vừa phải|Nghiêm trọng|Nghiêm trọng|Cực kỳ nghiêm trọng|Cực kỳ nghiêm trọng'
             # Link MDCalc khi chọn MADRS (bác sĩ đặt 2026-11-12)
             r = pg.evaluate("""() => { const v = curV(), o0 = v.orders, s0 = S.view.step; const l = LABS.find(x => x[1] === 'madrs');
               v.orders = [{id: 'om', key: 'madrs', name: l[2], unit: l[3], ref: l[4], type: l[5], value: '', flag: '', note: ''}];
               go({name: 'visit', pid: S.view.pid, vid: v.id, step: 2}); const a = document.querySelector('a[href*="mdcalc.com/calc/4058"]');
               const ok = !!a && a.target === '_blank' && /noopener/.test(a.rel); v.orders = o0; go({name: 'visit', pid: S.view.pid, vid: v.id, step: s0 || 1});
-              return [ok, scaleLinkHTML('phq9') === '']; }""")
+              return [ok, scaleLinkHTML('phq9') === '' && scaleLinkHTML('hamd').includes('mdcalc.com/calc/10043/hamilton-depression-rating-scale-hamd')]; }""")
             assert r == [True, True], r
             # Bảng kiểm dạng cây (2026-11-09): bệnh → tiêu chuẩn → danh sách; mọi nhóm vẫn đủ mục, không trùng khoá
             r = pg.evaluate("""() => { const g = MENTAL_SX.find(x => x.g === 'som'), h = checklistHTML(g, []), d = document.createElement('div'); d.innerHTML = '<div class="checks">' + h + '</div>';
@@ -1199,6 +1202,8 @@ def main():
             assert ['G47.4', True] in pg.evaluate(SG, {'sx': ['nar_attack', 'nar_cata'], 'weeks': 20})
             assert pg.evaluate("() => [scaleResult('ahi', 22).t, scaleResult('ess', 14).t]") == ['Ngưng thở khi ngủ mức trung bình', 'Buồn ngủ quá mức (ngưỡng > 10, tham khảo)']
             assert pg.evaluate("() => FLAG_OPTS.ess") == ['Bình thường', 'Buồn ngủ quá mức']
+            assert pg.evaluate("() => FLAG_OPTS.madrs") == ['Bình thường', 'Nhẹ', 'Vừa', 'Nghiêm trọng', 'Cực kỳ nghiêm trọng']
+            assert pg.evaluate("() => FLAG_OPTS.hamd") == ['Bình thường', 'Nhẹ', 'Vừa', 'Nặng', 'Rất nặng']
             assert pg.evaluate("() => [FLAG_OPTS.isi, LABS.find(x => x[1] === 'isi')[2]]") == [['Không mất ngủ', 'Dưới ngưỡng', 'Vừa', 'Nặng'], 'ISI – Chỉ số mức độ mất ngủ']
             assert pg.evaluate("() => [2, 3, 6].map(n => scaleResult('stopbang', n).lv)") == [0, 1, 2]
             # giao diện: bảng kiểm ở bước 1 cập nhật tức thời, bước 3 hiện gợi ý và chọn được

@@ -1387,7 +1387,7 @@ const LABS = [
   ['Trắc nghiệm tâm lý','dass_a','DASS-21 – Lo âu (đã ×2)','điểm','0–7 bình thường; 8–9 nhẹ; 10–14 vừa; 15–19 nặng; ≥ 20 rất nặng','n'],
   ['Trắc nghiệm tâm lý','dass_s','DASS-21 – Stress (đã ×2)','điểm','0–14 bình thường; 15–18 nhẹ; 19–25 vừa; 26–33 nặng; ≥ 34 rất nặng','n'],
   ['Trắc nghiệm tâm lý','mmpi','MMPI (nhân cách đa diện)','','Ghi thang điểm nổi trội (T ≥ 65)','t'],
-  ['Trắc nghiệm tâm lý','hamd','Trầm cảm Hamilton (HAM-D 17)','điểm','0–7 bình thường; 8–16 nhẹ; 17–23 vừa; ≥ 24 nặng','n'],
+  ['Trắc nghiệm tâm lý','hamd','Trầm cảm Hamilton (HAM-D 17)','điểm','0–7 bình thường; 8–13 nhẹ; 14–18 vừa; 19–22 nặng; ≥ 23 rất nặng','n'],
   ['Trắc nghiệm tâm lý','hama','Lo âu Hamilton (HAM-A)','điểm','< 18 nhẹ; 18–24 nhẹ–vừa; 25–30 vừa–nặng; > 30 nặng','n'],
   ['Trắc nghiệm tâm lý','edeq','EDE-Q 6.0 (rối loạn ăn uống) – điểm toàn thể','/6','0–6; ≥ 4 thường dùng làm ngưỡng mức lâm sàng (tham khảo)','n'],
   ['Trắc nghiệm tâm lý','pss','Thang đo stress cảm nhận (PSS-10)','/40','0–13 thấp; 14–26 vừa; 27–40 cao (đảo điểm câu 4, 5, 7, 8)','n'],
@@ -1397,7 +1397,7 @@ const LABS = [
   ['Trắc nghiệm tâm lý','sprinte','SPRINT-E (phỏng vấn PTSD ngắn)','','Ghi điểm và kết luận','t'],
   ['Trắc nghiệm tâm lý','adnm20','ADNM-20 (rối loạn sự thích ứng)','','Ghi điểm nhóm triệu chứng lõi (bận tâm về sự kiện, thất bại thích ứng) và phụ (né tránh, trầm cảm, lo âu, xung động)','t'],
   ['Trắc nghiệm tâm lý','phq2','PHQ-2 (sàng lọc trầm cảm)','/6','≥ 3 gợi ý trầm cảm — làm PHQ-9','n'],
-  ['Trắc nghiệm tâm lý','madrs','Trầm cảm Montgomery–Åsberg (MADRS)','/60','0–6 bình thường; 7–19 nhẹ; 20–34 vừa; ≥ 35 nặng','n'],
+  ['Trắc nghiệm tâm lý','madrs','Trầm cảm Montgomery–Åsberg (MADRS)','/60','0–6 bình thường / không có triệu chứng; 7–19 nhẹ; 20–30 mức độ vừa phải; 31–39 nghiêm trọng; 40–60 cực kỳ nghiêm trọng','n'],
   ['Trắc nghiệm tâm lý','hads_a','HADS – Lo âu (HAD)','/21','0–7 bình thường; 8–10 ranh giới; ≥ 11 bệnh lý (tham khảo)','n'],
   ['Trắc nghiệm tâm lý','hads_d','HADS – Trầm cảm (HAD)','/21','0–7 bình thường; 8–10 ranh giới; ≥ 11 bệnh lý (tham khảo)','n'],
   ['Trắc nghiệm tâm lý','ymrs','Hưng cảm Young (YMRS)','/60','< 12 thuyên giảm; 12–19 nhẹ; 20–25 vừa; ≥ 26 nặng (tham khảo)','n'],
@@ -1441,6 +1441,7 @@ const LABS = [
 // Link công cụ tính điểm trực tuyến cho từng thang trắc nghiệm (bác sĩ cung cấp 2026-11-12). Chỉ mở trang, app không gửi dữ liệu bệnh nhân
 const SCALE_LINKS = {
   madrs: [['Tính điểm MADRS trên MDCalc', 'https://www.mdcalc.com/calc/4058/montgomery-asberg-depression-rating-scale-madrs']],
+  hamd: [['Tính điểm HAM-D trên MDCalc', 'https://www.mdcalc.com/calc/10043/hamilton-depression-rating-scale-hamd']],
 };
 const CV_LINKS = [['CAREME – Yêu lấy mình', 'https://caremeyeulayminh.com/khao-sat'], ['PREVENT-CVD (AHA)', 'https://professional.heart.org/en/guidelines-and-statements/prevent-calculator'],
   ['SCORE2 (40–69 tuổi, MDCalc)', 'https://www.mdcalc.com/calc/10499/systematic-coronary-risk-evaluation-score2'], ['SCORE2-OP (≥ 70 tuổi, MDCalc)', 'https://www.mdcalc.com/calc/10503/score2-older-persons-score2-op'],
@@ -1455,7 +1456,7 @@ const LAB_PANELS = [{id: 'dgd', g: 'Máu', name: 'Điện giải đồ (Na, K, C
 
 // Lựa chọn ô "đánh giá" riêng theo key (bác sĩ đặt 2026-10-27); key khác dùng Bình thường / Cao / Thấp / Bất thường
 const DASS_FLAGS = ['Bình thường', 'Nhẹ', 'Vừa', 'Nặng', 'Rất nặng'];
-const FLAG_OPTS = {zung_a: ['Bình thường', 'Nhẹ – vừa', 'Nặng', 'Rất nặng'], psqi: ['Tốt', 'Kém'], dass_d: DASS_FLAGS, dass_a: DASS_FLAGS, dass_s: DASS_FLAGS, ess: ['Bình thường', 'Buồn ngủ quá mức'], isi: ['Không mất ngủ', 'Dưới ngưỡng', 'Vừa', 'Nặng']};
+const FLAG_OPTS = {hamd: ['Bình thường', 'Nhẹ', 'Vừa', 'Nặng', 'Rất nặng'], madrs: ['Bình thường', 'Nhẹ', 'Vừa', 'Nghiêm trọng', 'Cực kỳ nghiêm trọng'], zung_a: ['Bình thường', 'Nhẹ – vừa', 'Nặng', 'Rất nặng'], psqi: ['Tốt', 'Kém'], dass_d: DASS_FLAGS, dass_a: DASS_FLAGS, dass_s: DASS_FLAGS, ess: ['Bình thường', 'Buồn ngủ quá mức'], isi: ['Không mất ngủ', 'Dưới ngưỡng', 'Vừa', 'Nặng']};
 
 // Diễn giải tổng điểm trắc nghiệm (ô "Kết quả" ở bước 2 và trên phiếu): key → [[điểm tối đa của khoảng, kết luận, mức 0–3]].
 // Ngưỡng lấy từ cột tham chiếu đã có của từng thang; GAD-7, GAD-2, PHQ-4 theo phiếu trong thư mục Tâm thần (Spitzer 2006, Kroenke 2007).
@@ -1478,9 +1479,9 @@ const SCALE_BANDS = {
   mmse: [[9,'Nặng',3],[18,'Vừa',2],[23,'Nhẹ',1],[30,'Bình thường',0]],   // bác sĩ đặt 2026-11-06: nhẹ 19–23, vừa 10–18, nặng < 10
   moca: [[25,'Suy giảm nhận thức (< 26; +1 điểm nếu học vấn ≤ 12 năm)',2],[30,'Bình thường',0]],
   psqi: [[5,'Chất lượng giấc ngủ tốt',0],[21,'Chất lượng giấc ngủ kém',2]],
-  hamd: [[7,'Bình thường',0],[16,'Trầm cảm nhẹ',1],[23,'Trầm cảm vừa',2],[52,'Trầm cảm nặng',3]],
+  hamd: [[7,'Bình thường',0],[13,'Nhẹ',1],[18,'Vừa',2],[22,'Nặng',3],[52,'Rất nặng',3]],   // bác sĩ đặt 2026-11-12
   hama: [[17,'Lo âu nhẹ',1],[24,'Lo âu nhẹ – vừa',1],[30,'Lo âu vừa – nặng',2],[56,'Lo âu nặng',3]],
-  madrs: [[6,'Bình thường',0],[19,'Trầm cảm nhẹ',1],[34,'Trầm cảm vừa',2],[60,'Trầm cảm nặng',3]],
+  madrs: [[6,'Bình thường / không có triệu chứng',0],[19,'Nhẹ',1],[30,'Mức độ vừa phải',2],[39,'Nghiêm trọng',3],[60,'Cực kỳ nghiêm trọng',3]],   // bác sĩ đặt 2026-11-12
   ahi: [[4.9,'Bình thường',0],[14.9,'Ngưng thở khi ngủ mức nhẹ',1],[30,'Ngưng thở khi ngủ mức trung bình',2],[999,'Ngưng thở khi ngủ mức nặng',3]],
   stopbang: [[2,'Nguy cơ ngưng thở khi ngủ thấp',0],[4,'Nguy cơ ngưng thở khi ngủ trung bình',1],[8,'Nguy cơ ngưng thở khi ngủ cao — làm đa ký giấc ngủ',2]],
   ess: [[10,'Bình thường',0],[24,'Buồn ngủ quá mức (ngưỡng > 10, tham khảo)',2]],

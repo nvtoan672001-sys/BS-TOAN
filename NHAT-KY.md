@@ -98,3 +98,9 @@ Mỗi lần làm xong, thêm một mục ở **cuối file**: ngày · agent · 
 
 ## 2026-11-12 · Claude
 - Link MDCalc cho MADRS (bác sĩ cung cấp): `SCALE_LINKS` (data.js) + `scaleLinkHTML` (ui.js) — khi chỉ định MADRS ở bước 2, dưới tên thang hiện link "Tính điểm MADRS trên MDCalc ↗" (mở tab mới, `rel="noopener noreferrer"`, không gửi dữ liệu bệnh nhân). Thêm link cho thang khác: thêm khoá vào `SCALE_LINKS`.
+- MADRS (bác sĩ đặt 2026-11-12): tham chiếu và `SCALE_BANDS` đổi thành 0–6 bình thường / không có triệu chứng, 7–19 nhẹ, 20–30 mức độ vừa phải, 31–39 nghiêm trọng, 40–60 cực kỳ nghiêm trọng (trước: 20–34 vừa, ≥ 35 nặng). Chỉ định MADRS đã lưu trong lượt khám cũ giữ dòng tham chiếu cũ (lưu theo lúc chỉ định), phần "Kết quả" tự diễn giải theo ngưỡng mới.
+- MADRS: ô "đánh giá" ở bước 2 có 5 lựa chọn Bình thường, Nhẹ, Vừa, Nghiêm trọng, Cực kỳ nghiêm trọng (`FLAG_OPTS.madrs`, bác sĩ đặt 2026-11-12).
+- HAM-D 17 (bác sĩ đặt 2026-11-12): tham chiếu và `SCALE_BANDS` đổi thành 0–7 bình thường, 8–13 nhẹ, 14–18 vừa, 19–22 nặng, ≥ 23 rất nặng (trước: 8–16 nhẹ, 17–23 vừa, ≥ 24 nặng).
+- HAM-D: ô "đánh giá" ở bước 2 có 5 lựa chọn Bình thường, Nhẹ, Vừa, Nặng, Cực kỳ nặng (`FLAG_OPTS.hamd`, bác sĩ đặt 2026-11-12).
+- HAM-D: thêm link "Tính điểm HAM-D trên MDCalc" (`SCALE_LINKS.hamd`, bác sĩ cung cấp 2026-11-12).
+- HAM-D: bác sĩ chốt dùng "Rất nặng" cho mức ≥ 23 ở cả tham chiếu và ô đánh giá (thay "Cực kỳ nặng").
