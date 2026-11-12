@@ -330,7 +330,7 @@ function admitReasons(v, p){
     if(pulse != null && pulse < 50) a.push(`mạch ${fmtN(pulse)} lần/phút (< 50)`);
     if(sbp != null && sbp < 90) a.push(`HA tâm thu ${fmtN(sbp)} mmHg (< 90)`);
     const ecg = ((v.orders || []).find(o => o.key === 'ecg') || {}).value || '';
-    if(ctx.conds.has('af') || [hpi, v.exam, p.condNote, ecg].some(t => ['roi loan nhip', 'rung nhi', 'ngoai tam thu'].some(k => saysNotNeg(t, k)))) a.push('rối loạn nhịp tim');
+    if(ctx.conds.has('af') || [hpi, examText(v), p.condNote, ecg].some(t => ['roi loan nhip', 'rung nhi', 'ngoai tam thu'].some(k => saysNotNeg(t, k)))) a.push('rối loạn nhịp tim');
     if(temp != null && temp < 35.6) a.push(`nhiệt độ ${fmtN(temp, 1)} °C (< 35,6)`);
     if(bmi != null && bmi < 15) a.push(`BMI ${fmtN(bmi, 1)} (< 15)`);
     if(fat != null && fat < 10) a.push(`body fat ${fmtN(fat, 1)}% (< 10)`);
@@ -344,7 +344,7 @@ function admitReasons(v, p){
     if(ka != null && ka < 3.2) a.push(`kali ${fmtN(ka, 1)} mmol/L (< 3,2)`);
     if(cl != null && cl < 88) a.push(`clo ${fmtN(cl)} mmol/L (< 88)`);
     const ecg = ((v.orders || []).find(o => o.key === 'ecg') || {}).value || '';
-    if(ctxOf(p, v).conds.has('af') || [hpi, v.exam, p.condNote, ecg].some(t => ['roi loan nhip', 'rung nhi', 'ngoai tam thu'].some(k => saysNotNeg(t, k)))) a.push('rối loạn nhịp tim');
+    if(ctxOf(p, v).conds.has('af') || [hpi, examText(v), p.condNote, ecg].some(t => ['roi loan nhip', 'rung nhi', 'ngoai tam thu'].some(k => saysNotNeg(t, k)))) a.push('rối loạn nhịp tim');
     if(temp != null && temp < 35.6) a.push(`nhiệt độ ${fmtN(temp, 1)} °C (< 35,6)`);
     if(/ngất/i.test(hpi) && saysNotNeg(hpi, 'ngat')) a.push('ngất');
     if(saysNotNeg(hpi, 'non lien tuc')) a.push('nôn liên tục');
@@ -356,10 +356,15 @@ function admitReasons(v, p){
 // Tự tích "Chuyển tuyến" (bác sĩ đặt 2026-11-07): có khám tâm thần (tích bất kỳ mục nào) VÀ
 // bệnh sử ghi tự sát / tự hại / bạo lực / gây hại người khác / kích động nặng / không ăn uống, HOẶC
 // khám lâm sàng ghi suy kiệt / dấu hiệu mất nước (+) / rối loạn định hướng, HOẶC tích bất kỳ mục loạn thần (nhóm 'psy')
+// Toàn bộ chữ khám lâm sàng: các ô theo cơ quan (v.examSys, EXAM_FORM) + ô ghi thêm (v.exam) — dùng cho mọi quy tắc đọc phần khám
+function examText(v){
+  const s = (v && v.examSys) || {};
+  return EXAM_FORM.filter(x => x[0] === 'f' && String(s[x[1]] || '').trim()).map(x => `${x[2]}: ${String(s[x[1]]).trim()}`).concat((v && v.exam) ? [v.exam] : []).join('. ');
+}
 function referReasons(p, v){
   const sx = ((v && v.mental) || {}).sx || [];
   if(!sx.length) return [];
-  const r = [], hpi = v.hpi || '', ex = v.exam || '';
+  const r = [], hpi = v.hpi || '', ex = examText(v);
   // phủ định rộng hơn mentionsSymptom: "không có ý định tự sát" (phủ định cách ≤ 4 từ)
   const say = (txt, kw) => { const t = ' ' + norm(txt).replace(/[^a-z0-9]+/g, ' ') + ' '; let i = t.indexOf(' ' + kw + ' ');
     while(i >= 0){ if(!/\b(khong|ko|chua|het|phu nhan)\b(\s+\w+){0,4}\s*$/.test(t.slice(Math.max(0, i - 40), i))) return true; i = t.indexOf(' ' + kw + ' ', i + 1); } return false; };

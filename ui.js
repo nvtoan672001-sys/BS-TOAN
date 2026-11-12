@@ -65,7 +65,7 @@ function afterChange(path){
         if(add.length){ p.conds = (p.conds || []).concat(add); toast('Đã thêm vào bệnh nền: ' + add.map(condLabel).join(', ')); } }
     }
     if(v){ if(path === 'v.dx.disp'){ v.dx.dispManual = true; v.dx.dispAuto = false; }
-      else if(/^v\.(mental|hpi$|exam$|vitals\.|dx\.(icd2?|main|secondary)$|orders\.)|^p\.(conds|condNote|bodyFat|weight|height)$/.test(path)) autoRefer(v, p); }
+      else if(/^v\.(mental|hpi$|exam$|examSys\.|vitals\.|dx\.(icd2?|main|secondary)$|orders\.)|^p\.(conds|condNote|bodyFat|weight|height)$/.test(path)) autoRefer(v, p); }
     if(p) savePatient(p);
     if(path === 'p.name' || path === 'p.phone') renderPlist();
   } else if(root === 's'){ saveSettings(); if(path === 's.doctor') $('#docname').textContent = '· ' + (S.settings.doctor || ''); }
@@ -249,7 +249,7 @@ function viewNewP(){
   <div class="row" style="margin-top:14px"><button class="btn pri" data-act="createP">Tạo hồ sơ và bắt đầu khám</button><button class="btn" data-act="createP" data-only="1">Chỉ tạo hồ sơ</button><button class="btn ghost" data-act="nav" data-to="home">Huỷ</button></div></div></div>`;
 }
 function newVisitObj(p, kind){
-  return {id: uid('v'), date: todayISO(), kind, place: '', status: 'draft', reason: '', hpi: '', vitals: {weight: p.weight ?? null, height: p.height ?? null}, exam: '', orders: [], files: [],
+  return {id: uid('v'), date: todayISO(), kind, place: '', status: 'draft', reason: '', hpi: '', vitals: {weight: p.weight ?? null, height: p.height ?? null}, exam: '', examSys: {}, orders: [], files: [],
     dx: {main: '', icd: '', secondary: '', disp: 'outpatient', note: ''}, rx: [], rxNote: '', plan: {followDays: null, followDate: '', followReason: '', returnSigns: '', notes: ''},
     nutrition: {}, activity: {}, rehab: {text: ''}, tcm: {text: ''}, psych: {text: ''}, mental: {sx: [], hist: [], excl: []},
     print: {reason: true, dx: true, labs: true, rx: true, ae: true, plan: true, ret: true, diet: true, act: true, rehab: true, tcm: true, psych: false, price: false}};
@@ -399,6 +399,18 @@ function checklistHTML(g, sx){
 }
 // Link công cụ tính điểm của thang (SCALE_LINKS) — hiện dưới tên chỉ định ở bước 2
 function scaleLinkHTML(key){ return (SCALE_LINKS[key] || []).map(([t, url]) => `<div><a class="tiny" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(t)} ↗</a></div>`).join(''); }
+// Khám lâm sàng theo cơ quan (EXAM_FORM): ô chữ + ô chọn "Trống" / câu mẫu (dùng lại cơ chế .howpick); ô "Ghi thêm" giữ v.exam cũ
+function examCard(v){
+  const s = v.examSys || {};
+  const body = EXAM_FORM.map(x => {
+    if(x[0] === 'h') return `<div class="subhd ex1">${esc(x[1])}</div>`;
+    if(x[0] === 'h2') return `<div class="subhd l2">${esc(x[1])}</div>`;
+    if(x[0] === 'h3') return x[1] === '-' ? '' : `<div class="subhd l3">${esc(x[1])}</div>`;
+    const path = `v.examSys.${x[1]}`, val = s[x[1]] || '';
+    return `<div class="exrow"><label>${esc(x[2])}</label><div class="exctl">${I(path, val, {ph: ''})}<select class="howpick" data-for="${path}"><option value="">Trống</option><option value="${esc(x[3])}"${val === x[3] ? ' selected' : ''}>${esc(x[3])}</option></select></div></div>`;
+  }).join('');
+  return `<div class="card"><h3>Khám lâm sàng</h3>${body}<div class="subhd ex1">Ghi thêm</div>${T('v.exam', v.exam, {rows: 3, ph: 'Khám khác, mô tả thêm…'})}</div>`;
+}
 function step1(p, v){
   return `<div class="card"><h3>1. Lý do đến khám</h3>${T('v.reason', v.reason, {rows: 2, ph: 'vd. Đau bụng vùng thượng vị 2 tuần'})}</div>
   <div class="card"><h3>Bệnh sử – triệu chứng</h3>${T('v.hpi', v.hpi, {rows: 4, ph: 'Diễn biến, tính chất triệu chứng, thuốc đã tự dùng…'})}</div>
@@ -407,7 +419,7 @@ function step1(p, v){
     ${F('SpO₂', U('v.vitals.spo2', v.vitals.spo2, '%'))}${F('Cân nặng', U('v.vitals.weight', v.vitals.weight, 'kg'))}${F('Chiều cao', U('v.vitals.height', v.vitals.height, 'cm'))}${F('Vòng eo', U('v.vitals.waist', v.vitals.waist, 'cm'))}
   </div></div>
   <div class="card"><h3>Nguy cơ tim mạch</h3><div data-live="cvrisk"></div></div>
-  <div class="card"><h3>Khám lâm sàng</h3>${T('v.exam', v.exam, {rows: 4, ph: 'Khám bụng, tim phổi, khớp…'})}</div>
+  ${examCard(v)}
   ${mentalCard(p, v)}`;
 }
 // Khám tâm thần: thu gọn mặc định, tự mở khi chẩn đoán mã F, có bệnh nền trầm cảm/lo âu, hoặc đã từng khám tâm thần
@@ -1041,6 +1053,9 @@ const SEED_UPDATES = [{ver: 'stahl-2026-10', ids: SEED_ADDED.slice(1)},   // 44 
   {ver: 'amitriptylin-2026-11-09', ids: ['amitri25', 'amitri25f'], extra: ['dose']},
   {ver: 'alprazolam-bo-05-2026-11-09', ids: ['alpra05n', 'alpra05f'], extra: ['off']},
   {ver: 'fluoxetin-bo-20-2026-11-12', ids: ['fluox20n', 'fluox20f'], only: ['off']},
+  {ver: 'sertralin-2026-11-12', ids: ['sert50', 'sert50f'], only: ['how', 'howOpts', 'dnote']},
+  {ver: 'fluvoxamin-2026-11-12', ids: ['fluvo100'], only: ['dose', 'how', 'howOpts', 'dnote']},
+  {ver: 'venlafaxin-2026-11-12', ids: ['venla75n', 'venla75f'], only: ['dose', 'how', 'howOpts', 'dnote']},
   {ver: 'tuong-tac-tam-than-2026-11-09', ids: DRUGS_SEED.filter(d => PSY_EXTRA_TAGS[d.hc]).map(d => d.id), only: ['tags']}];                          // ưu tiên khuyến cáo mới hơn Stahl 2004 (LactMed, FDA/EMA, SmPC)
 const SEED_CLIN = ['tags', 'how', 'howOpts', 'dnote', 'ae', 'warn', 'pro', 'con', 'renal', 'hep', 'old', 'preg', 'lact', 'cond'];
 async function updateSeedDrugs(){

@@ -283,3 +283,11 @@ table.t td.num input{padding:5px 4px}
 
 .dxcol{display:flex;flex-direction:column;gap:10px;min-width:0}
 .mdet>summary{cursor:pointer;list-style:none}.mdet>summary::-webkit-details-marker{display:none}.mdet>summary .lbl::before{content:'▸ ';color:var(--muted,#888)}.mdet[open]>summary .lbl::before{content:'▾ '}.mdet>summary .lbl{display:inline}
+/* Khám lâm sàng theo cơ quan (2026-11-12) */
+.exrow{display:grid;grid-template-columns:minmax(0,220px) minmax(0,1fr);gap:8px;align-items:center;margin:4px 0}
+.exrow>label{font-size:13px;color:var(--muted,#555)}
+.exctl{display:flex;gap:6px;min-width:0}
+.exctl>input{flex:1;min-width:0}
+.exctl>select{flex:0 0 120px;width:120px;padding:2px 6px;font-size:13px}
+.subhd.ex1{font-weight:700;font-size:15px;margin-top:10px}
+@media (max-width:820px){.exrow{grid-template-columns:minmax(0,1fr);gap:2px}.exctl>select{flex-basis:96px;width:96px}}

@@ -188,7 +188,7 @@ def main():
             r = pg.evaluate("""async () => { const d = S.drugs.find(x => x.id === 'tiane12'); d.p = 9999; delete d.preg; d.warn = 'cũ';
                 await Store.put('drugs', d); S.settings.seedUpdated = []; await saveSettings(); await loadAll();
                 const e = S.drugs.find(x => x.id === 'tiane12'); return {p: e.p, preg: e.preg && e.preg.lv, warn: e.warn, ver: S.settings.seedUpdated}; }""")
-            assert r['p'] == 9999 and r['preg'] == 3 and r['warn'] != 'cũ' and r['ver'] == ['stahl-2026-10', 'moi-2026-10', 'tha-abcd-2026-10-30', 'zolpidem-2026-11-02', 'trazodon-2026-11-02', 'mirtazapin-2026-11-02', 'tca-2026-11-02', 'diazepam-2026-11-02', 'piracetam-2026-11-05', 'donepezil-2026-11-07', 'piracetam400-2026-11-07', 'amitriptylin-2026-11-09', 'alprazolam-bo-05-2026-11-09', 'fluoxetin-bo-20-2026-11-12', 'tuong-tac-tam-than-2026-11-09'], r
+            assert r['p'] == 9999 and r['preg'] == 3 and r['warn'] != 'cũ' and r['ver'] == ['stahl-2026-10', 'moi-2026-10', 'tha-abcd-2026-10-30', 'zolpidem-2026-11-02', 'trazodon-2026-11-02', 'mirtazapin-2026-11-02', 'tca-2026-11-02', 'diazepam-2026-11-02', 'piracetam-2026-11-05', 'donepezil-2026-11-07', 'piracetam400-2026-11-07', 'amitriptylin-2026-11-09', 'alprazolam-bo-05-2026-11-09', 'fluoxetin-bo-20-2026-11-12', 'sertralin-2026-11-12', 'fluvoxamin-2026-11-12', 'venlafaxin-2026-11-12', 'tuong-tac-tam-than-2026-11-09'], r
             assert pg.evaluate("S.drugs.find(x => x.id === 'quet100n').lact.lv") == 1, 'quetiapin cho con bú phải theo LactMed (mức lưu ý)'
             # Methylphenidat (bác sĩ đặt 2026-11-05): chặn theo tiền sử; cách dùng chọn sẵn; lưu ý chỉnh liều
             MB = "([id, o]) => { const p = JSON.parse(JSON.stringify(curP())), v = JSON.parse(JSON.stringify(curV())); Object.assign(p, o); v.hpi = ''; v.dx = {icd: '', text: ''}; p.meds = []; return drugBlockReasons(p, v, drugById(id)).join(' | '); }"
@@ -864,7 +864,7 @@ def main():
             assert pg.evaluate("() => dxCodes(curV())") == ['K29.7', 'G40.9']
             pg.evaluate("(s) => { curV().dx = JSON.parse(s); }", d20)
             # sertralin: ICD trầm cảm + (gan mạn hoặc 6–12 tuổi) -> cảnh báo giảm ½ liều (không chặn)
-            HD = "(id) => checkAll(curP(), curV(), [{line: {id: 'L_hd', drugId: id}, drug: drugById(id)}]).items.filter(w => w.kind === 'Liều (quy tắc phòng khám)').length"
+            HD = "(id) => checkAll(curP(), curV(), [{line: {id: 'L_hd', drugId: id}, drug: drugById(id)}]).items.filter(w => w.kind === 'Liều (quy tắc phòng khám)' && !/— chỉnh liều$/.test(w.title)).length"
             hd0 = pg.evaluate("() => JSON.stringify({dx: curV().dx, conds: curP().conds, dob: curP().dob || null, by: curP().birthYear || null})")
             pg.evaluate("() => { const p = curP(); p.conds = p.conds.filter(k => k !== 'liver'); curV().dx = {...curV().dx, main: 'Giai đoạn trầm cảm vừa', secondary: '', icd: 'F32.1 – Giai đoạn trầm cảm vừa'}; }")
             assert pg.evaluate(HD, 'sert50') == 0
@@ -1136,6 +1136,22 @@ def main():
               p.conds = c0; p.condNote = n0; p.meds = m0; p.renalManual = r0;
               return [hits.includes('prozac10'), hits.includes('fluox20n') || hits.includes('fluox20f'), d.howOpts[0], d.dose.join(''), b0, b1, b2, b3, b3b, b4, b5, b6, b7, b8]; }""")
             assert r == [True, False, 'Uống mỗi lần 2 viên, ngày uống 1 lần sau ăn sáng', '2000', 0, 1, 1, 1, 0, 1, 1, 0, 1, 0], r
+            # Sertralin: cách dùng 2 lựa chọn + lưu ý liều (bác sĩ đặt 2026-11-12)
+            assert pg.evaluate("() => ['sert50', 'sert50f'].map(id => { const d = drugById(id); return [d.how, d.howOpts.join('|'), /tối đa thường 200 mg/.test(d.dnote)]; })") == [['', 'Uống mỗi lần 1 viên, ngày uống 1 lần sau ăn sáng', True]] * 2
+            # Fluvoxamin: cách dùng 2 lựa chọn + lưu ý liều (bác sĩ đặt 2026-11-12)
+            assert pg.evaluate("() => { const d = drugById('fluvo100'); return [d.how, d.howOpts.join('|'), d.dose.join(','), /8–17 tuổi \(OCD\)/.test(d.dnote)]; }") == ['', 'Uống mỗi lần 1/2 viên, ngày uống 1 lần sau ăn tối', '0,0,0,0.5', True]
+            # Venlafaxin: cách dùng 2 lựa chọn + lưu ý liều (bác sĩ đặt 2026-11-12)
+            assert pg.evaluate("() => ['venla75n', 'venla75f'].map(id => { const d = drugById(id); return [d.how, d.howOpts.join('|'), d.dose.join(','), /tối đa thường 375 mg/.test(d.dnote)]; })") == [['', 'Uống mỗi lần 1/2 viên, ngày uống 1 lần sau ăn sáng', '0.5,0,0,0', True]] * 2
+            # Khám lâm sàng theo cơ quan (bác sĩ đặt 2026-11-12)
+            r = pg.evaluate("""() => { const v = curV(), s0 = S.view.step, e0 = JSON.stringify(v.examSys || {}); v.examSys = {};
+              go({name: 'visit', pid: S.view.pid, vid: v.id, step: 1}); const sel = document.querySelector('select.howpick[data-for="v.examSys.cv"]');
+              const n = document.querySelectorAll('.exrow').length; sel.value = sel.options[1].value; sel.dispatchEvent(new Event('input', {bubbles: true}));
+              const a = v.examSys.cv, inp = document.querySelector('[data-b="v.examSys.cv"]').value, t = examText(v);
+              sel.value = ''; sel.dispatchEvent(new Event('input', {bubbles: true})); const b = v.examSys.cv;
+              const ov = document.querySelector('#main').scrollWidth - document.querySelector('#main').clientWidth;
+              v.examSys = JSON.parse(e0); go({name: 'visit', pid: S.view.pid, vid: v.id, step: s0 || 1});
+              return [n, a, inp === a, t.startsWith('Tuần hoàn: Tim đều'), b, ov]; }""")
+            assert r == [31, 'Tim đều T1 T2 rõ không có tiếng thổi bất thường', True, True, '', 0], r
             # Link MDCalc khi chọn MADRS (bác sĩ đặt 2026-11-12)
             r = pg.evaluate("""() => { const v = curV(), o0 = v.orders, s0 = S.view.step; const l = LABS.find(x => x[1] === 'madrs');
               v.orders = [{id: 'om', key: 'madrs', name: l[2], unit: l[3], ref: l[4], type: l[5], value: '', flag: '', note: ''}];
