@@ -62,7 +62,7 @@ const TAGS = {
   snri:'SNRI (venlafaxin, duloxetin)', cns_dep:'Ức chế thần kinh trung ương (an thần)', antipsychotic:'Thuốc chống loạn thần',
   cyp2d6_inh:'Ức chế mạnh CYP2D6 (fluoxetin, paroxetin)', cyp2d6_sub:'Chuyển hoá chủ yếu qua CYP2D6', sens_3a4:'Nồng độ tăng khi ức chế CYP3A4',
   inducer:'Cảm ứng enzym gan mạnh (carbamazepin)', carbamazepine:'Carbamazepin', valproate:'Valproat', lamotrigine:'Lamotrigin',
-  hyponat:'Gây hạ natri máu', cyp1a2_inh:'Ức chế mạnh CYP1A2 (ciprofloxacin, fluvoxamin)', cyp1a2_sub:'Chuyển hoá chủ yếu qua CYP1A2 (agomelatin)', sympathomimetic:'Cường giao cảm (pseudoephedrin, phenylephrin, ephedrin…)', maob:'Ức chế MAO typ B (selegilin)', bleed_supp:'Tăng nhẹ nguy cơ chảy máu (vitamin E, omega-3, ginkgo)', ache_inh:'Ức chế cholinesterase (donepezil, rivastigmin, galantamin)'
+  hyponat:'Gây hạ natri máu', cyp1a2_inh:'Ức chế mạnh CYP1A2 (ciprofloxacin, fluvoxamin)', cyp1a2_sub:'Chuyển hoá chủ yếu qua CYP1A2 (agomelatin)', sympathomimetic:'Cường giao cảm (pseudoephedrin, phenylephrin, ephedrin…)', maob:'Ức chế MAO typ B (selegilin)', maob_avoid:'Tránh dùng cùng selegilin', tca:'Chống trầm cảm 3 vòng', qt_mild:'Có thể kéo dài QT (thận trọng)', olanzapine:'Olanzapin', bzd_olanz:'Benzodiazepin tránh dùng cùng olanzapin', alprazolam:'Alprazolam', alp_inh:'Làm giảm chuyển hoá alprazolam', dopa_block:'Đối kháng thuốc Parkinson', zolpidem:'Zolpidem', cyp1a2_mod:'Tăng nồng độ khi ức chế CYP1A2', cbz_raise:'Làm tăng nồng độ carbamazepin', cbz_lower:'Giảm nồng độ khi dùng carbamazepin', inr_psy:'Làm thay đổi INR', clonidine:'Clonidin', clon_antag:'Đối kháng clonidin', metoprolol:'Metoprolol', lorazepam:'Lorazepam', clonazepam:'Clonazepam', bleed_supp:'Tăng nhẹ nguy cơ chảy máu (vitamin E, omega-3, ginkgo)', ache_inh:'Ức chế cholinesterase (donepezil, rivastigmin, galantamin)'
 };
 
 const RULES = [
@@ -128,23 +128,59 @@ const RULES = [
   {a:'antiplatelet', b:'snri', lv:1, m:'Tăng nhẹ nguy cơ chảy máu.'},
   {a:'cns_dep', b:'cns_dep', lv:2, m:'Cộng tác dụng an thần: buồn ngủ, chậm phản xạ, té ngã, ức chế hô hấp (nhất là người cao tuổi, bệnh phổi). Dùng liều thấp nhất, tránh rượu, không lái xe.'},
   {a:'cyp2d6_inh', b:'cyp2d6_sub', lv:2, m:'Fluoxetin/paroxetin ức chế mạnh CYP2D6 → tăng nồng độ thuốc kia (aripiprazol: giảm còn ½ liều; risperidon, amitriptylin: tăng tác dụng phụ). Giảm liều, theo dõi.'},
-  {a:'inducer', b:'vka', lv:3, m:'Carbamazepin cảm ứng enzym → giảm mạnh tác dụng thuốc kháng vitamin K. Kiểm tra INR khi bắt đầu, chỉnh liều hoặc ngừng carbamazepin.'},
+  {a:'inducer', b:'vka', lv:2, m:'Carbamazepin cảm ứng enzym → giảm mạnh tác dụng thuốc kháng vitamin K. Kiểm tra INR khi bắt đầu, chỉnh liều hoặc ngừng carbamazepin.'},
   {a:'inducer', b:'doac', lv:3, m:'Carbamazepin làm giảm mạnh nồng độ DOAC → mất tác dụng chống đông. Tránh phối hợp.'},
   {a:'inducer', b:'antipsychotic', lv:2, m:'Carbamazepin làm giảm nồng độ thuốc chống loạn thần (quetiapin giảm rất mạnh; aripiprazol cần tăng gấp đôi liều) → giảm hiệu quả.'},
   {a:'inducer', b:'valproate', lv:2, m:'Carbamazepin làm giảm nồng độ valproat; valproat làm tăng chất chuyển hoá độc của carbamazepin. Theo dõi lâm sàng, nồng độ thuốc nếu có.'},
   {a:'inducer', b:'lamotrigine', lv:2, m:'Carbamazepin làm giảm khoảng 50% nồng độ lamotrigin → cần liều lamotrigin cao hơn theo HDSD.'},
   {a:'inducer', b:'bzd', lv:1, m:'Carbamazepin làm giảm nồng độ benzodiazepin (alprazolam…) → có thể giảm tác dụng (Stahl).'},
   {a:'inducer', b:'statin_3a4', lv:1, m:'Carbamazepin làm giảm nồng độ statin chuyển hoá qua CYP3A4 → kiểm tra lại mỡ máu.'},
-  {a:'carbamazepine', b:'strong_3a4_inh', lv:3, m:'Clarithromycin, erythromycin, fluconazol… làm tăng nồng độ carbamazepin → ngộ độc (chóng mặt, nhìn đôi, thất điều). Tránh hoặc giảm liều, theo dõi.'},
+  {a:'carbamazepine', b:'strong_3a4_inh', lv:2, m:'Clarithromycin, erythromycin, fluconazol… làm tăng nồng độ carbamazepin → ngộ độc (chóng mặt, nhìn đôi, thất điều). Tránh hoặc giảm liều, theo dõi.'},
   {a:'sens_3a4', b:'strong_3a4_inh', lv:2, m:'Ức chế CYP3A4 làm tăng nồng độ (alprazolam, zopiclon, quetiapin, aripiprazol) → an thần quá mức, hạ huyết áp. Giảm liều trong đợt dùng kháng sinh/kháng nấm.'},
   {a:'cyp1a2_inh', b:'cyp1a2_sub', lv:3, m:'Ức chế mạnh CYP1A2 (ciprofloxacin, fluvoxamin) làm tăng rất mạnh nồng độ agomelatin → chống chỉ định phối hợp (SmPC).'},
-  {a:'valproate', b:'lamotrigine', lv:3, m:'Valproat tăng gấp đôi nồng độ lamotrigin → nguy cơ phát ban nặng (Stevens-Johnson). Lamotrigin khởi đầu và duy trì bằng ½ liều, tăng liều rất chậm.'},
+  {a:'valproate', b:'lamotrigine', lv:2, m:'Valproat tăng gấp đôi nồng độ lamotrigin → nguy cơ phát ban nặng (Stevens-Johnson). Lamotrigin khởi đầu và duy trì bằng ½ liều, tăng liều rất chậm.'},
   {a:'valproate', b:'aspirin', lv:1, m:'Aspirin làm tăng valproat tự do và cộng nguy cơ chảy máu (valproat giảm tiểu cầu).'},
   {a:'hyponat', b:'diuretic', lv:2, m:'Tăng nguy cơ hạ natri máu, nhất là người cao tuổi dùng thiazid. Kiểm tra natri máu sau 2–4 tuần.'},
   {a:'hyponat', b:'hyponat', lv:1, m:'Hai thuốc cùng gây hạ natri máu: kiểm tra natri máu, nhất là người cao tuổi.'},
   {a:'maob', b:'serotonergic', lv:3, m:'Selegilin + thuốc serotonergic (SSRI, SNRI, chống trầm cảm 3 vòng): nguy cơ hội chứng serotonin — chống chỉ định / tránh phối hợp (HDSD selegilin).'},
   {a:'maob', b:'tramadol', lv:3, m:'Selegilin + tramadol / opiat: nguy cơ hội chứng serotonin — chống chỉ định (HDSD selegilin).'},
   {a:'maob', b:'sympathomimetic', lv:3, m:'Selegilin + thuốc cường giao cảm: nguy cơ cơn tăng huyết áp (HDSD selegilin).'},
+  // ---- Đối chiếu Dược thư Quốc gia VN 2022 (DTQG) và Stahl's Prescriber's Guide, bác sĩ yêu cầu 2026-11-09 — lv 3: nguồn ghi chống chỉ định / tránh phối hợp → chặn kê cùng lúc nếu có thuốc tâm thần
+  {a:'maob', b:'maob_avoid', lv:3, m:'Selegilin + atomoxetin, carbamazepin, oxcarbazepin: tránh phối hợp (DTQG 2022, chuyên luận selegilin).'},
+  {a:'maob', b:'dopa_block', lv:3, m:'Sulpirid đối kháng thuốc điều trị Parkinson: không phối hợp (DTQG 2022).'},
+  {a:'maob', b:'olanzapine', lv:3, cond:'parkinson', m:'Olanzapin + thuốc điều trị Parkinson ở bệnh nhân Parkinson: không nên phối hợp, tăng nguy cơ tử vong (DTQG 2022).'},
+  {a:'maob', b:'olanzapine', lv:3, cond:'dementia', m:'Olanzapin + thuốc điều trị Parkinson ở bệnh nhân sa sút trí tuệ: không nên phối hợp, tăng nguy cơ tử vong (DTQG 2022).'},
+  {a:'maob', b:'antipsychotic', lv:2, m:'Thuốc chống loạn thần đối kháng tác dụng thuốc điều trị Parkinson; nếu cần, dùng liều thấp nhất có hiệu quả (DTQG 2022).'},
+  {a:'tca', b:'anticholinergic', lv:3, m:'Chống trầm cảm 3 vòng + thuốc kháng cholinergic: tránh dùng đồng thời, tăng nguy cơ liệt ruột (DTQG 2022, chuyên luận amitriptylin).'},
+  {a:'tca', b:'sympathomimetic', lv:2, m:'Chống trầm cảm 3 vòng làm tăng tác dụng trên tim mạch của thuốc cường giao cảm; methylphenidat làm tăng nồng độ TCA (DTQG 2022; Stahl).'},
+  {a:'tca', b:'diuretic', lv:2, m:'Thuốc lợi tiểu gây hạ kali làm tăng nguy cơ loạn nhịp khi dùng TCA: thận trọng, theo dõi kali (DTQG 2022).'},
+  {a:'tca', b:'clonidine', lv:2, m:'TCA đối kháng tác dụng hạ áp của clonidin, tăng nguy cơ tăng huyết áp khi ngừng clonidin đột ngột (DTQG 2022).'},
+  {a:'tramadol', b:'serotonergic', lv:2, m:'Tramadol + thuốc chống trầm cảm: tăng nguy cơ co giật và hội chứng serotonin (DTQG 2022; Stahl).'},
+  {a:'qt', b:'qt_mild', lv:2, m:'Cùng có khả năng kéo dài QT: thận trọng, theo dõi điện tim, kali, magnesi (DTQG 2022).'},
+  {a:'bzd_olanz', b:'olanzapine', lv:3, m:'Tránh phối hợp diazepam / alprazolam với olanzapin (DTQG 2022).'},
+  {a:'alprazolam', b:'alp_inh', lv:2, m:'Làm giảm chuyển hoá, tăng nồng độ alprazolam: nên tránh hoặc rất thận trọng (DTQG 2022).'},
+  {a:'zolpidem', b:'cyp1a2_inh', lv:3, m:'Fluvoxamin, ciprofloxacin + zolpidem: tránh phối hợp, tăng nồng độ và độc tính zolpidem (DTQG 2022).'},
+  {a:'cyp1a2_inh', b:'cyp1a2_mod', lv:2, m:'Ức chế CYP1A2 (ciprofloxacin, fluvoxamin) làm tăng nồng độ olanzapin, duloxetin: giảm liều, theo dõi (DTQG 2022; Stahl).'},
+  {a:'carbamazepine', b:'cbz_raise', lv:2, m:'Làm tăng nồng độ carbamazepin (chóng mặt, ngủ gà, thất điều, nhìn đôi): chỉnh liều, theo dõi (DTQG 2022).'},
+  {a:'inducer', b:'cbz_lower', lv:2, m:'Carbamazepin làm giảm nồng độ thuốc này, giảm hiệu quả: có thể cần tăng liều (DTQG 2022).'},
+  {a:'vka', b:'inr_psy', lv:2, m:'Làm thay đổi INR / thời gian prothrombin: theo dõi INR khi bắt đầu, ngừng thuốc (DTQG 2022; Stahl).'},
+  {a:'valproate', b:'anticoag', lv:2, m:'Valproat ảnh hưởng thời gian chảy máu: làm xét nghiệm đông máu khi dùng cùng thuốc chống đông (DTQG 2022).'},
+  {a:'valproate', b:'lorazepam', lv:2, m:'Valproat làm tăng nồng độ lorazepam: tăng nguy cơ lơ mơ, mất tập trung (DTQG 2022).'},
+  {a:'valproate', b:'clonazepam', lv:2, m:'Valproat + clonazepam có thể gây trạng thái vắng ý thức (Stahl).'},
+  {a:'clonidine', b:'beta_blocker', lv:2, m:'Tăng nguy cơ chậm nhịp và tăng huyết áp hồi ứng nặng khi ngừng clonidin: ngừng chẹn beta 7–10 ngày trước khi bắt đầu clonidin (DTQG 2022).'},
+  {a:'clonidine', b:'ccb', lv:2, m:'Clonidin + chẹn kênh calci: chậm nhịp, block nhĩ thất, hết sức thận trọng (DTQG 2022).'},
+  {a:'clonidine', b:'digoxin', lv:2, m:'Clonidin + glycosid tim: chậm nhịp, block nhĩ thất, hết sức thận trọng (DTQG 2022).'},
+  {a:'clonidine', b:'clon_antag', lv:2, m:'Mirtazapin có thể loại bỏ tác dụng của clonidin (DTQG 2022).'},
+  {a:'cyp2d6_inh', b:'metoprolol', lv:3, cond:'heart_failure', m:'Fluoxetin, paroxetin + metoprolol ở bệnh nhân suy tim: chống chỉ định, nguy cơ nhịp tim chậm quá mức (DTQG 2022).'},
+  {a:'cyp2d6_inh', b:'metoprolol', lv:2, m:'Fluoxetin, paroxetin ức chế chuyển hoá metoprolol: nguy cơ nhịp chậm (DTQG 2022).'},
+  {a:'ache_inh', b:'ache_inh', lv:3, m:'Hai thuốc ức chế cholinesterase / cùng cơ chế: tránh phối hợp (DTQG 2022, chuyên luận galantamin, rivastigmin).'},
+  {a:'ache_inh', b:'digoxin', lv:2, m:'Cùng làm chậm nhịp tim: theo dõi mạch (DTQG 2022).'},
+  {a:'ache_inh', b:'ccb', lv:2, m:'Cùng làm chậm nhịp tim: theo dõi mạch (DTQG 2022).'},
+  {a:'ache_inh', b:'amiodarone', lv:2, m:'Cùng làm chậm nhịp tim, nguy cơ xoắn đỉnh: theo dõi mạch, điện tim (DTQG 2022).'},
+  {a:'antipsychotic', b:'raas', lv:1, m:'Tăng tác dụng hạ huyết áp, nhất là khi khởi đầu (DTQG 2022; Stahl).'},
+  {a:'antipsychotic', b:'beta_blocker', lv:1, m:'Tăng tác dụng hạ huyết áp, nhất là khi khởi đầu (DTQG 2022; Stahl).'},
+  {a:'antipsychotic', b:'ccb', lv:1, m:'Tăng tác dụng hạ huyết áp, nhất là khi khởi đầu (DTQG 2022; Stahl).'},
+  {a:'antipsychotic', b:'diuretic', lv:1, m:'Tăng tác dụng hạ huyết áp, nhất là khi khởi đầu (DTQG 2022; Stahl).'},
   {a:'bleed_supp', b:'anticoag', lv:2, m:'Vitamin E / omega-3 / ginkgo cùng thuốc chống đông: tăng nhẹ nguy cơ chảy máu — theo dõi.'},
   {a:'bleed_supp', b:'antiplatelet', lv:1, m:'Vitamin E / omega-3 / ginkgo cùng thuốc chống kết tập tiểu cầu: có thể tăng nguy cơ chảy máu.'},
   {a:'ache_inh', b:'anticholinergic', lv:2, m:'Tác dụng đối kháng: thuốc kháng cholinergic làm giảm tác dụng thuốc điều trị sa sút trí tuệ và làm nặng lú lẫn. Tránh phối hợp.'},
@@ -504,12 +540,12 @@ const DRUGS_SEED = [
  ae:'Buồn nôn, đau đầu, mất ngủ, giảm ham muốn.', warn:'Lo âu tăng, có ý nghĩ tự hại → báo bác sĩ ngay. Không tự ngừng đột ngột.',
  pro:'Dung nạp tốt.', con:'Kéo dài QT phụ thuộc liều; giá cao hơn.',
  renal:[{lt:30,lv:1,m:'CrCl < 30: thận trọng.'}], old:{lv:2,m:'Người > 65 tuổi: tối đa 10 mg/ngày (kéo dài QT).'}, cond:{qt_long:{lv:3,m:'Chống chỉ định khi có QT kéo dài.'}}},
-{id:'amitri25', n:'Amitriptylin 25 mg', hc:'amitriptylin', o:'Nội', u:'viên', p:400, cls:'Chống trầm cảm 3 vòng', g:'neuro', tags:['serotonergic','qt','anticholinergic','cyp2d6_sub'], dose:[0,0,0,0.5], how:'Uống trước khi ngủ (an dịu mạnh). Trầm cảm: liều BYT 2020 25–300 mg/24 giờ, khởi đầu 25 mg, tăng dần. Mất ngủ: 10–100 mg trước khi ngủ (LEC2). Ngừng thuốc: giảm liều dần',
+{id:'amitri25', n:'Amitriptylin 25 mg', hc:'amitriptylin', o:'Nội', u:'viên', p:400, cls:'Chống trầm cảm 3 vòng', g:'neuro', tags:['serotonergic','qt','anticholinergic','cyp2d6_sub'], dose:[1,1,0,1], how:'', howOpts:['Uống mỗi lần 1 viên, ngày uống 3 lần sau ăn sáng, trưa, tối'], dnote:'Có thể dùng liều 1 ngày vào buổi tối. Duy trì > 3 tháng. > 65 tuổi hoặc > 12 tuổi khởi đầu 10–25 mg/ngày.',
  ae:'Khô miệng, táo bón, buồn ngủ, chóng mặt, tăng cân.', warn:'Bí tiểu, lú lẫn, tim đập nhanh → báo bác sĩ.',
  pro:'Rẻ; liều thấp hiệu quả cho đau thần kinh, mất ngủ.', con:'Nhiều tác dụng kháng cholinergic; nguy hiểm khi quá liều.',
  old:{lv:3,m:'Tránh ở người cao tuổi (kháng cholinergic mạnh: lú lẫn, bí tiểu, té ngã) — tiêu chí Beers.'},
  cond:{glaucoma:{lv:3,m:'Chống chỉ định glôcôm góc đóng.'}, bph:{lv:2,m:'Có thể gây bí tiểu.'}, qt_long:{lv:3,m:'Tránh khi có QT kéo dài.'}, cvd:{lv:3,m:'Đang hồi phục sau nhồi máu cơ tim: chống chỉ định (Stahl).'}, heart_failure:{lv:3,m:'Suy tim mất bù: tránh (Stahl).'}}},
-{id:'amitri25f', n:'Amitriptylin 25 mg', hc:'amitriptylin', o:'Ngoại', u:'viên', p:1500, cls:'Chống trầm cảm 3 vòng', g:'neuro', tags:['serotonergic','qt','anticholinergic','cyp2d6_sub'], dose:[0,0,0,0.5], how:'Uống trước khi ngủ (an dịu mạnh). Trầm cảm: liều BYT 2020 25–300 mg/24 giờ, khởi đầu 25 mg, tăng dần. Mất ngủ: 10–100 mg trước khi ngủ (LEC2). Ngừng thuốc: giảm liều dần',
+{id:'amitri25f', n:'Amitriptylin 25 mg', hc:'amitriptylin', o:'Ngoại', u:'viên', p:1500, cls:'Chống trầm cảm 3 vòng', g:'neuro', tags:['serotonergic','qt','anticholinergic','cyp2d6_sub'], dose:[1,1,0,1], how:'', howOpts:['Uống mỗi lần 1 viên, ngày uống 3 lần sau ăn sáng, trưa, tối'], dnote:'Có thể dùng liều 1 ngày vào buổi tối. Duy trì > 3 tháng. > 65 tuổi hoặc > 12 tuổi khởi đầu 10–25 mg/ngày.',
  ae:'Khô miệng, táo bón, buồn ngủ, chóng mặt, tăng cân.', warn:'Bí tiểu, lú lẫn, tim đập nhanh → báo bác sĩ.',
  pro:'Rẻ; liều thấp hiệu quả cho đau thần kinh, mất ngủ.', con:'Nhiều tác dụng kháng cholinergic; nguy hiểm khi quá liều.',
  old:{lv:3,m:'Tránh ở người cao tuổi (kháng cholinergic mạnh: lú lẫn, bí tiểu, té ngã) — tiêu chí Beers.'},
@@ -635,12 +671,22 @@ const DRUGS_SEED = [
  pro:'Không có chất chuyển hoá có hoạt tính → dùng được khi bệnh gan hơn các benzodiazepin khác.', con:'Lệ thuộc nhanh; hội chứng cai khi ngừng đột ngột.',
  hep:{lv:1,m:'Suy gan: thường không cần giảm liều như các benzodiazepin khác, nhưng tránh khi bệnh não gan.'}, old:{lv:3,m:'Tránh ở người cao tuổi (té ngã, lú lẫn) — tiêu chí Beers.'}, preg:{lv:2,m:'Tránh khi mang thai.'}, lact:{lv:1,m:'Có thể dùng liều thấp, ngắn ngày khi cho con bú (benzodiazepin ưu tiên vì bán thải ngắn); theo dõi trẻ ngủ li bì (LactMed).'},
  renal:[{lt:30,lv:1,m:'Suy thận: 1–2 mg/ngày chia 2–3 lần (Stahl).'}], cond:{glaucoma:{lv:3,m:'Glôcôm góc đóng: chống chỉ định (Stahl).'}, alcohol:{lv:3,m:'Không dùng cùng rượu.'}, asthma:{lv:2,m:'Bệnh phổi mạn / suy hô hấp: thận trọng (ức chế hô hấp).'}, dementia:{lv:2,m:'Sa sút trí tuệ: làm nặng lú lẫn.'}}},
-{id:'alpra05n', n:'Alprazolam 0,5 mg', hc:'alprazolam', o:'Nội', u:'viên', p:800, cls:'Benzodiazepin', g:'neuro', tags:['bzd','sens_3a4'], dose:[0,0,0,1], how:'Uống buổi tối. Liều BYT 2020: 1–4 mg/ngày; dùng ngắn ngày',
+{id:'alpra05n', off:true, n:'Alprazolam 0,5 mg', hc:'alprazolam', o:'Nội', u:'viên', p:800, cls:'Benzodiazepin', g:'neuro', tags:['bzd','sens_3a4'], dose:[0,0,0,1], how:'Uống buổi tối. Liều BYT 2020: 1–4 mg/ngày; dùng ngắn ngày',
  ae:'Buồn ngủ, chóng mặt, giảm tập trung.', warn:'Không lái xe; không uống rượu; chỉ dùng ngắn ngày (lệ thuộc nhanh). Không tự ngừng đột ngột.',
  pro:'Rẻ; tác dụng nhanh với lo âu, hoảng sợ.', con:'Thời gian tác dụng ngắn → lệ thuộc và hội chứng cai rõ; tương tác CYP3A4.',
  hep:{lv:2,m:'Suy gan: giảm liều.'}, old:{lv:3,m:'Tránh ở người cao tuổi (té ngã, lú lẫn) — tiêu chí Beers.'}, preg:{lv:2,m:'Tránh khi mang thai.'}, lact:{lv:2,m:'Tránh dùng kéo dài khi cho con bú (trẻ có thể ngủ li bì, hội chứng cai); ưu tiên lorazepam (LactMed).'},
  renal:[{lt:30,lv:1,m:'Suy thận: thận trọng (Stahl).'}], cond:{glaucoma:{lv:3,m:'Glôcôm góc đóng: chống chỉ định (Stahl).'}, alcohol:{lv:3,m:'Không dùng cùng rượu.'}, asthma:{lv:2,m:'Bệnh phổi mạn / suy hô hấp: thận trọng (ức chế hô hấp).'}, dementia:{lv:2,m:'Sa sút trí tuệ: làm nặng lú lẫn.'}}},
-{id:'alpra05f', n:'Alprazolam 0,5 mg', hc:'alprazolam', o:'Ngoại', u:'viên', p:3000, cls:'Benzodiazepin', g:'neuro', tags:['bzd','sens_3a4'], dose:[0,0,0,1], how:'Uống buổi tối. Liều BYT 2020: 1–4 mg/ngày; dùng ngắn ngày',
+{id:'alpra05f', off:true, n:'Alprazolam 0,5 mg', hc:'alprazolam', o:'Ngoại', u:'viên', p:3000, cls:'Benzodiazepin', g:'neuro', tags:['bzd','sens_3a4'], dose:[0,0,0,1], how:'Uống buổi tối. Liều BYT 2020: 1–4 mg/ngày; dùng ngắn ngày',
+ ae:'Buồn ngủ, chóng mặt, giảm tập trung.', warn:'Không lái xe; không uống rượu; chỉ dùng ngắn ngày. Không tự ngừng đột ngột.',
+ pro:'Tác dụng nhanh với lo âu, hoảng sợ.', con:'Lệ thuộc nhanh; giá cao hơn thuốc nội.',
+ hep:{lv:2,m:'Suy gan: giảm liều.'}, old:{lv:3,m:'Tránh ở người cao tuổi (té ngã, lú lẫn) — tiêu chí Beers.'}, preg:{lv:2,m:'Tránh khi mang thai.'}, lact:{lv:2,m:'Tránh dùng kéo dài khi cho con bú (trẻ có thể ngủ li bì, hội chứng cai); ưu tiên lorazepam (LactMed).'},
+ renal:[{lt:30,lv:1,m:'Suy thận: thận trọng (Stahl).'}], cond:{glaucoma:{lv:3,m:'Glôcôm góc đóng: chống chỉ định (Stahl).'}, alcohol:{lv:3,m:'Không dùng cùng rượu.'}, asthma:{lv:2,m:'Bệnh phổi mạn / suy hô hấp: thận trọng (ức chế hô hấp).'}, dementia:{lv:2,m:'Sa sút trí tuệ: làm nặng lú lẫn.'}}},
+{id:'alpra025n', n:'Alprazolam 0,25 mg', hc:'alprazolam', o:'Nội', u:'viên', p:0, cls:'Benzodiazepin', g:'neuro', tags:['bzd','sens_3a4'], dose:[1,0,0,1], how:'', howOpts:['Uống mỗi lần 1 viên, ngày uống 2 lần sau ăn sáng, tối'], dnote:'> 65 tuổi, bệnh thận mạn khởi đầu 0,25 mg/ngày.',
+ ae:'Buồn ngủ, chóng mặt, giảm tập trung.', warn:'Không lái xe; không uống rượu; chỉ dùng ngắn ngày (lệ thuộc nhanh). Không tự ngừng đột ngột.',
+ pro:'Rẻ; tác dụng nhanh với lo âu, hoảng sợ.', con:'Thời gian tác dụng ngắn → lệ thuộc và hội chứng cai rõ; tương tác CYP3A4.',
+ hep:{lv:2,m:'Suy gan: giảm liều.'}, old:{lv:3,m:'Tránh ở người cao tuổi (té ngã, lú lẫn) — tiêu chí Beers.'}, preg:{lv:2,m:'Tránh khi mang thai.'}, lact:{lv:2,m:'Tránh dùng kéo dài khi cho con bú (trẻ có thể ngủ li bì, hội chứng cai); ưu tiên lorazepam (LactMed).'},
+ renal:[{lt:30,lv:1,m:'Suy thận: thận trọng (Stahl).'}], cond:{glaucoma:{lv:3,m:'Glôcôm góc đóng: chống chỉ định (Stahl).'}, alcohol:{lv:3,m:'Không dùng cùng rượu.'}, asthma:{lv:2,m:'Bệnh phổi mạn / suy hô hấp: thận trọng (ức chế hô hấp).'}, dementia:{lv:2,m:'Sa sút trí tuệ: làm nặng lú lẫn.'}}},
+{id:'alpra025f', n:'Alprazolam 0,25 mg', hc:'alprazolam', o:'Ngoại', u:'viên', p:0, cls:'Benzodiazepin', g:'neuro', tags:['bzd','sens_3a4'], dose:[1,0,0,1], how:'', howOpts:['Uống mỗi lần 1 viên, ngày uống 2 lần sau ăn sáng, tối'], dnote:'> 65 tuổi, bệnh thận mạn khởi đầu 0,25 mg/ngày.',
  ae:'Buồn ngủ, chóng mặt, giảm tập trung.', warn:'Không lái xe; không uống rượu; chỉ dùng ngắn ngày. Không tự ngừng đột ngột.',
  pro:'Tác dụng nhanh với lo âu, hoảng sợ.', con:'Lệ thuộc nhanh; giá cao hơn thuốc nội.',
  hep:{lv:2,m:'Suy gan: giảm liều.'}, old:{lv:3,m:'Tránh ở người cao tuổi (té ngã, lú lẫn) — tiêu chí Beers.'}, preg:{lv:2,m:'Tránh khi mang thai.'}, lact:{lv:2,m:'Tránh dùng kéo dài khi cho con bú (trẻ có thể ngủ li bì, hội chứng cai); ưu tiên lorazepam (LactMed).'},
@@ -961,6 +1007,19 @@ const DRUGS_SEED = [
  ae:'Buồn ngủ, khô miệng, táo bón.', warn:'Không lái xe, vận hành máy.', pro:'Rất rẻ.', con:'Gây buồn ngủ nhiều; kháng cholinergic.',
  old:{lv:3,m:'Tránh ở người cao tuổi (kháng cholinergic) — tiêu chí Beers.'}, cond:{glaucoma:{lv:2,m:'Có thể làm nặng glôcôm góc đóng.'}, bph:{lv:2,m:'Có thể gây bí tiểu.'}}},
 ];
+
+// Tag tương tác bổ sung theo hoạt chất (đối chiếu DTQG 2022, Stahl — 2026-11-09). Phát hành cho danh mục đang dùng qua SEED_UPDATES chỉ chép trường tags.
+const PSY_EXTRA_TAGS = {
+  amitriptylin: ['tca'], imipramin: ['tca'], doxepin: ['tca', 'serotonergic', 'qt_mild'],
+  sertralin: ['qt_mild', 'alp_inh'], paroxetin: ['alp_inh', 'cbz_raise'], fluoxetin: ['qt_mild', 'cbz_raise'], fluvoxamin: ['cbz_raise'],
+  risperidon: ['qt_mild'], olanzapin: ['qt_mild', 'olanzapine', 'cyp1a2_mod', 'cbz_raise'], mirtazapin: ['qt_mild', 'cbz_lower', 'inr_psy', 'clon_antag', 'maob_avoid'],
+  galantamin: ['qt_mild'], rivastigmin: ['qt_mild'], sulpirid: ['antipsychotic', 'dopa_block'], trazodon: ['cbz_raise', 'inr_psy'],
+  duloxetin: ['cyp1a2_mod', 'cyp2d6_sub'], atomoxetin: ['maob_avoid', 'cyp2d6_sub'], oxcarbazepin: ['maob_avoid'], carbamazepin: ['maob_avoid'],
+  zolpidem: ['zolpidem'], alprazolam: ['alprazolam', 'bzd_olanz'], diazepam: ['bzd_olanz'], lorazepam: ['lorazepam'], clonazepam: ['clonazepam'], clonidin: ['clonidine'], donepezil: ['cbz_lower'],
+  diltiazem: ['alp_inh', 'cbz_raise'], amiodaron: ['alp_inh'], nifedipin: ['alp_inh'], fluconazol: ['cbz_raise'], omeprazol: ['cbz_raise'], esomeprazol: ['cbz_raise'], loratadin: ['cbz_raise'], metoprolol: ['metoprolol'],
+};
+DRUGS_SEED.forEach(d => { const x = PSY_EXTRA_TAGS[d.hc]; if(x) d.tags = [...new Set((d.tags || []).concat(x))]; });
+
 
 const ICD = [
   ['K29.7','Viêm dạ dày, không đặc hiệu',['peptic']],
@@ -1379,6 +1438,10 @@ const LABS = [
 ];
 
 // Công cụ nguy cơ tim mạch trực tuyến (VNHA 2026 mục 7.1.2; link do bác sĩ cung cấp)
+// Link công cụ tính điểm trực tuyến cho từng thang trắc nghiệm (bác sĩ cung cấp 2026-11-12). Chỉ mở trang, app không gửi dữ liệu bệnh nhân
+const SCALE_LINKS = {
+  madrs: [['Tính điểm MADRS trên MDCalc', 'https://www.mdcalc.com/calc/4058/montgomery-asberg-depression-rating-scale-madrs']],
+};
 const CV_LINKS = [['CAREME – Yêu lấy mình', 'https://caremeyeulayminh.com/khao-sat'], ['PREVENT-CVD (AHA)', 'https://professional.heart.org/en/guidelines-and-statements/prevent-calculator'],
   ['SCORE2 (40–69 tuổi, MDCalc)', 'https://www.mdcalc.com/calc/10499/systematic-coronary-risk-evaluation-score2'], ['SCORE2-OP (≥ 70 tuổi, MDCalc)', 'https://www.mdcalc.com/calc/10503/score2-older-persons-score2-op'],
   ['SCORE2-Diabetes (MDCalc)', 'https://www.mdcalc.com/calc/10510/score2-diabetes']];
@@ -1457,6 +1520,8 @@ const ICD11_MAP = [
   ['F45.2', '6B23', 'Nghi bệnh (lo âu sức khoẻ, nhóm ám ảnh nghi thức): bận tâm dai dẳng về khả năng mắc bệnh nặng + hành vi lặp lại (kiểm tra, tìm trấn an) hoặc né tránh; rối loạn dị dạng cơ thể → 6B21.'],
   ['F45.3', '6C20', 'ICD-11 gộp loạn chức năng thần kinh tự trị dạng cơ thể vào rối loạn đau khổ cơ thể 6C20.'],
   ['F45.4', '6C20', 'Đau dai dẳng không giải thích được: 6C20 (đau là trọng tâm) hoặc đau mạn tính nguyên phát MG30.0 (chương 21).'],
+  ['F45.8', '6C2Y', 'Rối loạn đau khổ cơ thể hoặc trải nghiệm cơ thể biệt định khác.'],
+  ['F45.9', '6C2Z', 'Rối loạn đau khổ cơ thể hoặc trải nghiệm cơ thể không biệt định.'],
   ['F45.0', '6C20', 'Rối loạn đau khổ cơ thể: triệu chứng cơ thể gây đau khổ + chú ý quá mức (bận tâm, đi khám nhiều), dai dẳng dù đã khám, trấn an; ≥ vài tháng (vd. ≥ 3 tháng); suy giảm chức năng. Không yêu cầu 2 năm hay ≥ 6 triệu chứng.'],
   ['F50.0', '6B80', 'Cân nặng thấp rõ: BMI < 18,5 (người lớn) hoặc sút > 20% trong 6 tháng; hành vi hạn chế ăn / làm giảm cân; bận tâm quá mức về cân nặng, hình thể. KHÔNG cần rối loạn nội tiết. 6B80.0: BMI 14–18,5; 6B80.1: BMI < 14 (nguy hiểm).'],
   ['F50.1', '6B80', 'Cân nặng thấp rõ: BMI < 18,5 (người lớn) hoặc sút > 20% trong 6 tháng; hành vi hạn chế ăn / làm giảm cân; bận tâm quá mức về cân nặng, hình thể. KHÔNG cần rối loạn nội tiết.'],
@@ -1615,12 +1680,25 @@ const MENTAL_SX = [
     ['dis_time','Liên quan rõ về thời gian với sự kiện stress, khó khăn hoặc quan hệ bị rối loạn']]},
   {g:'som', t:'Rối loạn dạng cơ thể (F45)', src:'ICD-10 (bản VN) tr. 125–129; BYT 2020 Bài 25; ICD-11 6C20, 6B23, 6B21',
    heads:{som_2y: 'Rối loạn cơ thể hoá (F45.0) — cần A–E; không đủ → F45.1', hyp_a1: 'Rối loạn nghi bệnh (F45.2) — cần A, B, C, D', aut_a: 'Loạn chức năng thần kinh tự trị dạng cơ thể (F45.3) — cần A–E',
-     aut_cv: 'Chữ số thứ 5 — cơ quan bệnh nhân cho là nguồn gốc triệu chứng', pain_a: 'Rối loạn đau dạng cơ thể dai dẳng (F45.4) — cần A, B'}, items:[
+     aut_cv: 'Chữ số thứ 5 — cơ quan bệnh nhân cho là nguồn gốc triệu chứng', som_d1: ['D. ≥ 6 triệu chứng thuộc ≥ 2 nhóm', '(1) Triệu chứng tiêu hoá'], som_d7: '(2) Triệu chứng tim mạch', som_d9: '(3) Triệu chứng tiết niệu sinh dục', som_d12: '(4) Triệu chứng đau và trên da', som_excl: 'Tiêu chuẩn loại trừ', aut_b1: 'B. ≥ 2 triệu chứng thần kinh tự trị', aut_c1: 'C. ≥ 1 triệu chứng', aut_d: 'Tiêu chuẩn D, E', so8_local: 'Rối loạn dạng cơ thể khác (F45.8), không biệt định (F45.9)', pain_a: 'Rối loạn đau dạng cơ thể dai dẳng (F45.4) — cần A, B'}, items:[
     ['som_2y','A. Nhiều lời phàn nàn, triệu chứng cơ thể đa dạng, thay đổi, kéo dài ≥ 2 năm, không giải thích được bằng rối loạn cơ thể'],
     ['som_6m','F45.1 thời gian tồn tại ≥ 6 tháng (chưa đủ 2 năm)'],
     ['som_visits','B. Bận tâm dai dẳng, đau khổ, đi khám nhiều lần (≥ 3) hoặc làm nhiều xét nghiệm; hoặc tự dùng thuốc, đi thầy lang'],
     ['som_refuse','C. Dai dẳng từ chối chấp nhận sự bảo đảm của y học là không có nguyên nhân cơ thể'],
-    ['som_6sx','D. ≥ 6 triệu chứng thuộc ≥ 2 nhóm — tiêu hoá (đau bụng, buồn nôn, đầy hơi, vị khó chịu, nôn – trào ngược, trung tiện); tim mạch (khó thở không gắng sức, đau ngực); tiết niệu – sinh dục; đau và da (sắc tố, đau chi – khớp, kim châm – tê)'],
+    ['som_d1','1. Đau vùng bụng'],
+    ['som_d2','2. Buồn nôn'],
+    ['som_d3','3. Cảm giác đầy bụng hoặc chướng hơi'],
+    ['som_d4','4. Có vị khó chịu trong miệng, hoặc lưỡi quá bẩn'],
+    ['som_d5','5. Phàn nàn vì nôn hoặc trào ngược thức ăn'],
+    ['som_d6','6. Phàn nàn vì hay trung tiện hoặc chảy dịch ra từ hậu môn'],
+    ['som_d7','7. Khó thở không có sự gắng sức'],
+    ['som_d8','8. Đau vùng ngực'],
+    ['som_d9','9. Rối loạn tiểu tiện hoặc phàn nàn vì hay đi tiểu'],
+    ['som_d10','10. Cảm giác khó chịu trong hoặc xung quanh vùng sinh dục'],
+    ['som_d11','11. Phàn nàn vì ra dịch âm đạo bất thường hoặc nhiều'],
+    ['som_d12','12. Rối loạn sắc tố hoặc sưng tấy trên da'],
+    ['som_d13','13. Đau ở các chi, các đầu ngón tay và chân, hoặc các khớp'],
+    ['som_d14','14. Cảm giác kim châm hoặc tê rất khó chịu'],
     ['som_excl','E. Không chỉ xảy ra trong tâm thần phân liệt (F20–F29), rối loạn khí sắc (F30–F39), hoảng sợ (F41.0)'],
     ['hyp_a1','A1. Tin tưởng dai dẳng ≥ 6 tháng có tối đa hai bệnh cơ thể trầm trọng (ít nhất một bệnh được gọi tên cụ thể)'],
     ['hyp_a2','A2. Bận tâm dai dẳng về biến dạng hoặc dị tật của cơ thể (rối loạn dị dạng cơ thể)'],
@@ -1634,12 +1712,26 @@ const MENTAL_SX = [
     ['aut_resp','F45.33 hệ hô hấp (tăng thông khí)'],
     ['aut_gu','F45.34 tiết niệu sinh dục (tăng số lần đi tiểu, rối loạn tiểu tiện tâm sinh)'],
     ['aut_other','F45.38 hệ thống hoặc cơ quan khác'],
-    ['aut_b','B. ≥ 2 triệu chứng thần kinh tự trị — hồi hộp; vã mồ hôi; khô miệng; cơn nóng bừng mặt; khó chịu thượng vị, sôi bụng'],
-    ['aut_c','C. ≥ 1 triệu chứng — đau / khó chịu vùng trước tim; rối loạn nhịp thở, tăng thông khí; mệt quá mức khi gắng sức nhẹ; nấc, nuốt hơi, bỏng rát ngực – thượng vị; sôi bụng; tiểu nhiều; đầy hơi, chướng bụng'],
+    ['aut_b1','1. Hồi hộp'],
+    ['aut_b2','2. Vã mồ hôi (nóng hoặc lạnh)'],
+    ['aut_b3','3. Khô miệng'],
+    ['aut_b4','4. Cơn nóng bừng mặt'],
+    ['aut_b5','5. Khó chịu vùng thượng vị, sôi bụng'],
+    ['aut_c1','1. Đau vùng ngực hoặc khó chịu trong hoặc xung quanh vùng trước tim'],
+    ['aut_c2','2. Rối loạn nhịp thở hoặc tăng thông khí'],
+    ['aut_c3','3. Mệt mỏi quá mức khi gắng sức nhẹ'],
+    ['aut_c4','4. Nấc, nuốt hơi, hoặc cảm giác rất bỏng vùng ngực hoặc vùng thượng vị'],
+    ['aut_c5','5. Sôi bụng thường xuyên'],
+    ['aut_c6','6. Tăng số lần đi tiểu hoặc rối loạn tiểu tiện'],
+    ['aut_c7','7. Cảm giác đầy hơi, chướng bụng hoặc ậm ạch'],
     ['aut_d','D. Không có bằng chứng rối loạn cấu trúc hoặc chức năng của cơ quan bệnh nhân đề cập'],
     ['aut_excl','E. Không chỉ xảy ra khi có ám ảnh sợ (F40.0–F40.3) hoặc hoảng sợ (F41.0)'],
     ['pain_a','A. Đau nặng, dai dẳng ≥ 6 tháng, liên tục hầu hết mọi ngày, không giải thích được bằng quá trình sinh lý hoặc rối loạn cơ thể, là trung tâm chú ý của bệnh nhân'],
-    ['pain_excl','B. Không chỉ xảy ra trong tâm thần phân liệt (F20–F29), rối loạn khí sắc (F30–F39), F45.0, F45.1, F45.2']]},
+    ['pain_excl','B. Không chỉ xảy ra trong tâm thần phân liệt (F20–F29), rối loạn khí sắc (F30–F39), F45.0, F45.1, F45.2'],
+    ['so8_local','F45.8 Triệu chứng không qua trung gian thần kinh tự trị, giới hạn ở một hệ thống hoặc một số phần cơ thể (như da)'],
+    ['so8_noles','F45.8 Không có tổn thương mô'],
+    ['so8_stress','F45.8 Liên quan chặt chẽ về thời gian với sự kiện, rắc rối gây stress, hoặc làm tăng chú ý đối với bệnh nhân'],
+    ['so9','F45.9 Có rối loạn dạng cơ thể nhưng chưa xếp được vào thể nào']]},
   {g:'adj', t:'Rối loạn sự thích ứng (F43.2)', src:'ICD-10 (bản VN) tr. 120–121; LEC4', items:[
     ['adj_stressor','Có biến đổi lớn trong cuộc sống / sự kiện gây stress xác định được (không phải thảm hoạ)'],
     ['adj_onset','Triệu chứng khởi phát trong vòng 1 tháng sau sự kiện'],
@@ -1946,6 +2038,49 @@ const MENTAL_HIST = [
   ['dep','Đã từng có giai đoạn trầm cảm ≥ 2 tuần, cách đợt này nhiều tháng không rối loạn khí sắc'],
   ['dep2','Trước đây đã đủ tiêu chuẩn trầm cảm tái diễn (≥ 2 giai đoạn)']];
 // Yếu tố loại trừ (v.mental.excl)
+// Bố cục bảng kiểm dạng cây (bác sĩ yêu cầu 2026-11-09): tên bệnh → tiêu chuẩn thụt vào → danh sách triệu chứng thụt sâu hơn.
+// heads = {khoá mục: tiêu đề đặt TRƯỚC mục đó}. Bậc: không có '>' = bậc 1 (tên bệnh), '>' = bậc 2, '>>' = bậc 3; '-' = quay về bậc đó, không in tiêu đề.
+// order (nếu có) = thứ tự mới của một số mục; không đổi khoá nên hồ sơ cũ không ảnh hưởng.
+const MENTAL_LAYOUT = {
+  phob: {heads: {phob_agora: 'Thể ám ảnh sợ (F40.0 sợ khoảng trống, F40.1 sợ xã hội, F40.2 sợ đặc hiệu)', phob_sx: 'Tiêu chuẩn chung'}},
+  ocd: {heads: {ocd_obs: 'Biểu hiện (F42.0 ám ảnh, F42.1 nghi thức, F42.2 hỗn hợp)', ocd_2wk: 'Tiêu chuẩn chung'}},
+  ptsd: {heads: {ptsd_event: 'Sự kiện gây stress', ast_acute: 'Phản ứng stress cấp (F43.0)', ptsd_reexp: 'Rối loạn stress sau sang chấn (F43.1)'}},
+  adj: {heads: {adj_stressor: 'Tiêu chuẩn chung', adj_dep: 'Biểu hiện ưu thế (chữ số thứ 5)'}},
+  som: {order: ['som_2y', 'som_visits', 'som_refuse', 'som_d1', 'som_d2', 'som_d3', 'som_d4', 'som_d5', 'som_d6', 'som_d7', 'som_d8', 'som_d9', 'som_d10', 'som_d11', 'som_d12', 'som_d13', 'som_d14', 'som_excl', 'som_6m'],
+    heads: {som_2y: 'Rối loạn cơ thể hoá (F45.0) — cần đủ A–E', som_d1: ['>D. ≥ 6 triệu chứng thuộc ≥ 2 nhóm', '>>(1) Triệu chứng tiêu hoá'], som_d7: '>>(2) Triệu chứng tim mạch', som_d9: '>>(3) Triệu chứng tiết niệu sinh dục', som_d12: '>>(4) Triệu chứng đau và trên da', som_excl: '-',
+      som_6m: 'Rối loạn dạng cơ thể không biệt định (F45.1) — A, C, E của F45.0; B và / hoặc D không đầy đủ', hyp_a1: 'Rối loạn nghi bệnh (F45.2) — cần A, B, C, D', aut_a: 'Loạn chức năng thần kinh tự trị dạng cơ thể (F45.3) — cần A–E', aut_cv: '>Chữ số thứ 5 — cơ quan bệnh nhân cho là nguồn gốc triệu chứng', aut_b1: '>B. ≥ 2 triệu chứng thần kinh tự trị', aut_c1: '>C. ≥ 1 triệu chứng', aut_d: '-',
+      pain_a: 'Rối loạn đau dạng cơ thể dai dẳng (F45.4) — cần A, B', so8_local: 'Rối loạn dạng cơ thể khác (F45.8)', so9: 'Rối loạn dạng cơ thể không biệt định (F45.9)'}},
+  dem: {order: ['dem_pd', 'dem_pd_1y', 'dem_hiv', 'dem_f02_excl', 'dem_lbd_vh', 'dem_lbd_fl', 'dem_lbd_rbd', 'dem_lbd_pk', 'dem_other'],
+    heads: {dem_mem: 'Tiêu chuẩn chung G1–G4 (bắt buộc)', dem_sev1: ['Mức độ và triệu chứng phụ thêm', '>Mức độ (chữ số thứ 6; ICD-10 + ICD-11)'], dem_x1: '>Triệu chứng phụ thêm (chữ số thứ 5)',
+      ad_rf1: ['Mất trí trong bệnh Alzheimer (F00)', '>⚑ Cờ đỏ'], dem_ad_excl: '>Tiêu chuẩn loại trừ', dem_early: '>Thể F00.0 khởi phát sớm', dem_slow: '>Thể F00.1 khởi phát muộn', dem_mixad: '>Thể F00.2 hỗn hợp',
+      dem_uneven: 'Mất trí trong bệnh mạch máu (F01) — G2–G4 + thể', dem_vasc_img: '>Hỗ trợ chẩn đoán (BYT 2020 Bài 2)', dem_step: '>Thể F01.0–F01.3',
+      dem_front: ['Mất trí trong các bệnh khác (F02)', '>F02.0 Bệnh Pick'], dem_cjd: '>F02.1 Bệnh Creutzfeldt-Jakob', dem_hd: '>F02.2 Bệnh Huntington', dem_pd: '>F02.3 Bệnh Parkinson', dem_hiv: '>F02.4 Bệnh do HIV', dem_f02_excl: '>Loại trừ của F02.3, F02.4', dem_lbd_vh: '>F02.8 Thể Lewy — cần ≥ 2 đặc điểm', dem_other: '>F02.8 Bệnh khác đã biết'}},
+  mci: {heads: {mci_f06: 'Rối loạn nhận thức nhẹ (F06.7) — cần đủ A–D', mci_mem: '>Lĩnh vực suy giảm của B (≥ 1)', mci_test: '-', mci_sys: '>Chữ số thứ 5 (F06.70 / F06.71)'}},
+  slp: {order: ['ins_compl', 'ins_freq', 'hyp_day', 'hyp_nonarco', 'cir_mismatch', 'sw_walk', 'nt_terror', 'nm_dream', 'slp_impair', 'slp_excl'],
+    heads: {ins_compl: 'Mất ngủ không thực tổn (F51.0)', hyp_day: 'Ngủ nhiều không thực tổn (F51.1)', cir_mismatch: 'Rối loạn nhịp thức – ngủ không thực tổn (F51.2)', sw_walk: 'Đi trong khi ngủ (F51.3)', nt_terror: 'Hoảng sợ ban đêm (F51.4)', nm_dream: 'Ác mộng (F51.5)', slp_impair: 'Tiêu chuẩn dùng chung cho F51', osa_snore: 'Ngưng thở khi ngủ (G47.3)', nar_attack: 'Cơn ngủ rũ (G47.4)'}},
+  sud: {heads: {sud_alc: 'Chất sử dụng', sud_crave: 'Hội chứng nghiện (F1x.2) — cần ≥ 3 trong 6 biểu hiện', sud_12m: '>Thời gian'}},
+  gam: {heads: {gam_2ep: 'Đánh bạc bệnh lý (F63.0)', game_net: 'Nghiện trò chơi điện tử / internet (F63.8)'}},
+  cond: {heads: {cd1: ['Rối loạn hành vi (F91) — G1. Mô hình hành vi lặp lại, dai dẳng vi phạm quyền người khác / chuẩn mực xã hội', '>(1) Nhóm thách thức chống đối — mục 1–8'], odd_sev1: '>>Mức độ thách thức chống đối (theo số bối cảnh)', cd9: '>(2) Nhóm rối loạn hành vi (cư xử) — mục 9–23; mục 11, 13, 15, 16, 20, 21, 23 chỉ cần xảy ra 1 lần', cd_sev1: '>>Mức độ rối loạn hành vi (cư xử)', cd_6m: '>Thời gian, loại trừ', cd_family: '>Thể bệnh (F91.0 gia đình, F91.1 kém thích ứng, F91.2 còn thích ứng, F91.3 chống đối)',
+      ied_ep: 'Rối loạn bùng nổ từng giai đoạn (F63.8; ICD-11 6C73) — cần A–F', ied_sev1: '>Mức độ', ied_dispro: '-'}, order: ['cd_6m', 'cd_excl', 'cd_onset10', 'cd_family', 'cd_peer', 'cd_odd_c']},
+  id: {heads: {id_concept: 'Hành vi thích ứng', id_onset: 'Khởi phát', id_l1: 'Mức lâm sàng (khi chưa có IQ)', id_behav: 'Biệt định (ký tự thứ 4; F78)', id_excl: 'Loại trừ'}},
+  kid: {heads: {enu_age: 'Đái dầm không thực tổn (F98.0) — cần đủ A–E', enu_night: '>Biệt định F98.0 (ký tự thứ 5)', enc_soil: 'Ỉa bậy không thực tổn (F98.1) — cần đủ A–E', enc_ctrl: '>Biệt định F98.1 (ký tự thứ 5)'}},
+  dev: {heads: {dev_artic: 'Lời nói, ngôn ngữ (F80)', dev_read: 'Kỹ năng học tập (F81)', dev_motor: 'Vận động (F82)', dev_iq: 'Tiêu chuẩn dùng chung'}},
+  kemo: {heads: {sep_anx: 'Lo âu chia ly (F93.0)', ch_phob: 'Ám ảnh sợ ở trẻ (F93.1)', ch_social: 'Lo âu xã hội ở trẻ (F93.2)', sib_riv: 'Ganh tỵ anh chị em (F93.3)', ch_gad: 'Lo âu lan toả ở trẻ (F93.80)', emo_4wk: 'Tiêu chuẩn dùng chung F93', mut_sel: 'Không nói chọn lọc (F94.0)', rad: 'Rối loạn gắn bó phản ứng (F94.1)', dis_att: 'Rối loạn gắn bó giải ức chế (F94.2)'}},
+  tic: {heads: {tic_motor: 'Loại tic', tic_daily: 'Thời gian, loại trừ'}},
+  kid2: {heads: {feed_child: 'Rối loạn ăn uống ở trẻ (F98.2)', pica: 'Ăn bậy (F98.3)', stereo: 'Động tác định hình (F98.4)', stutter: 'Nói lắp (F98.5)', clutter: 'Nói lúng búng (F98.6)', f98_excl: 'Tiêu chuẩn dùng chung'}},
+  ed: {heads: {an_weight: 'Chán ăn tâm thần (F50.0)', bn_binge: 'Ăn vô độ tâm thần (F50.2)'}},
+};
+Object.entries(MENTAL_LAYOUT).forEach(([g, o]) => {
+  const grp = MENTAL_SX.find(x => x.g === g); if(!grp) return;
+  grp.heads = o.heads;
+  if(o.order){   // các mục trong order được xếp liền nhau tại vị trí mục đầu tiên của chúng
+    const set = new Set(o.order), first = grp.items.findIndex(([k]) => set.has(k)), by = Object.fromEntries(grp.items.map(i => [i[0], i]));
+    const rest = grp.items.filter(([k]) => !set.has(k));
+    const before = grp.items.slice(0, first).filter(([k]) => !set.has(k)).length;
+    grp.items = rest.slice(0, before).concat(o.order.map(k => by[k]), rest.slice(before));
+  }
+});
+
 const MENTAL_EXCL = [
   ['subst','Liên quan sử dụng chất tác động tâm thần (rượu, ma túy, amphetamin, cai benzodiazepin…)'],
   ['organic','Do bệnh cơ thể / tổn thương não (suy giáp, cường giáp, bệnh thực tổn…)'],

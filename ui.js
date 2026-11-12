@@ -53,6 +53,8 @@ function afterChange(path){
   if(root === 'v' || root === 'p'){
     const p = curP(), v = curV();
     if(v){
+      const rxDays = /^v\.rx\.#([^.]+)\.days$/.exec(path);
+      if(rxDays){ const l = v.rx.find(x => x.id === rxDays[1]), d = l && drugById(l.drugId); if(d && isBzd(d) && num(l.days) > BZD_MAX_DAYS){ l.days = BZD_MAX_DAYS; const el = $(`[data-b="${path}"]`); if(el) el.value = BZD_MAX_DAYS; toast(`Benzodiazepin chỉ kê dưới 9 ngày — đã đặt ${BZD_MAX_DAYS} ngày`); } }
       if(path === 'v.vitals.weight' && isLatestVisit(p, v) && num(v.vitals.weight)) p.weight = num(v.vitals.weight);
       if(path === 'v.vitals.height' && isLatestVisit(p, v) && num(v.vitals.height)) p.height = num(v.vitals.height);
       if((path === 'v.plan.followDays' || path === 'v.date') && num(v.plan.followDays) && v.date){ v.plan.followDate = addDays(v.date, num(v.plan.followDays)); setDom('v.plan.followDate', v.plan.followDate); }
@@ -63,7 +65,7 @@ function afterChange(path){
         if(add.length){ p.conds = (p.conds || []).concat(add); toast('Đã thêm vào bệnh nền: ' + add.map(condLabel).join(', ')); } }
     }
     if(v){ if(path === 'v.dx.disp'){ v.dx.dispManual = true; v.dx.dispAuto = false; }
-      else if(/^v\.(mental|hpi$|exam$)/.test(path)) autoRefer(v, p); }
+      else if(/^v\.(mental|hpi$|exam$|vitals\.|dx\.(icd2?|main|secondary)$|orders\.)|^p\.(conds|condNote|bodyFat|weight|height)$/.test(path)) autoRefer(v, p); }
     if(p) savePatient(p);
     if(path === 'p.name' || path === 'p.phone') renderPlist();
   } else if(root === 's'){ saveSettings(); if(path === 's.doctor') $('#docname').textContent = '· ' + (S.settings.doctor || ''); }
@@ -74,9 +76,9 @@ const CHRONIC = ['ckd','htn','diabetes','dyslipid','af','heart_failure','gout','
 function autoRefer(v, p){
   if(!v.dx) v.dx = {};
   if(v.dx.dispManual) return;
-  const why = referReasons(p, v);
-  if(why.length && v.dx.disp !== 'refer'){ v.dx.dispPrev = v.dx.disp || ''; v.dx.disp = 'refer'; v.dx.dispAuto = true; toast('Đã tự tích "Chuyển tuyến": ' + why.join('; ')); }
-  else if(!why.length && v.dx.dispAuto){ v.dx.disp = v.dx.dispPrev || ''; v.dx.dispAuto = false; }
+  const adm = admitReasons(v, p), ref = adm.length ? [] : referReasons(p, v), want = adm.length ? 'admit' : ref.length ? 'refer' : '';
+  if(want && v.dx.disp !== want){ if(!v.dx.dispAuto) v.dx.dispPrev = v.dx.disp || ''; v.dx.disp = want; v.dx.dispAuto = true; toast(`Đã tự tích "${want === 'admit' ? 'Nhập viện' : 'Chuyển tuyến'}": ` + (adm.length ? adm : ref).join('; ')); }
+  else if(!want && v.dx.dispAuto){ v.dx.disp = v.dx.dispPrev || ''; v.dx.dispAuto = false; }
   $$('input[name="v.dx.disp"]').forEach(el => { el.checked = el.value === v.dx.disp; });
 }
 function isLatestVisit(p, v){ return !p.visits.some(x => x !== v && x.date > v.date); }
@@ -87,7 +89,7 @@ function getChk(){ if(!_chk){ const p = curP(), v = curV(); _chk = p && v ? chec
 function updateLive(){ _chk = null; $$('[data-live]').forEach(el => { const f = LIVE[el.dataset.live]; if(f){ try { el.innerHTML = f(el); } catch(e){ console.error(e); el.innerHTML = '<span class="muted">—</span>'; } } }); }
 
 const LIVE = {
-  referWhy: () => { const p = curP(), v = curV(), w = p && v ? referReasons(p, v) : []; return w.length ? `<div class="small" style="color:var(--r3, #b42318)">⚑ Gợi ý chuyển tuyến: ${esc(w.join('; '))}${v.dx.dispManual && v.dx.disp !== 'refer' ? ' — bác sĩ đã chọn hướng xử trí khác' : ''}</div>` : ''; },
+  referWhy: () => { const p = curP(), v = curV(); if(!p || !v) return ''; const a = admitReasons(v, p), w = a.length ? a : referReasons(p, v), lbl = a.length ? 'nhập viện' : 'chuyển tuyến', code = a.length ? 'admit' : 'refer'; return w.length ? `<div class="small" style="color:var(--r3, #b42318)">⚑ Gợi ý ${lbl}: ${esc(w.join('; '))}${v.dx.dispManual && v.dx.disp !== code ? ' — bác sĩ đã chọn hướng xử trí khác' : ''}</div>` : ''; },
   phead: () => pheadHTML(curP()),
   ctx: () => ctxHTML(),
   warn: () => warnHTML(),
@@ -385,6 +387,18 @@ function ctxHTML(){
   <div class="card"><h4>Cảnh báo đơn thuốc</h4>${!v.rx.length ? '<span class="muted small">Chưa kê thuốc</span>' : cnt.length ? '<div class="wsum">' + cnt.map(([lv, n]) => chip(`${n} ${LV_LABEL[lv].toLowerCase()}`, 'r' + lv)).join('') + `</div>${(S.view.step || 1) !== 3 ? '<button class="btn xs" style="margin-top:8px" data-act="step" data-step="3">Xem chi tiết</button>' : ''}` : chip('Không có cảnh báo', 'ok')}</div>`;
 }
 
+// Bảng kiểm khám tâm thần dạng cây: tiêu đề bậc n thụt (n − 1) nấc, các mục dưới nó thụt n nấc (xem MENTAL_LAYOUT trong data.js)
+function checklistHTML(g, sx){
+  const secs = [{lv: 0, t: '', items: []}], heads = g.heads || {};
+  g.items.forEach(([k, l]) => {
+    [].concat(heads[k] || []).forEach(h => { const mk = /^>+/.exec(h); let lv = 1, t = h; if(mk){ lv += mk[0].length; t = h.slice(mk[0].length); } else if(/^\(\d\)/.test(h)) lv = 2; secs.push({lv, t: t === '-' ? '' : t, items: []}); });
+    secs[secs.length - 1].items.push([k, l]);
+  });
+  return secs.filter(s => s.t || s.items.length).map(s => (s.t ? `<div class="subhd l${s.lv} ind${s.lv - 1}">${esc(s.t)}</div>` : '') +
+    (s.items.length ? `<div class="csec ind${s.lv}"><div class="checks${s.items.some(([, l]) => l.length > 70) ? ' one' : ''}">${s.items.map(([k, l]) => CL('v.mental.sx', sx, k, l)).join('')}</div></div>` : '')).join('');
+}
+// Link công cụ tính điểm của thang (SCALE_LINKS) — hiện dưới tên chỉ định ở bước 2
+function scaleLinkHTML(key){ return (SCALE_LINKS[key] || []).map(([t, url]) => `<div><a class="tiny" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(t)} ↗</a></div>`).join(''); }
 function step1(p, v){
   return `<div class="card"><h3>1. Lý do đến khám</h3>${T('v.reason', v.reason, {rows: 2, ph: 'vd. Đau bụng vùng thượng vị 2 tuần'})}</div>
   <div class="card"><h3>Bệnh sử – triệu chứng</h3>${T('v.hpi', v.hpi, {rows: 4, ph: 'Diễn biến, tính chất triệu chứng, thuốc đã tự dùng…'})}</div>
@@ -405,7 +419,7 @@ function mentalCard(p, v){
   const srcTxt = src => /^Bài/.test(src) ? 'BYT 2020, ' + src : src;
   const grp = (t, src, body) => `<div class="mgrp"><span class="lbl">${esc(t)} <span class="tiny muted">${esc(srcTxt(src))}</span></span><div class="checks">${body}</div></div>`;
   const OPEN_G = ['dep_core', 'dep_common', 'dep_som', 'man_a', 'man_b', 'mix', 'psy', 'anx'], sxSet = new Set(m.sx || []);
-  const grpX = g => { const body = g.items.map(([k, l]) => [].concat((g.heads || {})[k] || []).map(h => `<div class="subhd${/^\(\d\)/.test(h) ? ' sub2' : ''}">${esc(h)}</div>`).join('') + CL('v.mental.sx', m.sx, k, l)).join('');
+  const grpX = g => { const body = checklistHTML(g, m.sx);
     if(OPEN_G.includes(g.g)) return grp(g.t, g.src, body);
     const n = g.items.filter(([k]) => sxSet.has(k)).length;
     return `<details class="mgrp mdet" data-g="${g.g}"${n ? ' open' : ''}><summary><span class="lbl">${esc(g.t)}${n ? ` <span class="chip pri">${n}</span>` : ''} <span class="tiny muted">${esc(srcTxt(g.src))}</span></span></summary><div class="checks">${body}</div></details>`; };
@@ -446,8 +460,8 @@ function step2(p, v){
   v.orders.forEach(o => { const pn = LAB_PANELS.find(x => x.keys.includes(o.key)); if(!pn){ list.push(o); return; } if(seenPn.has(pn.id)) return; seenPn.add(pn.id);
     list.push({_hdr: pn.name}); pn.keys.forEach(k => v.orders.filter(x => x.key === k).forEach(x => list.push(x))); });
   const rows = list.map(o => o._hdr ? `<tr class="panel-hdr"><td colspan="5"><b>${esc(o._hdr)}</b></td></tr>` : o.type === 't'
-    ? `<tr><td style="width:30%"><b>${esc(o.name)}</b>${o.ref ? `<div class="tiny muted">BT: ${esc(o.ref)}</div>` : ''}</td><td colspan="3">${T(`v.orders.#${o.id}.value`, o.value, {rows: 2, ph: 'Kết quả / mô tả'})}</td><td><button class="btn xs danger" data-act="ordDel" data-id="${o.id}">✕</button></td></tr>`
-    : `<tr><td style="width:30%"><b>${esc(o.name)}</b>${o.ref ? `<div class="tiny muted">Tham chiếu: ${esc(o.ref)}</div>` : ''}</td><td style="width:150px">${U(`v.orders.#${o.id}.value`, o.value, o.unit || '')}</td><td style="width:140px">${SEL(`v.orders.#${o.id}.flag`, o.flag, [['', '— đánh giá —']].concat(FLAG_OPTS[o.key] ? FLAG_OPTS[o.key].map(x => [x, x]) : [['BT', 'Bình thường'], ['Cao', 'Cao'], ['Thấp', 'Thấp'], ['BTh', 'Bất thường']]))}</td><td>${I(`v.orders.#${o.id}.note`, o.note, {ph: 'Ghi chú'})}</td><td><button class="btn xs danger" data-act="ordDel" data-id="${o.id}">✕</button></td></tr>`
+    ? `<tr><td style="width:30%"><b>${esc(o.name)}</b>${o.ref ? `<div class="tiny muted">BT: ${esc(o.ref)}</div>` : ''}${scaleLinkHTML(o.key)}</td><td colspan="3">${T(`v.orders.#${o.id}.value`, o.value, {rows: 2, ph: 'Kết quả / mô tả'})}</td><td><button class="btn xs danger" data-act="ordDel" data-id="${o.id}">✕</button></td></tr>`
+    : `<tr><td style="width:30%"><b>${esc(o.name)}</b>${o.ref ? `<div class="tiny muted">Tham chiếu: ${esc(o.ref)}</div>` : ''}${scaleLinkHTML(o.key)}</td><td style="width:150px">${U(`v.orders.#${o.id}.value`, o.value, o.unit || '')}</td><td style="width:140px">${SEL(`v.orders.#${o.id}.flag`, o.flag, [['', '— đánh giá —']].concat(FLAG_OPTS[o.key] ? FLAG_OPTS[o.key].map(x => [x, x]) : [['BT', 'Bình thường'], ['Cao', 'Cao'], ['Thấp', 'Thấp'], ['BTh', 'Bất thường']]))}</td><td>${I(`v.orders.#${o.id}.note`, o.note, {ph: 'Ghi chú'})}</td><td><button class="btn xs danger" data-act="ordDel" data-id="${o.id}">✕</button></td></tr>`
       + (SCALE_BANDS[o.key] ? `<tr class="scale-row"><td><b>Kết quả</b><div class="tiny muted">tự diễn giải theo tổng điểm</div></td><td colspan="3" data-live="scale" data-id="${o.id}"></td><td></td></tr>` : '')
       + (o.key === 'creat' ? `<tr class="egfr-row"><td><b>Mức lọc cầu thận (eGFR)</b><div class="tiny muted">CKD-EPI 2021 · tự tính từ creatinin, tuổi, giới</div></td><td colspan="3" data-live="egfr" data-id="${o.id}"></td><td></td></tr>` : '')).join('');
   return `<div class="card"><h3>2. Chỉ định cận lâm sàng</h3>${ordered}</div>
@@ -604,7 +618,7 @@ function sheetHTML(p, v){
 function cmpList(){
   const p = curP(), v = curV(), c = S.cmp, days = num(c.days) || 7;
   const others = v.rx.filter(l => l.id !== c.line).map(l => ({line: l, drug: drugById(l.drugId)}));
-  return S.drugs.filter(d => d.g === c.g && (!c.cls || d.cls === c.cls)).map(d => {
+  return S.drugs.filter(d => !d.off && d.g === c.g && (!c.cls || d.cls === c.cls)).map(d => {
     const ws = checkAll(p, v, [...others, {line: {id: 'cand'}, drug: d}]).items.filter(w => w.lines.includes('cand'));
     const per = (d.dose || []).reduce((a, b) => a + (num(b) || 0), 0), price = num(d.p) || 0;
     const score = ws.reduce((a, w) => a + (w.lv === 3 ? 100 : w.lv === 2 ? 10 : 0), 0);
@@ -631,7 +645,7 @@ function viewDrugs(){
 }
 function drugTable(){
   const q = norm(S.dfq);
-  const l = S.drugs.filter(d => (!S.dg || d.g === S.dg) && (!q || norm(d.n + ' ' + d.hc + ' ' + d.cls).includes(q))).sort((a, b) => (a.g + a.n).localeCompare(b.g + b.n));
+  const l = S.drugs.filter(d => !d.off && (!S.dg || d.g === S.dg) && (!q || norm(d.n + ' ' + d.hc + ' ' + d.cls).includes(q))).sort((a, b) => (a.g + a.n).localeCompare(b.g + b.n));
   return `<div class="tscroll"><table class="t"><thead><tr><th>Thuốc</th><th>Hoạt chất</th><th>Phân nhóm</th><th>Nguồn</th><th class="right">Giá/đơn vị</th><th>Liều thường dùng</th></tr></thead><tbody>${l.map(d => `<tr class="click" data-act="drugEdit" data-id="${d.id}"><td><b>${esc(d.n)}</b></td><td class="small">${esc(d.hc)}</td><td class="small">${esc(d.cls)}<div class="tiny muted">${esc(GROUPS[d.g] || '')}</div></td><td>${originBadge(d)}</td><td class="right nowrap">${money(d.p)}/${esc(d.u)}</td><td class="small">${(d.dose || []).map(x => frac(x) || '0').join(' - ')} · ${esc(d.how || '')}</td></tr>`).join('') || '<tr><td colspan="6" class="muted">Không có thuốc</td></tr>'}</tbody></table></div>`;
 }
 function drugModal(){
@@ -719,7 +733,7 @@ function closeModal(){ S.modal = null; S.cmp = null; S.editDrug = null; S.editTp
 // ================= TÌM THUỐC =================
 // g: chỉ tìm trong một nhóm GROUPS; khi đã chọn nhóm mà chưa gõ gì thì liệt kê cả nhóm (theo phân nhóm, tên)
 function drugSearch(q, forMeds, g){
-  q = norm(q).trim(); const pool = g ? S.drugs.filter(d => d.g === g) : S.drugs;
+  q = norm(q).trim(); const pool = S.drugs.filter(d => !d.off && (!g || d.g === g));   // d.off: thuốc đã bỏ — ẩn khỏi tìm kiếm, đơn cũ vẫn hiện tên
   if(!q) return g ? pool.slice().sort((a, b) => a.cls.localeCompare(b.cls, 'vi') || a.n.localeCompare(b.n, 'vi') || a.o.localeCompare(b.o, 'vi')) : [];
   const rank = d => { const n = norm(d.n), h = norm(d.hc); return n.startsWith(q) || h.startsWith(q) ? 0 : (' ' + n + ' ' + h).includes(' ' + q) ? 1 : 2; };
   return pool.filter(d => norm(d.n + ' ' + d.hc + ' ' + d.cls).includes(q)).sort((a, b) => rank(a) - rank(b) || a.n.localeCompare(b.n)).slice(0, g ? 60 : 12);
@@ -785,7 +799,7 @@ const ACT = {
   rxDel: a => { const v = curV(); v.rx = v.rx.filter(l => l.id !== a.dataset.id); savePatient(curP()); renderMain(true); },
   cmpOpen: a => { const v = curV(), line = a.dataset.line && v.rx.find(l => l.id === a.dataset.line); const ld = line && drugById(line.drugId); S.cmp = {g: ld ? ld.g : ($('#cmpG') ? $('#cmpG').value : 'acid'), cls: ld ? ld.cls : '', line: line ? line.id : null, days: line ? (num(line.days) || 7) : (num(v.plan.followDays) || 7)}; S.modal = 'cmp'; renderModal(); },
   cmpPick: a => { const v = curV(), d = drugById(a.dataset.id); if(rxBlocked(d)) return;
-    if(S.cmp.line){ const l = v.rx.find(x => x.id === S.cmp.line); Object.assign(l, {drugId: d.id, s: d.dose[0], tr: d.dose[1], c: d.dose[2], t: d.dose[3], how: d.how}); toast('Đã thay bằng ' + d.n); }
+    if(S.cmp.line){ const l = v.rx.find(x => x.id === S.cmp.line); Object.assign(l, {drugId: d.id, s: d.dose[0], tr: d.dose[1], c: d.dose[2], t: d.dose[3], how: d.how}); if(isBzd(d) && num(l.days) > BZD_MAX_DAYS) l.days = BZD_MAX_DAYS; toast('Đã thay bằng ' + d.n); }
     else { v.rx.push(rxLine(d, v)); toast('Đã thêm ' + d.n); }
     savePatient(curP()); closeModal(); renderMain(true); },
   modalBg: (a, e) => { if(e.target === a) closeModal(); },
@@ -832,9 +846,11 @@ const ACT = {
   addDemo: async () => { const p = demoPatient(); S.patients.push(p); await Store.put('patients', p); render(); },
   wipeAll: async () => { if(!confirm('XOÁ TOÀN BỘ bệnh nhân, danh mục, mẫu?' + (Store.mode === 'dir' ? ' (Các file sẽ được chuyển vào du-lieu\\da-xoa)' : ''))) return; if(!confirm('Anh đã sao lưu chưa? Thao tác không hoàn tác được.')) return; for(const s of ['patients', 'drugs', 'templates', 'files', 'kv']) await Store.clear(s); await seedAll(false); S.view = {name: 'home'}; render(); toast('Đã xoá toàn bộ dữ liệu'); },
 };
-function rxLine(d, v){ return {id: uid('r'), drugId: d.id, s: d.dose[0], tr: d.dose[1], c: d.dose[2], t: d.dose[3], days: num(v.plan.followDays) || 7, how: d.how || '', note: ''}; }
+function rxLine(d, v){ return {id: uid('r'), drugId: d.id, s: d.dose[0], tr: d.dose[1], c: d.dose[2], t: d.dose[3], days: isBzd(d) ? Math.min(num(v.plan.followDays) || 7, BZD_MAX_DAYS) : (num(v.plan.followDays) || 7), how: d.how || '', note: ''}; }
 // Quy tắc phòng khám: không cho thêm SSRI/SNRI khi có lý do chặn (ssriBlockReasons); trả về true nếu bị chặn
-function rxBlocked(d){ const r = drugBlockReasons(curP(), curV(), d); if(!r.length) return false;
+function rxBlocked(d){ const pr = pairBlockReasons(curP(), curV(), d);
+  if(pr.length){ alert(`Không kê cùng lúc ${d.n} với:\n- ${pr.join('\n- ')}\n\nTương tác chống chỉ định / nguy cơ cao — anh chọn thuốc khác hoặc bỏ thuốc đang kê.`); return true; }
+  const r = drugBlockReasons(curP(), curV(), d); if(!r.length) return false;
   alert(`Không kê được ${d.n} vì:\n- ${r.join('\n- ')}\n\nQuy tắc phòng khám — anh chọn thuốc khác.`); return true; }
 function addRx(id){ const v = curV(), d = drugById(id); if(!d || rxBlocked(d)) return; v.rx.push(rxLine(d, v)); savePatient(curP()); S.dq = ''; renderMain(true); setTimeout(() => { const el = $('#dq'); if(el) el.focus(); }, 20); }
 function insertTpl(id, path){
@@ -1001,7 +1017,9 @@ const SEED_ADDED = ['gavis10',
   // 13 thuốc theo tờ HDSD / giá Long Châu — 2026-11-07
   'vinpo5', 'nicer10', 'aminol200', 'sily140', 'boganicf', 'vite400', 'seleg5', 'coq10_30', 'omega1000', 'vitb1_250', 'b12_500', 'folic5', 'vit3b',
   // Risperdal 1 mg — 2026-11-07
-  'risperdal1'];
+  'risperdal1',
+  // alprazolam 0,25 mg thay 0,5 mg — 2026-11-09
+  'alpra025n', 'alpra025f'];
 async function addNewSeedDrugs(){
   const done = S.settings.seedAdded || [], todo = SEED_ADDED.filter(id => !done.includes(id));
   if(!todo.length) return;
@@ -1019,14 +1037,17 @@ const SEED_UPDATES = [{ver: 'stahl-2026-10', ids: SEED_ADDED.slice(1)},   // 44 
   {ver: 'diazepam-2026-11-02', ids: ['diaz5']},
   {ver: 'piracetam-2026-11-05', ids: ['piracetam']},
   {ver: 'donepezil-2026-11-07', ids: ['done5n', 'done5f']},
-  {ver: 'piracetam400-2026-11-07', ids: ['pirac400'], extra: ['dose']}];                          // ưu tiên khuyến cáo mới hơn Stahl 2004 (LactMed, FDA/EMA, SmPC)
+  {ver: 'piracetam400-2026-11-07', ids: ['pirac400'], extra: ['dose']},
+  {ver: 'amitriptylin-2026-11-09', ids: ['amitri25', 'amitri25f'], extra: ['dose']},
+  {ver: 'alprazolam-bo-05-2026-11-09', ids: ['alpra05n', 'alpra05f'], extra: ['off']},
+  {ver: 'tuong-tac-tam-than-2026-11-09', ids: DRUGS_SEED.filter(d => PSY_EXTRA_TAGS[d.hc]).map(d => d.id), only: ['tags']}];                          // ưu tiên khuyến cáo mới hơn Stahl 2004 (LactMed, FDA/EMA, SmPC)
 const SEED_CLIN = ['tags', 'how', 'howOpts', 'dnote', 'ae', 'warn', 'pro', 'con', 'renal', 'hep', 'old', 'preg', 'lact', 'cond'];
 async function updateSeedDrugs(){
   const done = S.settings.seedUpdated || [], todo = SEED_UPDATES.filter(u => !done.includes(u.ver));
   if(!todo.length) return;
   for(const u of todo) for(const id of u.ids){
     const d = S.drugs.find(x => x.id === id), s = DRUGS_SEED.find(x => x.id === id); if(!d || !s) continue;
-    SEED_CLIN.concat(u.extra || []).forEach(k => { if(s[k] === undefined) delete d[k]; else d[k] = clone(s[k]); });   // u.extra: trường thêm của đợt (vd. 'dose')
+    (u.only || SEED_CLIN.concat(u.extra || [])).forEach(k => { if(s[k] === undefined) delete d[k]; else d[k] = clone(s[k]); });   // u.extra: trường thêm của đợt (vd. 'dose')
     await Store.put('drugs', d);
   }
   S.settings.seedUpdated = done.concat(todo.map(u => u.ver)); await saveSettings();

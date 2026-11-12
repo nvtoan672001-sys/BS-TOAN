@@ -158,9 +158,9 @@ def main():
             CHK = """(ids) => { const p = curP(), v = curV(); const lines = ids.map((id, i) => ({line: {id: 'x' + i}, drug: drugById(id)}));
                        return checkAll(p, v, lines).items.filter(w => w.lines.length >= 1).map(w => w.lv + '|' + w.m); }"""
             pg.evaluate("go({name: 'visit', pid: 'p_demoA', vid: 'v_demo_now', step: 3})"); pg.wait_for_timeout(200)
-            assert any(x.startswith('3|') and 'lamotrigin' in x for x in pg.evaluate(CHK, ['valp500n', 'lamo50n'])), 'valproat + lamotrigin phải cảnh báo mức 3'
+            assert any(x.startswith('2|') and 'lamotrigin' in x for x in pg.evaluate(CHK, ['valp500n', 'lamo50n'])), 'valproat + lamotrigin: DTQG ghi hiệu chỉnh liều — mức 2'
             assert any('CYP2D6' in x for x in pg.evaluate(CHK, ['fluox20n', 'arip10n'])), 'fluoxetin + aripiprazol phải cảnh báo CYP2D6'
-            assert any(x.startswith('3|') and 'carbamazepin' in x for x in pg.evaluate(CHK, ['carba200n', 'clari500'])), 'carbamazepin + clarithromycin phải cảnh báo mức 3'
+            assert any(x.startswith('2|') and 'carbamazepin' in x for x in pg.evaluate(CHK, ['carba200n', 'clari500'])), 'carbamazepin + clarithromycin: DTQG ghi chỉnh liều — mức 2'
             assert any('an thần' in x for x in pg.evaluate(CHK, ['alpra05n', 'zopi7n'])), 'hai thuốc an thần phải cảnh báo'
             assert any('cholinergic' in x for x in pg.evaluate(CHK, ['done5n', 'parox20n'])), 'donepezil + paroxetin phải cảnh báo đối kháng'
             assert any(x.startswith('3|') and 'serotonin' in x for x in pg.evaluate(CHK, ['seleg5', 'sert50'])), 'selegilin + sertralin phải cảnh báo mức 3'
@@ -188,7 +188,7 @@ def main():
             r = pg.evaluate("""async () => { const d = S.drugs.find(x => x.id === 'tiane12'); d.p = 9999; delete d.preg; d.warn = 'cũ';
                 await Store.put('drugs', d); S.settings.seedUpdated = []; await saveSettings(); await loadAll();
                 const e = S.drugs.find(x => x.id === 'tiane12'); return {p: e.p, preg: e.preg && e.preg.lv, warn: e.warn, ver: S.settings.seedUpdated}; }""")
-            assert r['p'] == 9999 and r['preg'] == 3 and r['warn'] != 'cũ' and r['ver'] == ['stahl-2026-10', 'moi-2026-10', 'tha-abcd-2026-10-30', 'zolpidem-2026-11-02', 'trazodon-2026-11-02', 'mirtazapin-2026-11-02', 'tca-2026-11-02', 'diazepam-2026-11-02', 'piracetam-2026-11-05', 'donepezil-2026-11-07', 'piracetam400-2026-11-07'], r
+            assert r['p'] == 9999 and r['preg'] == 3 and r['warn'] != 'cũ' and r['ver'] == ['stahl-2026-10', 'moi-2026-10', 'tha-abcd-2026-10-30', 'zolpidem-2026-11-02', 'trazodon-2026-11-02', 'mirtazapin-2026-11-02', 'tca-2026-11-02', 'diazepam-2026-11-02', 'piracetam-2026-11-05', 'donepezil-2026-11-07', 'piracetam400-2026-11-07', 'amitriptylin-2026-11-09', 'alprazolam-bo-05-2026-11-09', 'tuong-tac-tam-than-2026-11-09'], r
             assert pg.evaluate("S.drugs.find(x => x.id === 'quet100n').lact.lv") == 1, 'quetiapin cho con bú phải theo LactMed (mức lưu ý)'
             # Methylphenidat (bác sĩ đặt 2026-11-05): chặn theo tiền sử; cách dùng chọn sẵn; lưu ý chỉnh liều
             MB = "([id, o]) => { const p = JSON.parse(JSON.stringify(curP())), v = JSON.parse(JSON.stringify(curV())); Object.assign(p, o); v.hpi = ''; v.dx = {icd: '', text: ''}; p.meds = []; return drugBlockReasons(p, v, drugById(id)).join(' | '); }"
@@ -203,6 +203,31 @@ def main():
             r = pg.evaluate("() => { const p = JSON.parse(JSON.stringify(curP())), v = JSON.parse(JSON.stringify(curV())); p.conds = []; p.condNote = ''; p.meds = []; v.dx = {icd: '', text: ''}; v.rx = [{id: 'r_mph', drugId: 'mph18er', name: 'Concerta', dose: [1, 0, 0, 0], days: 30, how: ''}]; return checkAll(p, v).items.map(i => i.kind + ': ' + i.m); }")
             assert any(x.startswith('Liều (quy tắc phòng khám): Tăng 18 mg mỗi tuần') for x in r), r
             assert pg.evaluate("() => drugById('mph18er').dnote.includes('18–72 mg/ngày') && drugById('mph5').dnote === 'Tăng 5–10 mg mỗi tuần, tối đa 60 mg/ngày.'")
+            # Tự tích nhập viện (bác sĩ đặt 2026-11-09)
+            AD = "(h) => admitReasons({hpi: h}).join(' | ')"
+            for h, w in [('Có ý tưởng tự hại', 'tự hại'), ('Tự gây thương tích ở tay', 'tự gây thương tích'), ('Ý định tự sát', 'tự sát'), ('Muốn tự tử', 'tự sát'), ('Kích động về đêm', 'kích động')]:
+                assert w in pg.evaluate(AD, h), h
+            assert pg.evaluate(AD, 'Không có ý định tự sát') == '' and pg.evaluate(AD, 'Không kích động') == '' and pg.evaluate(AD, 'Đau đầu') == ''
+            st = pg.evaluate("""() => { const v = curV(), p = curP(), h0 = v.hpi; const dx0 = JSON.stringify(v.dx || {}), m0 = v.mental; v.mental = {sx: []}; v.dx = Object.assign(v.dx || {}, {disp: 'outpatient', dispManual: false, dispAuto: false});
+              v.hpi = 'Có ý tưởng tự sát'; autoRefer(v, p); const a = v.dx.disp; v.mental = {sx: ['psy_delus']}; autoRefer(v, p); const b = v.dx.disp; v.hpi = ''; autoRefer(v, p); const c = v.dx.disp; v.mental = {sx: []}; autoRefer(v, p); const d = v.dx.disp;
+              v.dx.dispManual = true; v.dx.disp = 'refer'; v.hpi = 'Kích động'; autoRefer(v, p); const e = v.dx.disp; v.hpi = h0; v.dx = JSON.parse(dx0); v.mental = m0; return [a, b, c, d, e]; }""")
+            assert st == ['admit', 'admit', 'refer', 'outpatient', 'refer'], st
+            # Chán ăn tâm thần -> nhập viện (bác sĩ đặt 2026-11-09)
+            AN = "(o) => { const p = Object.assign(JSON.parse(JSON.stringify(curP())), {conds: [], condNote: '', bodyFat: null, weight: 50, height: 160}, o.p || {}), v = {id: 'x', date: '2026-11-09', hpi: o.hpi || '', exam: '', vitals: o.v || {}, orders: o.ord || [], dx: {icd: o.icd === undefined ? 'F50.0 – Chán ăn tâm thần' : o.icd, main: ''}, mental: {sx: []}}; return admitReasons(v, p).join(' | '); }"
+            assert pg.evaluate(AN, {}) == '', pg.evaluate(AN, {})
+            for o, w in [({'v': {'pulse': 45}}, 'mạch'), ({'v': {'sbp': 85}}, 'HA tâm thu'), ({'v': {'temp': 35.2}}, 'nhiệt độ'), ({'p': {'weight': 30}}, 'BMI'), ({'p': {'bodyFat': 8}}, 'body fat'), ({'hpi': 'Từ chối ăn 3 ngày'}, 'từ chối ăn'), ({'p': {'conds': ['af']}}, 'rối loạn nhịp'), ({'ord': [{'key': 'ecg', 'value': 'Rung nhĩ đáp ứng thất nhanh'}]}, 'rối loạn nhịp')]:
+                assert w in pg.evaluate(AN, o), o
+            assert pg.evaluate(AN, {'v': {'pulse': 50, 'sbp': 90, 'temp': 35.6}, 'p': {'bodyFat': 10}}) == '', 'đúng ngưỡng chưa tính'
+            assert pg.evaluate(AN, {'hpi': 'Không từ chối ăn'}) == ''
+            assert pg.evaluate(AN, {'icd': 'F32.1 – x', 'v': {'pulse': 45}}) == '', 'chỉ áp cho chán ăn tâm thần'
+            # Ăn vô độ tâm thần -> nhập viện (bác sĩ đặt 2026-11-09)
+            BN = lambda o: pg.evaluate(AN, dict({'icd': 'F50.2 – Ăn vô độ tâm thần'}, **o))
+            assert BN({}) == '', BN({})
+            for o, w in [({'ord': [{'key': 'k', 'value': '3,1'}]}, 'kali'), ({'ord': [{'key': 'cl', 'value': 85}]}, 'clo'), ({'p': {'conds': ['af']}}, 'rối loạn nhịp'), ({'v': {'temp': 35.2}}, 'nhiệt độ'), ({'hpi': 'Có cơn ngất'}, 'ngất'), ({'hpi': 'Nôn liên tục 2 ngày'}, 'nôn liên tục'), ({'hpi': 'Nôn ra máu'}, 'nôn máu'), ({'hpi': 'Nôn máu'}, 'nôn máu'), ({'hpi': 'Có ý định tự sát'}, 'tự sát')]:
+                assert w in BN(o), o
+            assert BN({'ord': [{'key': 'k', 'value': 3.2}, {'key': 'cl', 'value': 88}], 'v': {'temp': 35.6}}) == '', 'đúng ngưỡng chưa tính'
+            assert BN({'hpi': 'Không ngất, không nôn máu'}) == '' and BN({'hpi': 'Khó thở, ngạt mũi'}) == ''
+            assert pg.evaluate(AN, {'icd': 'F32.1 – x', 'ord': [{'key': 'k', 'value': 3}]}) == '', 'chỉ áp cho ăn vô độ'
             # Tự tích chuyển tuyến (bác sĩ đặt 2026-11-07)
             RR = "(o) => { const v = JSON.parse(JSON.stringify(curV())); v.mental = {sx: o.sx || []}; v.hpi = o.hpi || ''; v.exam = o.exam || ''; return referReasons(curP(), v).join(' | '); }"
             assert pg.evaluate(RR, {'sx': [], 'hpi': 'Có ý định tự sát'}) == '', 'chưa khám tâm thần thì không gợi ý'
@@ -251,6 +276,44 @@ def main():
             assert pg.evaluate("() => { const t = TEMPLATES_SEED.find(x => x.id === 'adv_behav'); return t && t.text.startsWith('Tái khám sau 2 tuần') && t.text.split(String.fromCharCode(10)).length === 5 && t.text.includes('Không đánh. Làm điều khác') && ['F91.3', 'F91.2', 'F92.0', 'F63.8'].every(c => ICD.find(r => r[0] === c)[2].includes('behav_dis')) && TPL_ADDED.includes('adv_behav'); }")
             # Lời dặn rối loạn nhận thức (bác sĩ soạn 2026-11-07)
             assert pg.evaluate("() => { const t = TEMPLATES_SEED.find(x => x.id === 'adv_cog'); return t && t.text.split(String.fromCharCode(10)).length === 5 && t.text.includes('MIND') && t.text.includes('dán nhãn đồ vật') && t.text.endsWith('người xung quanh.') && ['F00.1', 'F01.9', 'F03', 'F04', 'F05.1', 'F06.70'].every(c => ICD.find(r => r[0] === c)[2].includes('cog_dis')) && TPL_ADDED.includes('adv_cog'); }")
+            # Alprazolam: bỏ 0,5 mg, thay 0,25 mg (bác sĩ đặt 2026-11-09)
+            assert pg.evaluate("() => ['alpra025n', 'alpra025f'].every(id => { const d = drugById(id); return d && !d.off && d.how === '' && d.howOpts[0] === 'Uống mỗi lần 1 viên, ngày uống 2 lần sau ăn sáng, tối' && d.dnote.includes('0,25 mg/ngày') && d.p === 0 && d.dose.join() === '1,0,0,1'; })")
+            assert pg.evaluate("() => { const n = drugSearch('alprazolam', false).map(d => d.id); return !n.includes('alpra05n') && !n.includes('alpra05f') && n.includes('alpra025n') && !!drugById('alpra05n') && drugById('alpra05n').off === true; }"), 'bản 0,5 mg phải ẩn nhưng đơn cũ vẫn tra được'
+            AL = AM_TPL = "(o) => { const p = Object.assign(JSON.parse(JSON.stringify(curP())), {conds: [], condNote: '', visits: [], job: '', dob: '', birthYear: Number(todayISO().slice(0, 4)) - 40, risk: {smoke: 'never', alcohol: 'no'}}, o), v = JSON.parse(JSON.stringify(curV())); v.hpi = ''; v.reason = ''; v.vitals = {}; v.dx = {icd: '', text: ''}; v.orders = []; p.meds = []; return drugBlockReasons(p, v, drugById('alpra025n')).join(' | '); }"
+            assert pg.evaluate(AL, {}) == '', pg.evaluate(AL, {})
+            for cd, w in [('liver', 'xơ gan'), ('glaucoma', 'glôcôm'), ('asthma', 'hen'), ('sexual_dysf', 'tình dục')]:
+                assert w in pg.evaluate(AL, {'conds': [cd]}), cd
+            assert 'lái xe' in pg.evaluate(AL, {'job': 'Tài xế taxi'})
+            # Benzodiazepin chỉ kê < 9 ngày (bác sĩ đặt 2026-11-09)
+            r = pg.evaluate("""() => { const v = curV(), p = curP(), f0 = v.plan.followDays, rx0 = v.rx; v.plan.followDays = 30; const a = rxLine(drugById('alpra025n'), v).days, b = rxLine(drugById('sert50'), v).days;
+              const l = {id: 'bz1', drugId: 'diaz5', s: 1, tr: 0, c: 0, t: 0, days: 14, how: '', note: ''}; v.rx = [l];
+              afterChange('v.rx.#bz1.days'); const c = l.days; l.days = 20; const w = checkAll(p, v).items.some(i => i.lv === 3 && /dưới 9 ngày/.test(i.m));
+              l.days = 8; afterChange('v.rx.#bz1.days'); const d = l.days; const w2 = checkAll(p, v).items.some(i => /dưới 9 ngày/.test(i.m)); const z = isBzd(drugById('zopi7n'));
+              v.rx = rx0; v.plan.followDays = f0; return [a, b, c, w, d, w2, z]; }""")
+            assert r == [8, 30, 8, True, 8, False, False], r
+            # Chặn kê cùng lúc thuốc tâm thần — tương tác mức 3 (bác sĩ đặt 2026-11-09)
+            PB2 = "([rx, id, o]) => { const p = Object.assign(JSON.parse(JSON.stringify(curP())), {conds: [], meds: []}, o || {}), v = JSON.parse(JSON.stringify(curV())); v.rx = rx.map(x => ({drugId: x})); return pairBlockReasons(p, v, drugById(id)).join(' | '); }"
+            assert 'serotonin' in pg.evaluate(PB2, [['seleg5'], 'sert50', {}]), 'selegilin + SSRI phải chặn'
+            assert 'liệt ruột' in pg.evaluate(PB2, [['amitri25'], 'olan10n', {}]), 'TCA + kháng cholinergic phải chặn'
+            assert 'olanzapin' in pg.evaluate(PB2, [['olan10n'], 'alpra025n', {}]), 'alprazolam + olanzapin phải chặn'
+            assert 'zolpidem' in pg.evaluate(PB2, [['zolpi10'], 'fluvo100', {}]), 'zolpidem + fluvoxamin phải chặn'
+            assert 'cholinesterase' in pg.evaluate(PB2, [['done5n'], 'riva3', {}])
+            assert 'QT' in pg.evaluate(PB2, [['amitri25'], pg.evaluate("() => DRUGS_SEED.find(d => d.hc === 'hydroxyzin').id"), {}])
+            assert pg.evaluate(PB2, [['sert50'], 'alpra025n', {}]) == '', 'mức 2 không chặn'
+            assert pg.evaluate(PB2, [['valp500n'], 'lamo50n', {}]) == '', 'valproat + lamotrigin không chặn'
+            assert pg.evaluate(PB2, [['aceno4'], 'aceno4', {}]) == ''
+            assert 'suy tim' in pg.evaluate(PB2, [['fluox20n'], pg.evaluate("() => DRUGS_SEED.find(d => d.hc === 'metoprolol').id"), {'conds': ['heart_failure']}])
+            assert pg.evaluate(PB2, [['fluox20n'], pg.evaluate("() => DRUGS_SEED.find(d => d.hc === 'metoprolol').id"), {}]) == '', 'chỉ chặn khi suy tim'
+            assert 'serotonin' in pg.evaluate(PB2, [[], 'sert50', {'meds': [{'id': 'm1', 'drugId': 'seleg5'}]}]), 'thuốc dài hạn cũng chặn'
+            assert pg.evaluate("() => drugById('amitri25').tags.includes('tca') && TAGS.tca && !!RULES.find(r => r.a === 'tca' && r.b === 'anticholinergic' && r.lv === 3)")
+            # Amitriptylin (bác sĩ đặt 2026-11-09)
+            AM = "(o) => { const p = Object.assign(JSON.parse(JSON.stringify(curP())), {conds: [], condNote: '', visits: [], job: '', dob: '', birthYear: Number(todayISO().slice(0, 4)) - 40, risk: {smoke: 'never', alcohol: 'no'}}, o), v = JSON.parse(JSON.stringify(curV())); v.hpi = ''; v.reason = ''; v.vitals = {}; v.dx = {icd: '', text: ''}; v.orders = []; p.meds = []; return drugBlockReasons(p, v, drugById('amitri25')).join(' | '); }"
+            assert pg.evaluate(AM, {}) == '', pg.evaluate(AM, {})
+            for cd, w in [('sexual_dysf', 'tình dục'), ('heart_failure', 'suy tim'), ('liver', 'xơ gan'), ('bipolar', 'lưỡng cực'), ('epilepsy', 'động kinh'), ('af', 'rối loạn nhịp'), ('cvd', 'mạch vành'), ('bph', 'phì đại')]:
+                assert w in pg.evaluate(AM, {'conds': [cd]}), cd
+            assert 'mang thai' in pg.evaluate(AM, {'conds': ['pregnant'], 'sex': 'Nữ'}) and 'cho con bú' in pg.evaluate(AM, {'conds': ['breastfeeding'], 'sex': 'Nữ'})
+            assert 'lái xe' in pg.evaluate(AM, {'job': 'Lái xe tải'})
+            assert pg.evaluate(AM, {'birthYear': int(pg.evaluate("() => todayISO().slice(0,4)")) - 10}) != '', '< 12 tuổi phải chặn'
             # 13 thuốc theo Long Châu (2026-11-07)
             NEW13 = ['vinpo5', 'nicer10', 'aminol200', 'sily140', 'boganicf', 'vite400', 'seleg5', 'coq10_30', 'omega1000', 'vitb1_250', 'b12_500', 'folic5', 'vit3b']
             assert pg.evaluate("(ids) => ids.every(id => { const d = drugById(id); return d && d.how === '' && (d.howOpts || []).length === 1 && d.dnote; })", NEW13)
@@ -582,7 +645,7 @@ def main():
               const M = icd => tplMatches(t, ctxOf({sex:'Nam', condNote:''}, {date:'2026-11-05', dx:{icd}, rx:[]}));
               return [M('F98.5'), M('F98.6'), M('F84.0'), /ngón tay/.test(t.text)]; }""")
             assert st == [True, False, False, True], 'lời dặn nói lắp sai: ' + str(st)
-            assert pg.evaluate("() => ['amitri25','amitri25f','imipr25'].every(id => { const d = drugById(id); return d && isTca(d) && /25–300 mg/.test(d.how); })"), 'thiếu amitriptylin / imipramin'
+            assert pg.evaluate("() => ['amitri25','amitri25f'].every(id => { const d = drugById(id); return d && isTca(d) && d.how === '' && d.howOpts[0] === 'Uống mỗi lần 1 viên, ngày uống 3 lần sau ăn sáng, trưa, tối' && d.dnote.startsWith('Có thể dùng liều 1 ngày vào buổi tối') && d.dose.join() === '1,1,0,1'; }) && isTca(drugById('imipr25')) && /25–300 mg/.test(drugById('imipr25').how)"), 'thiếu amitriptylin / imipramin'
             ai = pg.evaluate("""() => { const v0 = {date:'2026-11-02', hpi:'', dx:{}, rx:[]};
               const B = (id, p) => { const q = {sex:'Nam', condNote:'', birthYear:1980, ...p}; return drugBlockReasons(q, v0, drugById(id), ctxOf(q, v0)).length > 0; };
               return [B('amitri25', {}), B('imipr25', {}), B('amitri25f', {condNote:'bệnh mạch vành'}), B('imipr25', {condNote:'rung nhĩ'}), B('imipr25', {conds:['bph']}),
@@ -1026,6 +1089,20 @@ def main():
             assert 'Mức độ: A2' in r['F63.8'][2], r
             pg.evaluate("(o) => { const p = curP(); p.dob = o[0]; p.birthYear = o[1]; }", _age)
             assert ['F44', True] in pg.evaluate(SG, {'sx': ['dis_sx', 'dis_noorg', 'dis_time'], 'weeks': 2})
+            # Link MDCalc khi chọn MADRS (bác sĩ đặt 2026-11-12)
+            r = pg.evaluate("""() => { const v = curV(), o0 = v.orders, s0 = S.view.step; const l = LABS.find(x => x[1] === 'madrs');
+              v.orders = [{id: 'om', key: 'madrs', name: l[2], unit: l[3], ref: l[4], type: l[5], value: '', flag: '', note: ''}];
+              go({name: 'visit', pid: S.view.pid, vid: v.id, step: 2}); const a = document.querySelector('a[href*="mdcalc.com/calc/4058"]');
+              const ok = !!a && a.target === '_blank' && /noopener/.test(a.rel); v.orders = o0; go({name: 'visit', pid: S.view.pid, vid: v.id, step: s0 || 1});
+              return [ok, scaleLinkHTML('phq9') === '']; }""")
+            assert r == [True, True], r
+            # Bảng kiểm dạng cây (2026-11-09): bệnh → tiêu chuẩn → danh sách; mọi nhóm vẫn đủ mục, không trùng khoá
+            r = pg.evaluate("""() => { const g = MENTAL_SX.find(x => x.g === 'som'), h = checklistHTML(g, []), d = document.createElement('div'); d.innerHTML = '<div class="checks">' + h + '</div>';
+              const lvOf = k => d.querySelector('[data-v="' + k + '"]').closest('.csec').className.match(/ind(\\d)/)[1];
+              const keys = MENTAL_SX.flatMap(x => x.items.map(i => i[0]));
+              return {a: lvOf('som_2y'), sym: lvOf('som_d1'), excl: lvOf('som_excl'), first: d.querySelector('.subhd').textContent, dup: keys.length - new Set(keys).size, n: d.querySelectorAll('input').length === g.items.length,
+                order: MENTAL_SX.find(x => x.g === 'cond').items.map(i => i[0]).indexOf('cd_sev1') < MENTAL_SX.find(x => x.g === 'cond').items.map(i => i[0]).indexOf('cd_6m')}; }""")
+            assert r['a'] == '1' and r['sym'] == '3' and r['excl'] == '1' and r['first'].startswith('Rối loạn cơ thể hoá') and r['dup'] == 0 and r['n'] and r['order'], r
             # F45 theo ICD-10 bản VN tr. 125–129 (2026-11-07)
             assert ['F45.0', True] in pg.evaluate(SG, {'sx': ['som_2y', 'som_visits', 'som_refuse', 'som_6sx', 'som_excl'], 'weeks': 110})
             assert ['F45.0', False] in pg.evaluate(SG, {'sx': ['som_2y', 'som_visits', 'som_refuse', 'som_6sx'], 'weeks': 110}), 'F45.0 cần E'
@@ -1036,6 +1113,18 @@ def main():
             assert ['F45.30', True] in pg.evaluate(SG, {'sx': ['aut_a', 'aut_cv', 'aut_b', 'aut_c', 'aut_d', 'aut_excl'], 'weeks': 30})
             assert ['F45.3', False] in pg.evaluate(SG, {'sx': ['aut_a', 'aut_cv', 'aut_ugi', 'aut_b'], 'weeks': 30})
             assert ['F45.4', True] in pg.evaluate(SG, {'sx': ['pain_a', 'pain_excl'], 'weeks': 30})
+            # Tách triệu chứng F45.0 D, F45.3 B, C; F45.8, F45.9 (2026-11-09)
+            sd = ['som_d1', 'som_d2', 'som_d3', 'som_d4', 'som_d7', 'som_d13']
+            assert ['F45.0', True] in pg.evaluate(SG, {'sx': ['som_2y', 'som_visits', 'som_refuse', 'som_excl'] + sd, 'weeks': 110})
+            assert ['F45.1', True] in pg.evaluate(SG, {'sx': ['som_2y', 'som_visits', 'som_refuse', 'som_excl', 'som_d1', 'som_d2', 'som_d3', 'som_d4', 'som_d5', 'som_d6'], 'weeks': 110}), '6 triệu chứng cùng 1 nhóm chưa đủ D'
+            ab = ['aut_a', 'aut_cv', 'aut_d', 'aut_excl']
+            assert ['F45.30', True] in pg.evaluate(SG, {'sx': ab + ['aut_b1', 'aut_b2', 'aut_c1'], 'weeks': 30})
+            assert ['F45.30', False] in pg.evaluate(SG, {'sx': ab + ['aut_b1', 'aut_c1'], 'weeks': 30}), 'B cần ≥ 2'
+            assert ['F45.30', False] in pg.evaluate(SG, {'sx': ab + ['aut_b1', 'aut_b2'], 'weeks': 30}), 'C cần ≥ 1'
+            assert ['F45.8', True] in pg.evaluate(SG, {'sx': ['so8_local', 'so8_noles'], 'weeks': 10})
+            assert ['F45.8', False] in pg.evaluate(SG, {'sx': ['so8_stress'], 'weeks': 10})
+            assert ['F45.9', True] in pg.evaluate(SG, {'sx': ['so9'], 'weeks': 10})
+            assert pg.evaluate("() => icd11Of('F45.8')[1] === '6C2Y' && icd11Of('F45.9')[1] === '6C2Z' && ['F45.0','F45.1','F45.2','F45.3','F45.30','F45.31','F45.32','F45.33','F45.34','F45.38','F45.4','F45.8','F45.9'].every(c => ICD.some(r => r[0] === c))")
             r = dict((x[0], x) for x in pg.evaluate(I11, {'sx': ['hyp_a2', 'hyp_b', 'hyp_c', 'hyp_excl'], 'weeks': 30}))
             assert '6B21' in r['F45.2'][1], r
             assert pg.evaluate("() => ['F45.30', 'F45.31', 'F45.32', 'F45.33', 'F45.34', 'F45.38'].every(c => ICD.some(r => r[0] === c)) && icd11Of('F45.2')[1] === '6B23'")
