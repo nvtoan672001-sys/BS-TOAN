@@ -65,7 +65,8 @@ function afterChange(path){
         if(add.length){ p.conds = (p.conds || []).concat(add); toast('Đã thêm vào bệnh nền: ' + add.map(condLabel).join(', ')); } }
     }
     if(v){ if(path === 'v.dx.disp'){ v.dx.dispManual = true; v.dx.dispAuto = false; }
-      else if(/^v\.(mental|hpi$|exam$|examSys\.|vitals\.|dx\.(icd2?|main|secondary)$|orders\.)|^p\.(conds|condNote|bodyFat|weight|height)$/.test(path)) autoRefer(v, p); }
+      else if(/^v\.(mental|hpi$|exam$|examSys\.|vitals\.|dx\.(icd2?|main|secondary)$|orders\.)|^p\.(conds|condNote|bodyFat|weight|height)$/.test(path)) autoRefer(v, p);
+      if(/^v\.(hpi$|mental\.sx)/.test(path)) autoPsyOrders(p, v); }
     if(p) savePatient(p);
     if(path === 'p.name' || path === 'p.phone') renderPlist();
   } else if(root === 's'){ saveSettings(); if(path === 's.doctor') $('#docname').textContent = '· ' + (S.settings.doctor || ''); }
@@ -259,6 +260,17 @@ function newVisitObj(p, kind){
 function autoCogOrders(p, v){
   const keys = cogAutoOrderKeys(p, v).filter(k => !v.orders.some(o => o.key === k) && LABS.some(x => x[1] === k));
   keys.forEach(k => { const l = LABS.find(x => x[1] === k); v.orders.push({id: uid('o'), key: k, name: l[2], unit: l[3], ref: l[4], type: l[5], value: '', flag: '', note: ''}); });
+  return keys.length;
+}
+// Tự chọn trắc nghiệm tâm lý theo psyAutoPlan: mỗi trắc nghiệm chỉ tự thêm một lần mỗi lượt khám (v.psyAutoKeys) — bác sĩ bỏ bớt thì không thêm lại; không áp cho hồ sơ cũ
+function autoPsyOrders(p, v){
+  if(!v || v.kind === 'old') return 0;
+  const plan = psyAutoPlan(v), done = v.psyAutoKeys || [];
+  const keys = plan.keys.filter(k => !done.includes(k) && !v.orders.some(o => o.key === k) && LABS.some(x => x[1] === k));
+  if(!keys.length) return 0;
+  keys.forEach(k => { const l = LABS.find(x => x[1] === k); v.orders.push({id: uid('o'), key: k, name: l[2], unit: l[3], ref: l[4], type: l[5], value: '', flag: '', note: ''}); });
+  v.psyAutoKeys = done.concat(keys);
+  toast(`Có ${plan.why.join('; ')}: đã tự chọn trắc nghiệm ${keys.map(k => LABS.find(x => x[1] === k)[2].split(' (')[0]).join(', ')}`);
   return keys.length;
 }
 function nextCode(){ const n = S.patients.map(p => parseInt(String(p.code || '').replace(/\D/g, '')) || 0); return 'BN' + String(Math.max(0, ...n) + 1).padStart(4, '0'); }

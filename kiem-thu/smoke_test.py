@@ -1387,6 +1387,22 @@ def main():
               p.sex = 'Nam'; const g = B();
               p.conds = c0; p.condNote = n0; p.sex = sx0; v.vitals = JSON.parse(vt0); return [a, b, c, e, f, g, d.dnote, !!S.drugs.find(x => x.id === 'flib100')]; }""")
             assert r == [0, 1, 1, 1, 1, 1, 'Ngừng nếu không cải thiện sau 8 tuần.', True], r
+            # Tự chọn trắc nghiệm tâm lý (bác sĩ đặt 2026-11-15)
+            r = pg.evaluate("""() => { const v = curV(), h0 = v.hpi, m0 = JSON.stringify(v.mental || {});
+              const P = (hpi, sx) => { v.hpi = hpi; v.mental = {sx: sx || [], hist: [], excl: []}; return psyAutoPlan(v).keys.join(','); };
+              const r = [P('Mệt mỏi, buồn chán kèm mất ngủ, lo âu, mất thích thú'), P('Buồn chán, mất ngủ, không lo âu'), P('Buồn chán, lo âu, ngủ được'), P('Buồn chán 1 tháng'),
+                P('', ['dep_mood', 'ins_compl']), P('', ['dep_mood', 'gad_3']), P('Cáu gắt, hưng phấn'), P('', ['man_mood', 'gad_3']), P('', ['man_mood']), P('Có ý tưởng tự sát'), P('Không có ý tưởng tự sát'), P('', ['dep_suicide'])];
+              v.hpi = h0; v.mental = JSON.parse(m0); return r; }""")
+            assert r == ['hamd,dass_d,dass_a,dass_s,hcl32,psqi', 'madrs,dass_d,dass_a,dass_s,hcl32,psqi', 'hamd,dass_d,dass_a,dass_s,hcl32,zung_a', '',
+              'madrs,dass_d,dass_a,dass_s,hcl32,psqi', 'hamd,dass_d,dass_a,dass_s,hcl32,zung_a', 'dass_d,dass_a,dass_s,hcl32,psqi,ymrs', 'dass_d,dass_a,dass_s,hcl32,psqi,ymrs', '', 'cssrs', '', 'cssrs'], r
+            r = pg.evaluate("""() => { const p = curP(), v = curV(), h0 = v.hpi, m0 = JSON.stringify(v.mental || {}), o0 = v.orders, a0 = v.psyAutoKeys;
+              const K = () => v.orders.map(o => o.key).filter(k => ['hamd', 'madrs', 'dass_d', 'dass_a', 'dass_s', 'hcl32', 'psqi', 'zung_a', 'cssrs'].includes(k)).length;
+              v.orders = []; v.psyAutoKeys = []; v.mental = {sx: [], hist: [], excl: []};
+              v.hpi = 'Buồn chán kèm mất ngủ, lo âu'; afterChange('v.hpi'); const a = K();
+              v.orders = v.orders.filter(o => o.key !== 'hcl32'); afterChange('v.hpi'); const b = K();
+              v.hpi = 'Buồn chán kèm mất ngủ, lo âu, có ý tưởng tự sát'; afterChange('v.hpi'); const c = K();
+              v.hpi = h0; v.mental = JSON.parse(m0); v.orders = o0; v.psyAutoKeys = a0; return [a, b, c]; }""")
+            assert r == [6, 5, 6], r
             # Khám lâm sàng theo cơ quan (bác sĩ đặt 2026-11-12)
             r = pg.evaluate("""() => { const v = curV(), s0 = S.view.step, e0 = JSON.stringify(v.examSys || {}); v.examSys = {};
               go({name: 'visit', pid: S.view.pid, vid: v.id, step: 1}); const sel = document.querySelector('select.howpick[data-for="v.examSys.cv"]');

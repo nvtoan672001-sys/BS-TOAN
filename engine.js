@@ -1395,6 +1395,32 @@ function sportPlan(p, v){
   return {w, a, rows, hr, tips};
 }
 
+// ================= TRẮC NGHIỆM TÂM LÝ TỰ CHỌN (bác sĩ đặt 2026-11-15) =================
+// Tín hiệu lấy từ bệnh sử (bỏ câu phủ định, saysNotNeg) HOẶC bảng kiểm khám tâm thần:
+//   trầm cảm (mệt mỏi, buồn chán, chán nản, mất quan tâm / hứng thú / thích thú | nhóm dep_core, dep_common, dep_som), lo âu (lo âu, lo lắng | nhóm anx),
+//   mất ngủ (mất ngủ, khó ngủ, ngủ kém | nhóm slp), hưng cảm (cáu gắt, hưng phấn, giảm nhu cầu ngủ | nhóm man_a, man_b, mix), tự sát (tự sát, tự tử | dep_suicide)
+// Quy tắc: trầm cảm + lo âu + mất ngủ → HAM-D, DASS-21 ×3, HCL-32, PSQI; trầm cảm + mất ngủ, không lo âu → MADRS, DASS-21 ×3, HCL-32, PSQI;
+//   trầm cảm + lo âu, không mất ngủ → HAM-D, DASS-21 ×3, HCL-32, SAS; hưng cảm (bệnh sử) hoặc hưng cảm + lo âu / trầm cảm / giấc ngủ (bảng kiểm) → DASS-21 ×3, HCL-32, PSQI;
+//   tự sát → C-SSRS
+function psyAutoPlan(v){
+  if(!v) return {keys: [], why: []};
+  const h = v.hpi || '', say = k => saysNotNeg(h, k), sx = new Set(((v.mental || {}).sx) || []);
+  const grp = gs => MENTAL_SX.filter(g => gs.includes(g.g)).some(g => g.items.some(([k]) => sx.has(k)));
+  const hDep = ['met moi', 'buon chan', 'chan nan', 'mat quan tam', 'mat hung thu', 'mat thich thu', 'khong con hung thu'].some(say), mDep = grp(['dep_core', 'dep_common', 'dep_som']);
+  const hAnx = ['lo au', 'lo lang'].some(say), mAnx = grp(['anx']);
+  const hSlp = ['mat ngu', 'kho ngu', 'ngu kem'].some(say), mSlp = grp(['slp']);
+  const hMan = ['cau gat', 'hung phan', 'giam nhu cau ngu'].some(say), mMan = grp(['man_a', 'man_b', 'mix']);
+  const dep = hDep || mDep, anx = hAnx || mAnx, slp = hSlp || mSlp;
+  const keys = [], why = [], addK = (ks, w) => { ks.forEach(k => { if(!keys.includes(k)) keys.push(k); }); why.push(w); };
+  const DASS = ['dass_d', 'dass_a', 'dass_s'];
+  if(dep && anx && slp) addK(['hamd'].concat(DASS, ['hcl32', 'psqi']), 'trầm cảm kèm lo âu và mất ngủ');
+  else if(dep && slp) addK(['madrs'].concat(DASS, ['hcl32', 'psqi']), 'trầm cảm kèm mất ngủ, không lo âu');
+  else if(dep && anx) addK(['hamd'].concat(DASS, ['hcl32', 'zung_a']), 'trầm cảm kèm lo âu, không mất ngủ');
+  if(hMan || (mMan && (mAnx || mDep || mSlp))) addK(DASS.concat(['hcl32', 'psqi', 'ymrs']), 'triệu chứng hưng cảm');   // YMRS: bác sĩ thêm 2026-11-15
+  if(['tu sat', 'tu tu'].some(say) || sx.has('dep_suicide')) addK(['cssrs'], 'ý tưởng / hành vi tự sát');
+  return {keys, why};
+}
+
 // ================= CẬN LÂM SÀNG TỰ CHỌN — TIỀN SỬ RỐI LOẠN NHẬN THỨC (bác sĩ đặt 2026-11-07) =================
 // Tiền sử rối loạn nhận thức: ô bệnh nền "Sa sút trí tuệ"; ô tiền sử ghi sa sút trí tuệ / Alzheimer / rối loạn – suy giảm nhận thức;
 // hoặc lượt khám trước có mã ICD gắn cond cog_dis (F00–F05, F06.7x)
