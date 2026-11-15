@@ -48,3 +48,13 @@ ADHD và chậm phát triển tâm thần (2026-11-04): ADHD theo BYT 2020 Bài 
 Rối loạn nhận thức (2026-11-05): tiêu chuẩn mất trí G1–G4, F00–F03 kèm thể, F04, F05 (A–F), F06 (G1–G3), F06.7 (A–D) theo `ICD-10-nghiên-cứu-VN.pdf` tr. 47–62 (ảnh trang PDF 20–35); chữ số thứ 5, thứ 6 ở tr. 49–50. BYT 2020 Bài 1–4 (sa sút trí tuệ, sảng). ICD-11 6D70 (sảng), 6D71 (rối loạn thần kinh nhận thức nhẹ), 6D72 (hội chứng quên), 6D80–6D85 (sa sút trí tuệ theo nguyên nhân), 6D86 (rối loạn hành vi – tâm lý trong sa sút trí tuệ) từ `ICD-11.pdf` tr. 602–626.
 
 - **Dược thư Quốc gia Việt Nam 2022, quyển 1 và 2** (`Desktop/sách PDF/Duoc-thu-quoc-gia-viet-nam-2022-quyen-*.pdf`, bản scan không có lớp chữ): dùng đối chiếu tương tác thuốc tâm thần (2026-11-09). Chuyên luận sắp theo vần; trang sách = trang PDF + khoảng 12.
+
+## Hoạt động thể lực, béo phì (2026-11-14) — `C:\Users\admin\Desktop\Hoạt động thể lực\`
+
+Bác sĩ thêm làm thư mục nguồn (chưa dùng cho phần nào của app):
+- `BYT 2022-BEO PHI-HUONG DAN CHAN DOAN VA DIEU TRI.doc` — hướng dẫn chẩn đoán và điều trị béo phì, Bộ Y tế 2022.
+- `2_Tư vấn_Hoat dong the luc.pdf` — tư vấn hoạt động thể lực.
+- `8. Tiếp cận đa chuyên khoa trong điều trị béo phì.pptx` — bài giảng.
+- `Béo phì - tiền ĐTĐ và bệnh đồng mắc.docx`, `Gan nhiễm mỡ.docx` — tài liệu của bác sĩ.
+
+Đã dùng (2026-11-14) cho bước 5 dinh dưỡng – vận động: BYT 2022 (QĐ 2892/QĐ-BYT, chuyển sang chữ bằng Word) — Bảng 4.1, 4.2, 6.1, 6.2, 6.3, mục 6.1.1, 6.2.1, 6.2.2; `2_Tư vấn_Hoat dong the luc.pdf` (cường độ theo nhịp tim, 5A/5R). Nguồn web đối chiếu: WHO 2020 Guidelines on physical activity and sedentary behaviour; 2024 Adult Compendium of Physical Activities (pacompendium.com); AHA/ACC/TOS 2013 (1.200–1.500 / 1.500–1.800 kcal, thâm hụt 500–750 kcal); KDIGO 2024 CKD (đạm 0,8 g/kg G3–G5).

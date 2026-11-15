@@ -291,3 +291,9 @@ table.t td.num input{padding:5px 4px}
 .exctl>select{flex:0 0 120px;width:120px;padding:2px 6px;font-size:13px}
 .subhd.ex1{font-weight:700;font-size:15px;margin-top:10px}
 @media (max-width:820px){.exrow{grid-template-columns:minmax(0,1fr);gap:2px}.exctl>select{flex-basis:96px;width:96px}}
+/* Ô cách dùng có câu thiết lập sẵn (2026-11-14): rộng hết dòng để đọc được câu dài */
+.rxsub .how:has(datalist){flex:1 1 100%}
+.rxsub .how:has(datalist) input{width:100%}
+/* Chọn môn tập (2026-11-14) */
+.checks.sports{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:2px 12px}
+[data-live="act"] .chip{white-space:normal;max-width:100%}

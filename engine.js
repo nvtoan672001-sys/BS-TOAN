@@ -570,7 +570,7 @@ const TCA_EPI_MAX = 150;   // mg/ngày — ngưỡng "liều cao" của TCA ở 
 function dailyMg(d, line){ const m = String(d.n || '').match(/(\d+(?:[.,]\d+)?)\s*mg/i); if(!m) return null; const per = num(m[1]); const n = ['s', 'tr', 'c', 't'].reduce((a, k) => a + (num(line[k]) || 0), 0); return per * n; }
 // Mọi lý do chặn kê một thuốc theo quy tắc phòng khám (line: dòng đơn nếu đã có trong đơn — để xét liều)
 // Benzodiazepin chỉ kê < 9 ngày (bác sĩ đặt 2026-11-09): tối đa 8 ngày mỗi đơn
-const BZD_MAX_DAYS = 8;
+const BZD_MAX_DAYS = 9;   // bác sĩ đổi 2026-11-15: không kê quá 9 ngày (trước: dưới 9 ngày, tối đa 8)
 const isBzd = d => !!d && (d.cls === 'Benzodiazepin' || expandTags(d.tags).has('bzd'));
 // Chặn kê cùng lúc (bác sĩ đặt 2026-11-09): cặp thuốc có quy tắc mức 3 (chống chỉ định / nguy cơ cao) và ít nhất một thuốc thuộc nhóm thần kinh – tâm thần
 function pairBlockReasons(p, v, d){
@@ -617,8 +617,40 @@ function drugBlockReasons(p, v, d, ctx, line){
     if(kw.some(k => mentionsSymptom(p.condNote || '', k))) out.push('tiền sử ghi đang sử dụng rượu (benzodiazepin + rượu: ức chế hô hấp, an thần quá mức, lệ thuộc)');
     else if(['some', 'heavy'].includes((p.risk || {}).alcohol)) out.push(`hồ sơ ghi có uống rượu bia (${p.risk.alcohol === 'heavy' ? 'thường xuyên, nhiều' : 'thỉnh thoảng'}) (benzodiazepin + rượu: ức chế hô hấp, an thần quá mức, lệ thuộc)`);
   }
+  // Hydroxyzin (bác sĩ đặt 2026-11-15): tiền sử động kinh (ô hoặc chữ), QT dài (ô hoặc điện tim QTc dài); mang thai / β-hCG dương tính / cho con bú chặn ở quy tắc chung nhóm thần kinh
+  if(norm(d.hc || '').includes('hydroxyzin')){
+    const r = [], pcs = p.conds || [];
+    if(pcs.includes('epilepsy') || mentionsSymptom(p.condNote || '', 'dong kinh')) r.push('tiền sử động kinh');
+    if(pcs.includes('qt_long')) r.push('hồ sơ nền tích QT kéo dài'); else if(qtcLong(p, v)) r.push('điện tim ghi QTc dài');
+    if(r.length) out.push('hydroxyzin: ' + r.join('; '));
+  }
+  // Etifoxin (Stresam; bác sĩ đặt 2026-11-15): tiền sử dị ứng etifoxin, đang dùng thuốc tránh thai hằng ngày (chữ tiền sử / thuốc dài hạn), xơ gan (ô hoặc chữ), eGFR < 60
+  if(norm(d.hc || '').includes('etifoxin')){
+    const r = [], note = p.condNote || '', say = k => mentionsSymptom(note, k), rn = renalOf(p);
+    const alg = norm((p.allergyText || '') + ' . ' + note);
+    if(['etifoxin', 'stresam'].some(k => alg.includes(k)) && (/di ung/.test(alg) || norm(p.allergyText || '').trim())) r.push('tiền sử dị ứng etifoxin');
+    const OC = ['tranh thai', 'thuoc ngua thai', 'ethinyl', 'levonorgestrel', 'desogestrel', 'drospirenon', 'gestoden', 'norethisteron', 'cyproteron'];
+    if(OC.some(say) || (ctx || ctxOf(p, v)).longMeds.some(m => OC.some(k => norm(m.name || '').includes(k)))) r.push('đang dùng thuốc tránh thai hằng ngày');
+    if((p.conds || []).includes('liver') || say('xo gan')) r.push('tiền sử xơ gan / bệnh gan mạn');
+    if(rn && rn.egfr != null && rn.egfr < 60) r.push(`eGFR ≈ ${fmtN(rn.egfr)} (< 60)`);
+    if(r.length) out.push('etifoxin: ' + r.join('; '));
+  }
+  // Buspiron (bác sĩ đặt 2026-11-15): eGFR < 60; ô bệnh nền xơ gan (liver), rối loạn tiền đình; không kê cùng fluoxetin, fluvoxamin (đơn hoặc thuốc dài hạn, cả hai chiều)
+  {
+    const isBus = x => x && norm(x.hc || '').includes('buspiron'), isFF = x => x && ['fluoxetin', 'fluvoxamin'].some(k => norm(x.hc || '').includes(k));
+    const oth = (v.rx || []).map(l => drugById(l.drugId)).filter(x => x && x.id !== d.id).map(x => ({name: x.n, d: x, t: norm(x.hc + ' ' + x.n)})).concat((ctx || ctxOf(p, v)).longMeds.map(m => ({name: m.short || m.name, d: m.drug, t: norm(m.name || '')})));
+    if(isBus(d)){
+      const r = [], pcs = p.conds || [], rn = renalOf(p);
+      if(rn && rn.egfr != null && rn.egfr < 60) r.push(`eGFR ≈ ${fmtN(rn.egfr)} (< 60)`);
+      if(pcs.includes('liver')) r.push('hồ sơ nền tích bệnh gan mạn / xơ gan');
+      if(pcs.includes('vestibular')) r.push('hồ sơ nền tích rối loạn tiền đình');
+      const ff = oth.find(o => isFF(o.d) || ['fluoxetin', 'fluvoxamin', 'prozac'].some(k => o.t.includes(k))); if(ff) r.push(`đang dùng ${ff.name} (không kê cùng fluoxetin, fluvoxamin)`);
+      if(r.length) out.push('buspiron: ' + r.join('; '));
+    } else if(isFF(d)){ const b = oth.find(o => isBus(o.d) || o.t.includes('buspiron') || o.t.includes('buspirone')); if(b) out.push(`đang dùng ${b.name} (buspiron không kê cùng fluoxetin, fluvoxamin)`); }
+  }
   // Pregabalin (viên chứa lactose): tiền sử ghi không dung nạp galactose / thiếu lactase Lapp / kém hấp thu glucose – galactose → không kê (bác sĩ đặt 2026-10-27)
   if(H.includes('pregabalin')){
+    if((p.conds || []).includes('vestibular')) out.push('pregabalin: hồ sơ nền tích rối loạn tiền đình (thuốc gây chóng mặt, mất thăng bằng)');   // bác sĩ đặt 2026-11-15
     const kw = ['khong dung nap galactose', 'thieu lactase lapp', 'thieu lactase', 'kem hap thu glucose galactose'];
     if(kw.some(k => mentionsSymptom(p.condNote || '', k))) out.push('tiền sử ghi không dung nạp galactose / thiếu lactase Lapp / kém hấp thu glucose – galactose (viên pregabalin chứa lactose)');
   }
@@ -977,12 +1009,14 @@ function drugBlockReasons(p, v, d, ctx, line){
     const r = renalOf(p);
     if(r && r.crcl != null && r.crcl < 30) out.push(`CrCl ≈ ${fmtN(r.crcl)} mL/phút (< 30; ${r.src})`);
     else if(r && r.crcl == null && r.egfr != null && r.egfr < 30) out.push(`eGFR ≈ ${fmtN(r.egfr)} (< 30; chưa có cân nặng để tính CrCl; ${r.src})`);
-    else if(r && r.egfr != null && r.egfr < 15) out.push(`eGFR ≈ ${fmtN(r.egfr)} (< 15; ${r.src})`);
+    else if(r && r.egfr != null && r.egfr < 30) out.push(`eGFR ≈ ${fmtN(r.egfr)} (< 30; ${r.src})`);   // bác sĩ đặt 2026-11-14: eGFR < 30 (trước: < 15)
     // Bác sĩ đặt 2026-10-27: hồ sơ nền phì đại tiền liệt tuyến (ô tích hoặc tiền sử ghi) → chặn (duloxetin gây bí tiểu);
     // bệnh gan mạn / suy gan ghi bằng chữ ở tiền sử (ô tích "liver" đã chặn ở quy tắc bệnh gan phía trên)
     const note = p.condNote || '';
     if(C.has('bph') || ['phi dai tien liet tuyen', 'phi dai tuyen tien liet', 'tang san tien liet tuyen'].some(k => mentionsSymptom(note, k))) out.push('hồ sơ nền phì đại tiền liệt tuyến (duloxetin có thể gây bí tiểu)');
     if(!C.has('liver') && ['benh gan man', 'suy gan', 'xo gan', 'viem gan man'].some(k => mentionsSymptom(note, k))) out.push('tiền sử ghi bệnh gan mạn / suy gan (duloxetin chống chỉ định khi bệnh gan)');
+    // Bác sĩ đặt 2026-11-14: uống rượu (mục nguy cơ "Rượu bia" chọn thỉnh thoảng / thường xuyên, hoặc tiền sử ghi uống rượu, nghiện rượu); glôcôm góc đóng chặn ở khối "chống chỉ định / thận trọng"
+    if(['some', 'heavy'].includes((p.risk || {}).alcohol) || ['uong ruou', 'nghien ruou', 'su dung ruou', 'dung ruou', 'uong bia'].some(k => mentionsSymptom(note, k))) out.push('tiền sử uống rượu (duloxetin tăng nguy cơ tổn thương gan)');
   }
   // Zolpidem (bác sĩ đặt 2026-11-02): tiền sử hoặc bệnh sử ghi chóng mặt; tiền sử ghi suy gan, nhược cơ, ngưng thở khi ngủ (hoặc ICD G47.3) → không kê
   if(norm(d.hc || '').includes('zolpidem')){
@@ -994,6 +1028,25 @@ function drugBlockReasons(p, v, d, ctx, line){
     if(r.length) out.push('zolpidem: ' + r.join('; '));
   }
   // Zopiclon (bác sĩ đặt 2026-11-02): tiền sử hoặc bệnh sử ghi chóng mặt → không kê
+  // Doxepin (bác sĩ đặt 2026-11-15, mọi doxepin): tiền sử phì đại tiền liệt tuyến, glôcôm góc đóng, rối loạn lưỡng cực, xơ gan (ô tích hoặc ghi chữ);
+  // mang thai / cho con bú chặn ở quy tắc chung nhóm thần kinh; ô phì đại TLT, glôcôm, lưỡng cực cũng đã chặn ở khối "chống chỉ định" của TCA
+  if(norm(d.hc || '').includes('doxepin')){
+    const pcs = p.conds || [], say = k => mentionsSymptom(p.condNote || '', k);
+    const L = [['bph', ['phi dai tien liet tuyen', 'phi dai tuyen tien liet', 'tang san tien liet tuyen'], 'phì đại tiền liệt tuyến'], ['glaucoma', ['glocom', 'glaucoma', 'tang nhan ap'], 'glôcôm góc đóng'],
+      ['bipolar', ['roi loan cam xuc luong cuc', 'luong cuc'], 'rối loạn cảm xúc lưỡng cực'], ['liver', ['xo gan', 'benh gan man', 'suy gan'], 'xơ gan / bệnh gan mạn']];
+    const r = L.filter(([k, kws]) => pcs.includes(k) || kws.some(say)).map(([, , l]) => l);
+    if(r.length) out.push('doxepin: tiền sử ' + r.join(', '));
+  }
+  // Melatonin (bác sĩ đặt 2026-11-15): > 65 hoặc < 18 tuổi; xơ gan (ô hoặc chữ); bệnh thận mạn (ô hoặc chữ); mang thai / cho con bú chặn ở quy tắc chung nhóm thần kinh
+  if(norm(d.hc || '').includes('melatonin')){
+    const r = [], pcs = p.conds || [], say = k => mentionsSymptom(p.condNote || '', k), age = ageOf(p, v.date);
+    if(age != null && (age > 65 || age < 18)) r.push(`${age} tuổi (${age > 65 ? '> 65' : '< 18'})`);
+    if(pcs.includes('liver') || say('xo gan')) r.push('tiền sử xơ gan / bệnh gan mạn');
+    if(pcs.includes('ckd') || ['benh than man', 'suy than man', 'suy than'].some(say)) r.push('tiền sử bệnh thận mạn');
+    if(r.length) out.push('melatonin: ' + r.join('; '));
+  }
+  // Zopiclon (bác sĩ đặt 2026-11-15): ô bệnh nền rối loạn tiền đình, hen / COPD
+  if(norm(d.hc || '').includes('zopiclon')){ const pcs = p.conds || [], r = [['vestibular', 'rối loạn tiền đình'], ['asthma', 'hen / COPD']].filter(([k]) => pcs.includes(k)).map(([, l]) => l); if(r.length) out.push('zopiclon: hồ sơ nền tích ' + r.join(', ')); }
   if(norm(d.hc || '').includes('zopiclon') && mentionsSymptom((p.condNote || '') + ' . ' + ((v && v.hpi) || ''), 'chong mat')) out.push('zopiclon: tiền sử / bệnh sử ghi chóng mặt (nguy cơ té ngã)');
   // Zaleplon (bác sĩ đặt 2026-11-02): tiền sử ghi suy gan → không kê
   if(norm(d.hc || '').includes('zaleplon') && mentionsSymptom(p.condNote || '', 'suy gan')) out.push('zaleplon: tiền sử suy gan');
@@ -1187,7 +1240,7 @@ function checkAll(p, v, entries){
       if(block.length) items.push({lv: 3, kind: 'Quy tắc phòng khám', title: e.name, m: 'Không kê thuốc này vì ' + block.join('; ') + '. Chọn thuốc khác.', lines: [e.id]});
       const half = halfDoseReasons(p, v, e.drug, ctx);
       if(e.drug.dnote) items.push({lv: 2, kind: 'Liều (quy tắc phòng khám)', title: `${e.name} — chỉnh liều`, m: e.drug.dnote, lines: [e.id]});
-      if(isBzd(e.drug) && v.kind !== 'old' && num(e.line && e.line.days) > BZD_MAX_DAYS) items.push({lv: 3, kind: 'Quy tắc phòng khám', title: `${e.name} — số ngày`, m: `Benzodiazepin chỉ kê dưới 9 ngày (đang ${fmtN(num(e.line.days))} ngày).`, lines: [e.id]});
+      if(isBzd(e.drug) && v.kind !== 'old' && num(e.line && e.line.days) > BZD_MAX_DAYS) items.push({lv: 3, kind: 'Quy tắc phòng khám', title: `${e.name} — số ngày`, m: `Benzodiazepin không kê quá ${BZD_MAX_DAYS} ngày (đang ${fmtN(num(e.line.days))} ngày).`, lines: [e.id]});
       if(norm(e.drug.hc || '').includes('risperidon')){   // bác sĩ đặt 2026-11-07: xơ gan, bệnh thận mạn → cảnh báo giảm liều
         const pc = p.conds || [], sy = k => mentionsSymptom(p.condNote || '', k), why = [];
         if(pc.includes('liver') || sy('xo gan')) why.push('xơ gan'); if(pc.includes('ckd') || sy('benh than man') || sy('suy than')) why.push('bệnh thận mạn');
@@ -1235,30 +1288,81 @@ function rxCost(l){ const d = drugById(l.drugId); return d ? rxQty(l).give * (nu
 // ================= DINH DƯỠNG =================
 const ACT_LV = {sedentary:{t:'Ít vận động (ít đi lại, ngồi nhiều)', f:1.2}, light:{t:'Nhẹ (đi bộ/tập nhẹ 1–3 buổi/tuần)', f:1.375}, moderate:{t:'Vừa (tập 3–5 buổi/tuần)', f:1.55}, active:{t:'Nhiều (lao động chân tay, tập 6–7 buổi/tuần)', f:1.725}};
 const MEALS = [['Sáng',0.25],['Phụ sáng',0.10],['Trưa',0.30],['Phụ chiều',0.10],['Tối',0.25]];
+// Dinh dưỡng (bác sĩ đặt 2026-11-14) — nguồn chính BYT 2022 (QĐ 2892/QĐ-BYT): phân loại BMI người châu Á (Bảng 4.1), vòng bụng (4.2),
+// mục tiêu giảm 5–15% cân nặng trong 6 tháng, 2–3 kg/tháng (6.1.1, 6.2.1), nhu cầu năng lượng theo lao động (Bảng 6.2), ăn giảm cân = cân nặng lý tưởng
+// (22 × cao²) × 20–35 kcal/kg, tỷ lệ chất (Bảng 6.1: béo < 30%, đạm 15–< 20%, bột 50–55%, muối < 5 g, xơ 20–30 g), 3 bữa, kiêng rượu.
+// Bổ sung: mức tối thiểu 1.200 (nữ) / 1.500 (nam) kcal và thâm hụt 500–750 kcal (AHA/ACC/TOS 2013); đạm 0,8 g/kg khi eGFR < 60 (KDIGO 2024);
+// ≥ 65 tuổi bảo đảm đạm ≥ 1,0 g/kg (khuyến nghị cho người cao tuổi); Mifflin-St Jeor chỉ để tham khảo.
 function nutriCalc(p, v){
   const n = (v && v.nutrition) || {};
   const w = num(n.weight) ?? num(v && v.vitals && v.vitals.weight) ?? num(p.weight);
   const h = num(n.height) ?? num(v && v.vitals && v.vitals.height) ?? num(p.height);
   const a = ageOf(p, v ? v.date : null);
-  if(!w || !h || a == null || !p.sex) return null;
-  const bmi = bmiOf(w, h), ibw = 22 * Math.pow(h / 100, 2);
-  const bmr = 10 * w + 6.25 * h - 5 * a + (p.sex === 'Nữ' ? -161 : 5);
-  const actK = n.activity || p.activity || 'sedentary', fac = (ACT_LV[actK] || ACT_LV.sedentary).f, tdee = bmr * fac;
-  const goal = n.goal || (bmi >= 23 ? 'lose' : bmi < 18.5 ? 'gain' : 'keep');
-  const deficit = num(n.deficit) ?? 500;
-  let target = goal === 'lose' ? tdee - deficit : goal === 'gain' ? tdee + 300 : tdee;
-  const notes = [];
-  const floor = p.sex === 'Nữ' ? 1200 : 1500;
-  if(goal === 'lose' && target < floor){ target = floor; notes.push(`Mức tối thiểu khi giảm cân không giám sát chặt: ${fmtN(floor)} kcal/ngày — đã lấy mức này.`); }
+  if(!w || !h || !p.sex) return null;
+  const fem = p.sex === 'Nữ', m2 = Math.pow(h / 100, 2), bmi = w / m2, ibw = 22 * m2;
+  const waist = num(v && v.vitals && v.vitals.waist) ?? num(p.waist), central = waist != null && waist >= (fem ? 80 : 90);
+  const labK = BYT_LABOR[n.labor] ? n.labor : (ACT_TO_LABOR[n.activity || p.activity] || 'light'), L = BYT_LABOR[labK], kgK = fem ? L.f : L.m;
+  const maint = w * kgK;                                                         // năng lượng duy trì theo cân nặng hiện tại (Bảng 6.2)
+  const actK = n.activity || p.activity || 'sedentary', fac = (ACT_LV[actK] || ACT_LV.sedentary).f;
+  const bmr = a != null ? 10 * w + 6.25 * h - 5 * a + (fem ? -161 : 5) : null, tdee = bmr != null ? bmr * fac : null;
+  const autoGoal = bmi >= 23 ? 'lose' : bmi < 18.5 ? 'gain' : 'keep', goal = n.goal || autoGoal;
+  const tBmi = num(n.targetBmi) ?? (goal === 'lose' ? 22 : goal === 'gain' ? 18.5 : Math.round(bmi * 10) / 10);
+  const tW = tBmi * m2, notes = [];
+  // Mục tiêu 6 tháng: giảm 10% (BMI ≥ 35: 15%) — trong khoảng 5–15% của BYT 2022; không thấp hơn cân nặng mục tiêu
+  const pct6 = bmi >= 35 ? 15 : 10, w6 = goal === 'lose' ? Math.max(tW, w * (1 - pct6 / 100)) : null;
+  const toLose = goal === 'lose' ? Math.max(0, w - tW) : 0, months = toLose > 0 ? [toLose / 3, toLose / 2] : null;
+  let lo = null, hi = null, target;
+  if(goal === 'lose'){ lo = ibw * L.lose[0]; hi = ibw * L.lose[1]; target = (lo + hi) / 2; }
+  else if(goal === 'gain'){ target = Math.max(maint, ibw * kgK); notes.push(`Tăng cân: năng lượng theo cân nặng lý tưởng ${fmtN(ibw, 1)} kg × ${kgK} kcal/kg (Bảng 6.2), tăng dần.`); }
+  else target = maint;
+  const floor = fem ? 1200 : 1500;
+  if(goal === 'lose' && target < floor){ notes.push(`Mức tính theo cân nặng lý tưởng thấp hơn mức tối thiểu khi ăn giảm cân không giám sát chặt (${fmtN(floor)} kcal/ngày, AHA/ACC/TOS 2013) — đã lấy ${fmtN(floor)} kcal.`); target = floor; }
   if(num(n.kcal)){ target = num(n.kcal); notes.push('Năng lượng do bác sĩ đặt.'); }
+  const deficit = goal === 'lose' ? Math.max(0, maint - target) : 0;
+  if(goal === 'lose' && deficit > 1000) notes.push(`Thâm hụt ≈ ${fmtN(deficit)} kcal/ngày so với nhu cầu duy trì ở cân nặng hiện tại — cao hơn mức 500–750 kcal thường dùng; có thể bắt đầu ở mức cao của khoảng khuyến nghị rồi giảm dần.`);
+  // Đạm
   const renal = renalOf(p), ckd = renal && renal.egfr != null && renal.egfr < 60;
   const wP = bmi >= 25 ? ibw + 0.25 * (w - ibw) : w;
-  const gkg = num(n.proteinGkg) ?? (ckd ? 0.8 : 1.0);
-  if(ckd && num(n.proteinGkg) == null) notes.push(`eGFR ≈ ${fmtN(renal.egfr)}: đạm 0,8 g/kg/ngày theo KDIGO cho bệnh thận mạn G3–G5 chưa lọc máu.`);
-  if(bmi >= 25) notes.push(`Tính đạm theo cân nặng hiệu chỉnh ${fmtN(wP, 1)} kg (béo phì).`);
-  const protG = gkg * wP, fatPct = num(n.fatPct) ?? 25, fatG = target * fatPct / 100 / 9;
-  const carbKcal = Math.max(0, target - protG * 4 - fatG * 9), carbG = carbKcal / 4;
-  return {w, h, a, bmi, bmiCls: bmiClass(bmi), ibw, wP, bmr, tdee, fac, actK, goal, deficit, target, gkg, protG, protPct: protG * 4 / target * 100, fatG, fatPct, carbG, carbPct: carbKcal / target * 100, notes, salt: (ckd || (p.conds || []).includes('htn')) ? '< 5 g muối/ngày' : '< 5 g muối/ngày', fiber: '25–30 g chất xơ/ngày'};
+  let protPct = num(n.protPct) ?? 18, protG = target * protPct / 100 / 4;
+  if(num(n.proteinGkg) != null){ protG = num(n.proteinGkg) * wP; notes.push(`Đạm do bác sĩ đặt ${fmtN(num(n.proteinGkg), 2)} g/kg.`); }
+  else if(ckd){ const c = 0.8 * wP; if(protG > c){ protG = c; notes.push(`eGFR ≈ ${fmtN(renal.egfr)}: đạm 0,8 g/kg/ngày (KDIGO 2024, bệnh thận mạn G3–G5 chưa lọc máu).`); } }
+  else if(a != null && a >= 65 && protG < 1.0 * wP){ protG = 1.0 * wP; notes.push('≥ 65 tuổi: bảo đảm đạm ≥ 1,0 g/kg/ngày để hạn chế mất cơ khi giảm cân.'); }
+  if(bmi >= 25 && (ckd || num(n.proteinGkg) != null || (a != null && a >= 65))) notes.push(`Đạm theo g/kg tính trên cân nặng hiệu chỉnh ${fmtN(wP, 1)} kg (béo phì).`);
+  protPct = protG * 4 / target * 100;
+  const fatPct = num(n.fatPct) ?? 25, fatG = target * fatPct / 100 / 9;
+  const carbKcal = Math.max(0, target - protG * 4 - fatG * 9), carbG = carbKcal / 4, carbPct = carbKcal / target * 100;
+  if(goal === 'lose') notes.push('Ăn 3 bữa chính là đủ; hạn chế đường hấp thu nhanh, chất béo bão hoà; kiêng rượu (BYT 2022).');
+  if(central) notes.push(`Vòng bụng ${fmtN(waist)} cm (≥ ${fem ? 80 : 90}): béo phì dạng nam (béo bụng) — nguy cơ chuyển hoá cao (BYT 2022).`);
+  const meals = goal === 'lose' ? [['Sáng', 0.3], ['Trưa', 0.4], ['Tối', 0.3]] : MEALS;
+  return {w, h, a, bmi, bmiCls: bmiClass(bmi), ibw, wP, waist, central, labK, kgK, maint, bmr, tdee, fac, actK, goal, autoGoal, tBmi, tW, pct6, w6, toLose, months,
+    lo, hi, target, deficit, protG, protPct, gkg: protG / wP, fatG, fatPct, carbG, carbPct, meals, notes, salt: '< 5 g muối/ngày', fiber: '20–30 g chất xơ/ngày'};
+}
+// Kế hoạch môn tập (bác sĩ đặt 2026-11-14): kcal theo BYT 2022 Bảng 6.3 (nội suy theo cân nặng); thời gian khuyến khích theo WHO 2020
+// (150–300 phút/tuần mức vừa hoặc 75–150 phút/tuần mức nặng; tăng cơ ≥ 2 ngày/tuần; ≥ 65 tuổi thêm thăng bằng – sức mạnh ≥ 3 ngày/tuần)
+// và BYT 2022 (30–40 phút/ngày, ≥ 5 ngày/tuần; tập đề kháng 2–4 lần/tuần; nhịp tim (220 − tuổi) × 50–70%)
+function sportKcal30(sp, w){
+  const k = sp[2], W = [50, 60, 70, 80, 90, 100];
+  if(w <= 50) return k[0] * w / 50; if(w >= 100) return k[5] * w / 100;
+  const i = Math.min(4, Math.floor((w - 50) / 10)); return k[i] + (k[i + 1] - k[i]) * (w - W[i]) / 10;
+}
+function sportPlan(p, v){
+  const keys = (v && v.activity && v.activity.sports) || [];
+  const w = num(v && v.vitals && v.vitals.weight) ?? num(p.weight) ?? 60, a = ageOf(p, v ? v.date : null);
+  const rows = keys.map(k => SPORTS.find(s => s[0] === k)).filter(Boolean).map(sp => {
+    const met = sp[2][2] * 2 / 70, int = sp[3] === 'low' || met < 3 ? 'Nhẹ' : met >= 6 ? 'Nặng' : 'Vừa', k30 = sportKcal30(sp, w);
+    let time, perWeek;
+    if(sp[3] === 'res'){ time = '20–30 phút/buổi, 2–4 buổi/tuần (các nhóm cơ lớn)'; perWeek = [2 * 20, 4 * 30]; }
+    else if(int === 'Nặng'){ time = '15–30 phút/buổi, 3–5 buổi/tuần (75–150 phút/tuần)'; perWeek = [75, 150]; }
+    else if(int === 'Vừa'){ time = '30–40 phút/buổi, ≥ 5 buổi/tuần (150–300 phút/tuần)'; perWeek = [150, 300]; }
+    else { time = 'Tuỳ ý — kết hợp thêm môn mức vừa để đạt ≥ 150 phút/tuần'; perWeek = null; }
+    return {key: sp[0], name: sp[1], kind: sp[3], met, int, k30, time, perWeek, kW: perWeek ? perWeek.map(m => k30 * m / 30) : null, note: SPORT_NOTE[sp[0]] || ''};
+  });
+  const hr = a != null ? [(220 - a) * 0.5, (220 - a) * 0.7] : null;
+  const tips = [];
+  if(rows.length && !rows.some(r => r.kind === 'res')) tips.push('Thêm bài tập tăng cơ (tạ, dây kháng lực, chống đẩy) ≥ 2 ngày/tuần (WHO 2020; BYT 2022: 2–4 lần/tuần).');
+  if(a != null && a >= 65) tips.push('≥ 65 tuổi: thêm bài tập thăng bằng và sức mạnh ≥ 3 ngày/tuần để phòng ngã (WHO 2020); thăm dò tim mạch trước khi bắt đầu (BYT 2022).');
+  if(rows.some(r => r.int === 'Nặng')) tips.push('Môn cường độ nặng: 1 phút mức nặng tương đương 2 phút mức vừa khi cộng thời gian tuần (WHO 2020).');
+  return {w, a, rows, hr, tips};
 }
 
 // ================= CẬN LÂM SÀNG TỰ CHỌN — TIỀN SỬ RỐI LOẠN NHẬN THỨC (bác sĩ đặt 2026-11-07) =================
@@ -1411,18 +1515,34 @@ function psyDx(p, v){
       ['mania', 'hypomania', 'mixed', 'dep', 'dep2'].filter(k => hist.has(k)).length >= 2 || hist.has('dep2') ? [] : ['Cần thêm ≥ 1 giai đoạn rối loạn cảm xúc khác trong tiền sử (hưng cảm / hưng cảm nhẹ, trầm cảm, hỗn hợp)'], '');
     else if(hist.has('dep2')) add('F33.4', 'Bài 21', ['Hiện không đủ tiêu chuẩn giai đoạn trầm cảm', 'Trước đây đã đủ tiêu chuẩn trầm cảm tái diễn'], [], '');
   }
-  // --- Lo âu (Bài 22, 23) ---
+  // --- Lo âu lan toả F41.1: ICD-10 (bản VN) tr. 115–117 (nhóm gad_*); hồ sơ cũ chỉ có 4 mục BYT 2020 Bài 22 (anx_*) vẫn tính theo cách cũ ---
   const anxSx = ['anx_fear', 'anx_motor', 'anx_auto', 'anx_primary'].filter(k => sx.has(k));
-  if(anxSx.length){
-    const gadMiss = ['anx_fear', 'anx_motor', 'anx_auto', 'anx_primary'].filter(k => !sx.has(k)).map(k => 'Chưa có: ' + MENTAL_SX.find(x => x.g === 'anx').items.find(i => i[0] === k)[1].split(':')[0]);
+  const GAD = Array.from({length: 22}, (_, i) => 'gad_' + (i + 1)), gadSx = GAD.filter(k => sx.has(k)), gadAuto = gadSx.filter(k => ['gad_1', 'gad_2', 'gad_3', 'gad_4'].includes(k));
+  const gadAny = gadSx.length > 0 || sx.has('gad_a') || sx.has('gad_excl');
+  const GL = k => MENTAL_SX.find(x => x.g === 'anx').items.find(i => i[0] === k)[1].split(/[—:;(]/)[0].trim();
+  const autoSx = sx.has('anx_auto') || gadAuto.length > 0;
+  if(gadAny){
+    const dur6 = sx.has('gad_a') || (wk != null && wk >= 26);
+    const met = (dur6 ? ['A. Căng thẳng, lo lắng ≥ 6 tháng' + (sx.has('gad_a') ? '' : ` (${fmtN(wk)} tuần)`)] : []).concat(gadSx.length ? [`B. ${gadSx.length}/22 triệu chứng (${gadAuto.length} thực vật): ${gadSx.map(GL).join(', ')}`] : [], sx.has('gad_excl') ? ['D. Đã loại trừ bệnh cơ thể, thực tổn, do chất'] : []);
+    const miss = [];
+    if(!dur6) miss.push('Chưa có: A. Ít nhất 6 tháng căng thẳng, lo lắng' + (wk != null ? ` (hiện ${fmtN(wk)} tuần)` : ''));
+    if(gadSx.length < 4 || !gadAuto.length) miss.push(`B. Cần ≥ 4 triệu chứng, trong đó ≥ 1 thuộc nhóm thực vật (1)–(4) — hiện ${gadSx.length} triệu chứng, ${gadAuto.length} thực vật`);
+    const cOther = [['pan_attacks', 'rối loạn hoảng sợ F41.0'], ['phob_agora', 'ám ảnh sợ F40'], ['phob_social', 'ám ảnh sợ F40'], ['phob_specific', 'ám ảnh sợ F40'], ['ocd_obs', 'ám ảnh nghi thức F42'], ['ocd_comp', 'ám ảnh nghi thức F42'], ['hyp_a1', 'nghi bệnh F45.2']].filter(([k]) => sx.has(k)).map(([, l]) => l);
+    if(cOther.length) miss.push('C. Không được đáp ứng tiêu chuẩn ' + [...new Set(cOther)].join(', ') + ' — đang có dấu hiệu, xem lại');
+    if(!sx.has('gad_excl')) miss.push('Chưa có: D. Loại trừ bệnh cơ thể (cường giáp), rối loạn thực tổn, do chất (amphetamin, cai benzodiazepin)');
+    const age = ageOf(p, v.date);
+    add('F41.1', 'ICD-10 (bản VN) tr. 115–117', met, miss, (depOk ? 'Đang đủ tiêu chuẩn giai đoạn trầm cảm — cân nhắc trầm cảm là chẩn đoán chính. ' : '') + (age != null && age < 18 ? 'Trẻ em, thanh thiếu niên: có thể dùng tiêu chuẩn lo âu lan toả ở trẻ em F93.80.' : ''));
+  } else if(anxSx.length){
+    const gadMiss = ['anx_fear', 'anx_motor', 'anx_auto', 'anx_primary'].filter(k => !sx.has(k)).map(k => 'Chưa có: ' + ({anx_fear: 'Sợ hãi', anx_motor: 'Căng thẳng vận động', anx_auto: 'Triệu chứng thần kinh tự trị', anx_primary: 'Lo âu – sợ hãi là biểu hiện chính, nguyên phát'})[k]);
     if(wk == null || wk < 26) gadMiss.push(durTxt + ' — thường kéo dài nhiều tuần, nhiều tháng (thường 6 tháng)');
-    if(!depOk || gadMiss.length <= 1) add('F41.1', 'Bài 22', anxSx.map(k => MENTAL_SX.find(x => x.g === 'anx').items.find(i => i[0] === k)[1].split(':')[0]), gadMiss, 'Loại trừ cường giáp, rối loạn thực tổn, do chất (amphetamin, cai benzodiazepin).');
-    const depSome = sx.has('dep_mood') || sx.has('dep_anhed');
-    if(depSome && !depOk){
-      const mm = []; if(!sx.has('anx_auto')) mm.push('Cần có triệu chứng thần kinh tự trị (run, đánh trống ngực, khô miệng, sôi bụng…)');
-      if(excl.has('stress')) mm.push('Liên quan chặt chẽ sự kiện stress → chuyển sang rối loạn sự thích ứng');
-      add('F41.2', 'Bài 23', ['Có khí sắc giảm / mất hứng thú', 'Có biểu hiện lo âu', 'Chưa đủ nặng để chẩn đoán riêng trầm cảm'], mm, 'Nếu cả trầm cảm và lo âu đều đủ nặng thì ưu tiên chẩn đoán trầm cảm.');
-    }
+    gadMiss.push('Hồ sơ dùng bảng kiểm cũ (BYT 2020 Bài 22) — tích lại theo ICD-10 để đối chiếu đủ tiêu chuẩn');
+    if(!depOk || gadMiss.length <= 2) add('F41.1', 'Bài 22', anxSx.map(k => ({anx_fear: 'Sợ hãi', anx_motor: 'Căng thẳng vận động', anx_auto: 'Triệu chứng thần kinh tự trị', anx_primary: 'Lo âu – sợ hãi là biểu hiện chính, nguyên phát'})[k]), gadMiss, 'Loại trừ cường giáp, rối loạn thực tổn, do chất (amphetamin, cai benzodiazepin).');
+  }
+  // --- Hỗn hợp lo âu và trầm cảm F41.2 (BYT 2020 Bài 23; ICD-10 bản VN tr. 117: không có tiêu chuẩn nghiên cứu riêng, theo mô tả lâm sàng) ---
+  if((gadAny || anxSx.length) && (sx.has('dep_mood') || sx.has('dep_anhed')) && !depOk){
+    const mm = []; if(!autoSx) mm.push('Cần có triệu chứng thần kinh tự trị (run, đánh trống ngực, khô miệng, sôi bụng…)');
+    if(excl.has('stress')) mm.push('Liên quan chặt chẽ sự kiện stress → chuyển sang rối loạn sự thích ứng');
+    add('F41.2', 'Bài 23; ICD-10 (bản VN) tr. 117', ['Có khí sắc giảm / mất hứng thú', 'Có biểu hiện lo âu', 'Chưa đủ nặng để chẩn đoán riêng trầm cảm'], mm, 'Nếu cả trầm cảm và lo âu đều đủ nặng thì ưu tiên chẩn đoán trầm cảm. ICD-10 không có tiêu chuẩn nghiên cứu riêng cho F41.2.');
   }
   // --- Rối loạn hoảng sợ, ám ảnh sợ, ám ảnh nghi thức, stress cấp / PTSD (ICD-10 WHO — BYT 2020 không có bài riêng) ---
   const has = k => sx.has(k), lab = (g, k) => MENTAL_SX.find(x => x.g === g).items.find(i => i[0] === k)[1].split(/[:;(]/)[0].trim();
@@ -1573,7 +1693,8 @@ function psyDx(p, v){
   if(has('ins_compl')){
     const miss = need('slp', ['ins_freq', 'slp_impair', 'slp_excl']);
     if(depLv || anxSx.length) miss.push('Có triệu chứng trầm cảm / lo âu: mất ngủ có thể là triệu chứng — chẩn đoán rối loạn chính trước');
-    add('F51.0', 'BYT 2020 Bài 27; ICD-10', ['Khó vào giấc / khó duy trì / ngủ không ngon'].concat(['ins_freq', 'slp_impair', 'slp_excl'].filter(has).map(k => lab('slp', k))), miss, 'Đánh giá thêm PSQI, ISI; hỏi ngáy, ngưng thở (G47.3), chân không yên (G25.8).');
+    const durN = wk == null ? '' : wk >= 13 ? `Thời gian ${fmtN(wk)} tuần (≥ 3 tháng): mất ngủ mạn tính theo DSM-5 / ICD-11 (7A00). ` : wk >= 4 ? `Thời gian ${fmtN(wk)} tuần (1–3 tháng): đủ ICD-10, nhưng là mất ngủ ngắn hạn theo DSM-5 / ICD-11 (7A01). ` : '';
+    add('F51.0', 'BYT 2020 Bài 27; ICD-10 (bản VN) tr. 134; DCR-10 tr. 114', ['Khó vào giấc / khó duy trì / ngủ không ngon'].concat(['ins_freq', 'slp_impair', 'slp_excl'].filter(has).map(k => lab('slp', k))), miss, durN + 'Đánh giá thêm PSQI, ISI; hỏi ngáy, ngưng thở (G47.3), chân không yên (G25.8).');
   }
   if(has('cir_mismatch')) add('F51.2', 'ICD-10 (bản VN) tr. 135', [lab('slp', 'cir_mismatch')].concat(['slp_impair', 'slp_excl'].filter(has).map(k => lab('slp', k))), need('slp', ['slp_impair', 'slp_excl']), 'Phân biệt rối loạn nhịp thức – ngủ thực tổn (G47.2): làm việc theo ca, lệch múi giờ, bệnh thần kinh.');
   if(has('sw_walk')) add('F51.3', 'ICD-10 (bản VN) tr. 135', [lab('slp', 'sw_walk')].concat(has('slp_excl') ? [lab('slp', 'slp_excl')] : []), need('slp', ['slp_excl']), 'Loại trừ rối loạn tâm thần thực tổn (mất trí), động kinh. Sau cơn không có rối loạn hoạt động tâm thần, có thể lú lẫn ngắn.');
@@ -1590,7 +1711,7 @@ function psyDx(p, v){
     add('G47.3', 'LEC2 (DSM-5)', ['osa_snore', 'osa_day'].filter(has).map(k => lab('slp', k)).concat(ahi != null ? [`AHI ${fmtN(ahi, 1)} lần/giờ`] : []), ok ? [] : [ahi == null ? 'Cần đa ký giấc ngủ: AHI ≥ 5 kèm triệu chứng, hoặc AHI ≥ 15' : `AHI ${fmtN(ahi, 1)} < 5 — chưa đủ tiêu chuẩn`], (sev ? `Mức độ theo AHI: ${sev}. ` : '') + 'Sàng lọc STOP-BANG, đánh giá thang Epworth; ngưng thở trung ương cần ≥ 5 cơn trung ương / giờ trên đa ký.');
   }
   if(has('nar_attack')) add('G47.4', 'LEC2 (DSM-5)', [lab('slp', 'nar_attack')].concat(has('nar_cata') ? [lab('slp', 'nar_cata')] : []), has('nar_cata') ? [] : ['Cần có cơn mất trương lực đột ngột (cataplexy), hoặc thiếu hypocretin-1 trong dịch não tuỷ, hoặc đa ký giấc ngủ / MSLT điển hình'], 'Phân biệt ngủ nhiều không thực tổn (F51.1), ngưng thở khi ngủ (G47.3).');
-  if(has('hyp_day')) add('F51.1', 'ICD-10', ['Buồn ngủ quá mức ban ngày'].concat(['hyp_nonarco', 'slp_impair', 'slp_excl'].filter(has).map(k => lab('slp', k))), need('slp', ['hyp_nonarco', 'slp_impair', 'slp_excl']), 'Có cơn ngủ rũ / mất trương lực đột ngột → G47.4; ngưng thở khi ngủ → G47.3.');
+  if(has('hyp_day')) add('F51.1', 'ICD-10 (bản VN) tr. 134–135; DCR-10 tr. 114–115', ['Buồn ngủ quá mức ban ngày'].concat(['hyp_nonarco', 'slp_impair', 'slp_excl'].filter(has).map(k => lab('slp', k))), need('slp', ['hyp_nonarco', 'slp_impair', 'slp_excl']), 'Có cơn ngủ rũ / mất trương lực đột ngột → G47.4; ngưng thở khi ngủ → G47.3. DSM-5 (LEC2): ngủ nhiều ≥ 3 lần/tuần, ≥ 3 tháng.');
   // Nghiện rượu / thuốc lá: hội chứng nghiện F1x.2 (≥ 3/6 trong 12 tháng); sử dụng gây hại F1x.1
   const sudCore = ['sud_crave', 'sud_control', 'sud_withdraw', 'sud_toler', 'sud_neglect', 'sud_harm'], sudN = sudCore.filter(has).length;
   if(sudN){
@@ -1847,6 +1968,19 @@ function psyDx(p, v){
     }
     if(['so8_local', 'so8_stress', 'so8_noles'].some(has)) add('F45.8', 'ICD-10 (bản VN) tr. 129', ['so8_local', 'so8_noles', 'so8_stress'].filter(has).map(SL), need('som', ['so8_local', 'so8_noles']), 'Khác F45.0 / F45.1 ở chỗ triệu chứng không đa dạng, không thay đổi nguồn gốc. Tổn thương mô không xếp vào mục này.');
     if(has('so9')) add('F45.9', 'ICD-10 (bản VN) tr. 129', [SL('so9')], [], 'Chỉ dùng khi không xếp được vào F45.0–F45.8.');
+  }
+  // --- Suy nhược thần kinh F48.0 (ICD-10 bản VN tr. 129–130): A (1) hoặc (2); B ≥ 1/6; C không hồi phục khi nghỉ; D ≥ 3 tháng (hoặc ô thời gian ≥ 13 tuần); E loại trừ ---
+  {
+    const NB = ['neu_b1', 'neu_b2', 'neu_b3', 'neu_b4', 'neu_b5', 'neu_b6'], NL = k => lab('neur', k);
+    if(['neu_a1', 'neu_a2', 'neu_c', 'neu_d', 'neu_excl'].concat(NB).some(has)){
+      const nA = ['neu_a1', 'neu_a2'].filter(has), nB = NB.filter(has), d3 = has('neu_d') || (wk != null && wk >= 13);
+      const met = nA.map(NL).concat(nB.length ? [`B. ${nB.length} triệu chứng: ${nB.map(NL).join(', ')}`] : [], has('neu_c') ? [NL('neu_c')] : [], d3 ? ['D. Kéo dài ≥ 3 tháng' + (has('neu_d') ? '' : ` (${fmtN(wk)} tuần)`)] : [], has('neu_excl') ? [NL('neu_excl')] : []);
+      const miss = (nA.length ? [] : ['Chưa có: A — suy kiệt sau gắng sức tâm thần nhỏ, hoặc mệt mỏi, suy yếu sau gắng sức cơ thể nhỏ']).concat(nB.length ? [] : ['Chưa có: B — ít nhất 1 triệu chứng']);
+      if(!has('neu_c')) miss.push('Chưa có: ' + NL('neu_c'));
+      if(!d3) miss.push('Chưa có: D. Rối loạn kéo dài ít nhất 3 tháng' + (wk != null ? ` (hiện ${fmtN(wk)} tuần)` : ''));
+      if(!has('neu_excl')) miss.push('Chưa có: ' + NL('neu_excl'));
+      add('F48.0', 'ICD-10 (bản VN) tr. 129–130', met, miss, 'Không chẩn đoán khi có rối loạn khí sắc (F30–F39), hoảng sợ, lo âu lan toả, hoặc khi bệnh cảnh do bệnh thực tổn (F06.6, F07.1, F07.2).');
+    }
   }
   // --- Rối loạn sự thích ứng (ICD-10 WHO F43.2; tài liệu BYT 2020 / LEC4 chỉ dẫn chẩn đoán theo ICD-10) ---
   const adjStress = sx.has('adj_stressor') || excl.has('stress');

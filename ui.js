@@ -54,7 +54,7 @@ function afterChange(path){
     const p = curP(), v = curV();
     if(v){
       const rxDays = /^v\.rx\.#([^.]+)\.days$/.exec(path);
-      if(rxDays){ const l = v.rx.find(x => x.id === rxDays[1]), d = l && drugById(l.drugId); if(d && isBzd(d) && num(l.days) > BZD_MAX_DAYS){ l.days = BZD_MAX_DAYS; const el = $(`[data-b="${path}"]`); if(el) el.value = BZD_MAX_DAYS; toast(`Benzodiazepin chỉ kê dưới 9 ngày — đã đặt ${BZD_MAX_DAYS} ngày`); } }
+      if(rxDays){ const l = v.rx.find(x => x.id === rxDays[1]), d = l && drugById(l.drugId); if(d && isBzd(d) && num(l.days) > BZD_MAX_DAYS){ l.days = BZD_MAX_DAYS; const el = $(`[data-b="${path}"]`); if(el) el.value = BZD_MAX_DAYS; toast(`Benzodiazepin không kê quá ${BZD_MAX_DAYS} ngày — đã đặt ${BZD_MAX_DAYS} ngày`); } }
       if(path === 'v.vitals.weight' && isLatestVisit(p, v) && num(v.vitals.weight)) p.weight = num(v.vitals.weight);
       if(path === 'v.vitals.height' && isLatestVisit(p, v) && num(v.vitals.height)) p.height = num(v.vitals.height);
       if((path === 'v.plan.followDays' || path === 'v.date') && num(v.plan.followDays) && v.date){ v.plan.followDate = addDays(v.date, num(v.plan.followDays)); setDom('v.plan.followDate', v.plan.followDate); }
@@ -117,6 +117,7 @@ const LIVE = {
   renalP: () => { const r = renalOf(curP()); if(!r) return '<span class="muted small">Chưa có creatinin. Nhập ở đây hoặc trong kết quả xét nghiệm của lượt khám.</span>'; return `<div>${r.egfr != null ? `<b>eGFR ≈ ${fmtN(r.egfr)}</b> mL/phút/1,73m² — giai đoạn ${r.stage}` : ''}${r.crcl ? ` · CrCl (Cockcroft-Gault) ≈ ${fmtN(r.crcl)} mL/phút` : ''}</div><div class="tiny muted">Nguồn: ${esc(r.src)}${r.creat ? ` · creatinin ${fmtN(r.creat)} µmol/L` : ''} · Dùng để kiểm tra liều thuốc.</div>`; },
   nutri: () => nutriHTML(),
   act: () => { const p = curP(), v = curV(); const m = num(v.activity.minutes) ?? num(p.exerciseMin); if(m == null) return '<span class="muted small">Nhập số phút vận động mức vừa mỗi tuần để đánh giá.</span>'; return m >= 150 ? chip(`${fmtN(m)} phút/tuần — đạt khuyến cáo WHO (≥ 150)`, 'ok') : chip(`${fmtN(m)} phút/tuần — chưa đạt khuyến cáo WHO (≥ 150 phút/tuần mức vừa); mức độ hoạt động thể lực kém`, 'r2'); },
+  sport: () => sportHTML(),
   mood: () => moodHTML(),
   mentalSum: () => mentalSumHTML(),
   rxgate: () => rxGateHTML(),
@@ -411,6 +412,14 @@ function examCard(v){
   }).join('');
   return `<div class="card"><h3>Khám lâm sàng</h3>${body}<div class="subhd ex1">Ghi thêm</div>${T('v.exam', v.exam, {rows: 3, ph: 'Khám khác, mô tả thêm…'})}</div>`;
 }
+// Ô cách dùng của dòng đơn (bác sĩ đặt 2026-11-14): MỘT ô duy nhất — để trống thì bác sĩ tự ghi (trường hợp đặc biệt),
+// bấm vào ô hiện danh sách câu bác sĩ thiết lập (howOpts, datalist riêng cho dòng đơn). Thuốc chưa thiết lập → gợi ý chung dlHow
+function howCtl(l, d){
+  const path = `v.rx.#${l.id}.how`, opts = (d && d.howOpts) || [];
+  if(!opts.length) return I(path, l.how, {list: 'dlHow', ph: 'Cách dùng'});
+  const dl = `dlHow_${l.id}`;
+  return I(path, l.how, {list: dl, ph: 'Trống — tự ghi hoặc chọn câu có sẵn'}) + `<datalist id="${dl}">${opts.map(h => `<option value="${esc(h)}"></option>`).join('')}</datalist>`;
+}
 function step1(p, v){
   return `<div class="card"><h3>1. Lý do đến khám</h3>${T('v.reason', v.reason, {rows: 2, ph: 'vd. Đau bụng vùng thượng vị 2 tuần'})}</div>
   <div class="card"><h3>Bệnh sử – triệu chứng</h3>${T('v.hpi', v.hpi, {rows: 4, ph: 'Diễn biến, tính chất triệu chứng, thuốc đã tự dùng…'})}</div>
@@ -430,13 +439,26 @@ function mentalCard(p, v){
   if(!open) return `<div class="card">${head}<div class="small muted">Bảng kiểm triệu chứng trầm cảm, hưng cảm, lo âu theo BYT 2020 — dùng để gợi ý chẩn đoán ở bước 3.</div></div>`;
   const srcTxt = src => /^Bài/.test(src) ? 'BYT 2020, ' + src : src;
   const grp = (t, src, body) => `<div class="mgrp"><span class="lbl">${esc(t)} <span class="tiny muted">${esc(srcTxt(src))}</span></span><div class="checks">${body}</div></div>`;
-  const OPEN_G = ['dep_core', 'dep_common', 'dep_som', 'man_a', 'man_b', 'mix', 'psy', 'anx'], sxSet = new Set(m.sx || []);
-  const grpX = g => { const body = checklistHTML(g, m.sx);
-    if(OPEN_G.includes(g.g)) return grp(g.t, g.src, body);
-    const n = g.items.filter(([k]) => sxSet.has(k)).length;
-    return `<details class="mgrp mdet" data-g="${g.g}"${n ? ' open' : ''}><summary><span class="lbl">${esc(g.t)}${n ? ` <span class="chip pri">${n}</span>` : ''} <span class="tiny muted">${esc(srcTxt(g.src))}</span></span></summary><div class="checks">${body}</div></details>`; };
+  // Trầm cảm, hưng cảm, loạn thần, lo âu: thành đề mục thu gọn như các nhóm khác (bác sĩ đặt 2026-11-15); các nhóm con hiện bên trong đề mục
+  const CLUSTERS = [
+    {id: 'c_dep', t: 'Giai đoạn trầm cảm (F32, F33)', src: 'BYT 2020 Bài 20–21; ICD-10 (bản VN) tr. 102–104', gs: ['dep_core', 'dep_common', 'dep_som']},
+    {id: 'c_man', t: 'Hưng cảm, rối loạn cảm xúc lưỡng cực (F30, F31)', src: 'BYT 2020 Bài 18–19; ICD-10 (bản VN) tr. 97–101', gs: ['man_a', 'man_b', 'mix']},
+    {id: 'c_psy', t: 'Triệu chứng loạn thần (kèm giai đoạn cảm xúc)', src: 'BYT 2020 Bài 18, 20', gs: ['psy']}];
+  const inCl = new Set(CLUSTERS.flatMap(c => c.gs)), sxSet = new Set(m.sx || []);
+  const cnt = g => g.items.filter(([k]) => sxSet.has(k)).length;
+  const det = (id, t, src, n, body) => `<details class="mgrp mdet" data-g="${id}"${n ? ' open' : ''}><summary><span class="lbl">${esc(t)}${n ? ` <span class="chip pri">${n}</span>` : ''} <span class="tiny muted">${esc(srcTxt(src))}</span></span></summary>${body}</details>`;
+  const grpX = g => {
+    const c = CLUSTERS.find(x => x.gs[0] === g.g);
+    if(c){
+      const gs = c.gs.map(k => MENTAL_SX.find(x => x.g === k)).filter(Boolean), n = gs.reduce((s, x) => s + cnt(x), 0) + (c.id === 'c_dep' && m.severe ? 1 : 0);
+      const body = gs.map(x => grp(x.t, x.src, checklistHTML(x, m.sx)) + (x.g === 'dep_som' ? `<div class="mgrp">${CB('v.mental.severe', m.severe, '<b>Một số triệu chứng đặc biệt nặng</b> <span class="tiny muted">— điều kiện của trầm cảm nặng (BYT 2020, Bài 20); bác sĩ đánh giá</span>')}</div>` : '')).join('');
+      return det(c.id, c.t, c.src, n, body);
+    }
+    if(inCl.has(g.g)) return '';
+    return det(g.g, g.t, g.src, cnt(g), `<div class="checks">${checklistHTML(g, m.sx)}</div>`);
+  };
   return `<div class="card">${head}<div data-live="mentalSum"></div>
-    ${MENTAL_SX.map(g => grpX(g) + (g.g === 'dep_som' ? `<div class="mgrp">${CB('v.mental.severe', m.severe, '<b>Một số triệu chứng đặc biệt nặng</b> <span class="tiny muted">— điều kiện của trầm cảm nặng (BYT 2020, Bài 20); bác sĩ đánh giá</span>')}</div>` : '')).join('')}
+    ${MENTAL_SX.map(grpX).join('')}
     <div class="g3 mgrp">${F('Thời gian kéo dài giai đoạn hiện tại', U('v.mental.weeks', m.weeks, 'tuần'))}<div class="field spanall"><label>Mức ảnh hưởng chức năng</label><div class="row">${MENTAL_IMPAIR.map(([k, l]) => RAD('v.mental.impair', m.impair, k, l)).join('')}</div></div></div>
     ${grp('Tiền sử giai đoạn khí sắc', 'Bài 19, 21', MENTAL_HIST.map(([k, l]) => CL('v.mental.hist', m.hist, k, l)).join(''))}
     ${grp('Yếu tố cần loại trừ', 'Bài 18–23', MENTAL_EXCL.map(([k, l]) => CL('v.mental.excl', m.excl, k, l)).join(''))}
@@ -458,7 +480,7 @@ function dxSugHTML(){
   let h = r.alerts.map(a => `<div class="w l${a.lv}"><div class="wt">${lvChip(a.lv)}${esc(a.t)}</div><div>${esc(a.m)}</div></div>`).join('');
   h += r.sugs.length ? r.sugs.map(s => `<div class="sug${s.ok ? ' ok' : ''}"><div class="wt"><span>${s.ok ? chip('Đủ tiêu chuẩn', 'ok') : chip('Chưa đủ', 'r1')} ${esc(s.code)} – ${esc(s.name)}</span>${cur === s.code ? chip('Đang chọn', 'pri') : `<button class="btn xs${s.ok ? ' pri' : ''}" data-act="dxPick" data-code="${esc(s.code)}">Chọn chẩn đoán này</button>`}</div>
     ${s.met.length ? `<div class="small"><b>Đã thỏa:</b> ${s.met.map(esc).join('; ')}</div>` : ''}${s.miss.length ? `<div class="small"><b>Còn thiếu / cần xem lại:</b><ul>${s.miss.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}${s.note ? `<div class="tiny muted">${esc(s.note)}</div>` : ''}${s.i11 ? `<div class="tiny"><b>Đối chiếu ICD-11:</b> ${esc(s.i11)}</div>` : ''}<div class="tiny muted">Nguồn: ${/^Bài/.test(s.src) ? 'BYT 2020 (QĐ 2058/QĐ-BYT) ' : ''}${esc(s.src)}</div></div>`).join('')
-    : '<div class="small muted">Các triệu chứng đã ghi chưa gợi ý rối loạn nào trong các nhóm đã có bảng kiểm (F00–F05, F10, F17, F30–F33, F40–F45, F50–F52, F63, F70–F73, F84, F90–F91, F98).</div>';
+    : '<div class="small muted">Các triệu chứng đã ghi chưa gợi ý rối loạn nào trong các nhóm đã có bảng kiểm (F00–F05, F10, F17, F30–F33, F40–F45, F48, F50–F52, F63, F70–F73, F84, F90–F91, F98).</div>';
   if(r.todo.length) h += `<div class="w l1" style="margin-top:8px"><div class="wt">Nên làm thêm</div>${r.todo.map(t => `<div>• ${esc(t)}</div>`).join('')}</div>`;
   return h + '<div class="tiny muted" style="margin-top:6px">Gợi ý dựa trên bảng kiểm, không thay thế đánh giá lâm sàng của bác sĩ.</div>';
 }
@@ -492,7 +514,7 @@ function step3(p, v){
   const rows = v.rx.map(l => { const d = drugById(l.drugId); if(!d) return `<tr><td colspan="9" class="muted">Thuốc đã bị xoá khỏi danh mục <button class="btn xs danger" data-act="rxDel" data-id="${l.id}">Xoá dòng</button></td></tr>`;
     const b = k => `<td class="num" style="width:58px">${I(`v.rx.#${l.id}.${k}`, l[k], {num: true})}</td>`;
     return `<tr class="rxline"><td style="min-width:190px"><b>${esc(d.n)}</b> ${originBadge(d)}<div class="tiny muted">${esc(d.hc)} · ${money(d.p)}/${esc(d.u)}</div></td>${b('s')}${b('tr')}${b('c')}${b('t')}<td class="num" style="width:60px">${I(`v.rx.#${l.id}.days`, l.days, {num: true})}</td><td class="nowrap" data-live="rxqty" data-id="${l.id}"></td><td class="right nowrap" data-live="rxcost" data-id="${l.id}"></td><td class="nowrap right"><button class="btn xs" data-act="cmpOpen" data-line="${l.id}" title="So sánh với thuốc cùng nhóm">⇄ So sánh</button> <button class="btn xs danger" data-act="rxDel" data-id="${l.id}" title="Bỏ khỏi đơn">✕</button></td></tr>
-    <tr class="rxwarn"><td colspan="9"><div class="rxsub"><div class="how">${I(`v.rx.#${l.id}.how`, l.how, {list: 'dlHow', ph: 'Cách dùng'})}${(d.howOpts || []).length ? `<select class="howpick" data-for="v.rx.#${l.id}.how" style="width:auto;padding:2px 8px;font-size:13px"><option value="">Tự ghi (để trống)</option>${d.howOpts.map(h => `<option value="${esc(h)}"${l.how === h ? ' selected' : ''}>${esc(h)}</option>`).join('')}</select>` : ''}</div><div data-live="rxw" data-id="${l.id}"></div></div></td></tr>`; }).join('');
+    <tr class="rxwarn"><td colspan="9"><div class="rxsub"><div class="how">${howCtl(l, d)}</div><div data-live="rxw" data-id="${l.id}"></div></div></td></tr>`; }).join('');
   return `<div class="card"><h3>3. Chẩn đoán</h3><div class="g2">
     <div class="dxcol">${F('Mã ICD-10 chẩn đoán chính (gõ để chọn nhanh)', I('v.dx.icd', v.dx.icd, {list: 'dlIcd', ph: 'vd. K29.7 hoặc "viêm dạ dày"'}))}${F('Chẩn đoán chính', T('v.dx.main', v.dx.main, {rows: 2}))}</div>
     <div class="dxcol">${F('Mã ICD-10 chẩn đoán phụ', I('v.dx.icd2', v.dx.icd2, {list: 'dlIcd', ph: 'vd. I10 hoặc "tăng huyết áp"'}))}${F('Chẩn đoán phụ', T('v.dx.secondary', v.dx.secondary, {rows: 2}))}</div>
@@ -543,22 +565,45 @@ function step4(p, v){
 }
 function nutriHTML(){
   const p = curP(), v = curV(), n = nutriCalc(p, v);
-  if(!n) return '<div class="small muted">Cần cân nặng, chiều cao, tuổi và giới để tính.</div>';
-  const seg = (pct, c) => `<i style="width:${Math.max(0, pct)}%;background:${c}"></i>`;
+  if(!n) return '<div class="small muted">Cần cân nặng, chiều cao và giới để tính.</div>';
+  const seg = (pct, c) => `<i style="width:${Math.max(0, pct)}%;background:${c}"></i>`, k = x => fmtN(Math.round(x / 10) * 10);
+  const gl = n.goal === 'lose' ? 'Giảm cân' : n.goal === 'gain' ? 'Tăng cân' : 'Duy trì';
+  const L = BYT_LABOR[n.labK];
   return `<div class="nout">
-    <div class="nbox"><div class="k">BMI</div><div class="v">${fmtN(n.bmi, 1)}</div><div class="s">${n.bmiCls} · cân nặng lý tưởng ≈ ${fmtN(n.ibw, 1)} kg</div></div>
-    <div class="nbox"><div class="k">Chuyển hoá cơ bản → nhu cầu</div><div class="v">${fmtN(n.tdee)} <small style="font-size:13px">kcal</small></div><div class="s">BMR ${fmtN(n.bmr)} × ${fmtN(n.fac, 3)} (Mifflin-St Jeor)</div></div>
-    <div class="nbox" style="border-color:var(--pri);background:var(--priSoft)"><div class="k">Mục tiêu năng lượng</div><div class="v">${fmtN(n.target)} <small style="font-size:13px">kcal/ngày</small></div><div class="s">${n.goal === 'lose' ? 'Giảm cân' : n.goal === 'gain' ? 'Tăng cân' : 'Duy trì'}</div></div>
-    <div class="nbox"><div class="k">Đạm</div><div class="v">${fmtN(n.protG)} <small style="font-size:13px">g/ngày</small></div><div class="s">${fmtN(n.gkg, 2)} g/kg × ${fmtN(n.wP, 1)} kg</div></div>
+    <div class="nbox"><div class="k">BMI</div><div class="v">${fmtN(n.bmi, 1)}</div><div class="s">${n.bmiCls}${n.waist != null ? ` · vòng bụng ${fmtN(n.waist)} cm${n.central ? ' (béo bụng)' : ''}` : ''}</div></div>
+    <div class="nbox"><div class="k">BMI mục tiêu</div><div class="v">${fmtN(n.tBmi, 1)}</div><div class="s">≈ ${fmtN(n.tW, 1)} kg${n.goal === 'lose' ? ` · cần giảm ${fmtN(n.toLose, 1)} kg` : ''}</div></div>
+    <div class="nbox"><div class="k">Năng lượng duy trì</div><div class="v">${k(n.maint)} <small style="font-size:13px">kcal/ngày</small></div><div class="s">${fmtN(n.w, 1)} kg × ${n.kgK} kcal/kg (lao động ${L.t.toLowerCase()})</div></div>
+    <div class="nbox" style="border-color:var(--pri);background:var(--priSoft)"><div class="k">Năng lượng khuyến nghị</div><div class="v">${k(n.target)} <small style="font-size:13px">kcal/ngày</small></div><div class="s">${gl}${n.lo != null ? ` · khoảng ${k(n.lo)}–${k(n.hi)} kcal (cân nặng lý tưởng ${fmtN(n.ibw, 1)} kg × ${L.lose[0]}–${L.lose[1]})` : ''}</div></div>
+    ${n.goal === 'lose' ? `<div class="nbox"><div class="k">Thâm hụt (tương đối)</div><div class="v">${k(n.deficit)} <small style="font-size:13px">kcal/ngày</small></div><div class="s">duy trì − khuyến nghị</div></div>` : ''}
+    <div class="nbox"><div class="k">Đạm</div><div class="v">${fmtN(n.protG)} <small style="font-size:13px">g/ngày</small></div><div class="s">${fmtN(n.protPct)}% năng lượng · ${fmtN(n.gkg, 2)} g/kg</div></div>
   </div>
+  ${n.goal === 'lose' ? `<div class="small" style="margin-top:8px"><b>Lộ trình:</b> mục tiêu 6 tháng giảm ${n.pct6}% → còn ≈ <b>${fmtN(n.w6, 1)} kg</b> (BMI ${fmtN(n.w6 / Math.pow(n.h / 100, 2), 1)}); tốc độ 2–3 kg/tháng${n.months ? ` → đạt BMI mục tiêu sau khoảng ${fmtN(n.months[0])}–${fmtN(n.months[1])} tháng` : ''}. Lối sống 3 tháng không giảm được 5% cân nặng và BMI ≥ 25 → cân nhắc thuốc (BYT 2022).</div>` : ''}
   <div class="bar">${seg(n.carbPct, '#e0a84b')}${seg(n.protPct, '#0e6655')}${seg(n.fatPct, '#7a8fd6')}</div>
-  <table class="t"><thead><tr><th>Thành phần</th><th class="right">g/ngày</th><th class="right">kcal</th><th class="right">% năng lượng</th></tr></thead><tbody>
-    <tr><td><span class="chip" style="background:#fbecd2">Bột đường (carbohydrat)</span></td><td class="right">${fmtN(n.carbG)}</td><td class="right">${fmtN(n.carbG * 4)}</td><td class="right">${fmtN(n.carbPct)}%</td></tr>
-    <tr><td><span class="chip pri">Đạm (protein)</span></td><td class="right">${fmtN(n.protG)}</td><td class="right">${fmtN(n.protG * 4)}</td><td class="right">${fmtN(n.protPct)}%</td></tr>
-    <tr><td><span class="chip r1">Béo (lipid)</span></td><td class="right">${fmtN(n.fatG)}</td><td class="right">${fmtN(n.fatG * 9)}</td><td class="right">${fmtN(n.fatPct)}%</td></tr>
-  </tbody></table>
-  <div class="small" style="margin-top:8px"><b>Chia bữa:</b> ${MEALS.map(([m, f]) => `${m} ~${fmtN(Math.round(n.target * f / 10) * 10)} kcal`).join(' · ')}. ${n.salt}; ${n.fiber}.</div>
-  ${n.notes.length ? `<div class="note" style="margin-top:8px">${n.notes.map(esc).join('<br>')}</div>` : ''}`;
+  <div class="tscroll"><table class="t"><thead><tr><th>Thành phần</th><th class="right">g/ngày</th><th class="right">kcal</th><th class="right">% năng lượng</th><th>Khuyến nghị BYT 2022</th></tr></thead><tbody>
+    <tr><td><span class="chip" style="background:#fbecd2">Bột đường (glucid)</span></td><td class="right">${fmtN(n.carbG)}</td><td class="right">${fmtN(n.carbG * 4)}</td><td class="right">${fmtN(n.carbPct)}%</td><td class="small">50–55%</td></tr>
+    <tr><td><span class="chip pri">Đạm (protid)</span></td><td class="right">${fmtN(n.protG)}</td><td class="right">${fmtN(n.protG * 4)}</td><td class="right">${fmtN(n.protPct)}%</td><td class="small">15–< 20%</td></tr>
+    <tr><td><span class="chip r1">Béo (lipid)</span></td><td class="right">${fmtN(n.fatG)}</td><td class="right">${fmtN(n.fatG * 9)}</td><td class="right">${fmtN(n.fatPct)}%</td><td class="small">< 30%</td></tr>
+  </tbody></table></div>
+  <div class="small" style="margin-top:8px"><b>Chia bữa:</b> ${n.meals.map(([m, f]) => `${m} ~${k(n.target * f)} kcal`).join(' · ')}. ${n.salt}; ${n.fiber}.</div>
+  ${n.tdee != null ? `<div class="tiny muted" style="margin-top:4px">Tham khảo: nhu cầu theo Mifflin-St Jeor ≈ ${k(n.tdee)} kcal (BMR ${k(n.bmr)} × ${fmtN(n.fac, 3)}).</div>` : ''}
+  ${n.notes.length ? `<div class="note" style="margin-top:8px">${n.notes.map(esc).join('<br>')}</div>` : ''}
+  <div class="tiny muted" style="margin-top:6px">Nguồn: BYT 2022 – QĐ 2892/QĐ-BYT (Bảng 4.1, 6.1, 6.2; mục 6.1.1, 6.2.1); AHA/ACC/TOS 2013; KDIGO 2024.</div>`;
+}
+// Bảng môn tập đã chọn: kcal / 30 phút theo cân nặng, cường độ, thời gian khuyến khích
+function sportText(sp){
+  const r = sp.rows; if(!r.length) return '';
+  return r.map(x => `- ${x.name}: ${x.time}.${x.note ? ' ' + x.note : ''}`).join('\n')
+    + (sp.hr ? `\n- Nhịp tim khi tập: ${fmtN(sp.hr[0])}–${fmtN(sp.hr[1])} lần/phút (vẫn nói chuyện được nhưng không hát được).` : '')
+    + '\n- Mỗi buổi: khởi động 5–10 phút, tập, thả lỏng 5–10 phút; bắt đầu nhẹ, tăng dần.'
+    + (sp.tips.length ? '\n' + sp.tips.map(t => '- ' + t.replace(/ \((WHO|BYT)[^)]*\)/g, '')).join('\n') : '');
+}
+function sportHTML(){
+  const p = curP(), v = curV(), sp = sportPlan(p, v);
+  if(!sp.rows.length) return '<div class="small muted">Chọn môn bệnh nhân muốn tập để xem thời gian khuyến khích và năng lượng tiêu hao.</div>';
+  return `<div class="tscroll"><table class="t"><thead><tr><th>Môn</th><th>Cường độ</th><th>Thời gian khuyến khích</th><th class="right">kcal / 30 phút</th><th class="right">kcal / tuần</th></tr></thead><tbody>${sp.rows.map(x => `<tr><td><b>${esc(x.name)}</b>${x.note ? `<div class="tiny muted">${esc(x.note)}</div>` : ''}</td><td>${x.int}</td><td>${esc(x.time)}</td><td class="right">${fmtN(x.k30)}</td><td class="right">${x.kW ? `${fmtN(Math.round(x.kW[0] / 10) * 10)}–${fmtN(Math.round(x.kW[1] / 10) * 10)}` : '—'}</td></tr>`).join('')}</tbody></table></div>
+  <div class="small" style="margin-top:6px">${sp.hr ? `Nhịp tim mục tiêu khi tập: <b>${fmtN(sp.hr[0])}–${fmtN(sp.hr[1])}</b> lần/phút ((220 − ${sp.a}) × 50–70%). ` : ''}Tính theo cân nặng ${fmtN(sp.w, 1)} kg.</div>
+  ${sp.tips.length ? `<div class="note" style="margin-top:6px">${sp.tips.map(esc).join('<br>')}</div>` : ''}
+  <div style="margin-top:6px"><button class="btn sm" data-act="sportFill">↧ Chèn vào hướng dẫn vận động</button> <span class="tiny muted">Nguồn: BYT 2022 Bảng 6.3, mục 6.2.2; WHO 2020; 2024 Adult Compendium.</span></div>`;
 }
 function moodHTML(){
   const v = curV(), q = num(v.psych.phq9), g = num(v.psych.gad7), out = [];
@@ -572,14 +617,16 @@ function step5(p, v){
   const jointDefault = (p.conds || []).includes('oa');
   return `<div class="card"><h3>5. Dinh dưỡng</h3><div class="g4">
     ${F('Cân nặng', U('v.nutrition.weight', n.weight, 'kg', {ph: String(num(v.vitals.weight) ?? num(p.weight) ?? '')}))}${F('Chiều cao', U('v.nutrition.height', n.height, 'cm', {ph: String(num(v.vitals.height) ?? num(p.height) ?? '')}))}
-    ${F('Mức hoạt động', SEL('v.nutrition.activity', n.activity || p.activity || 'sedentary', Object.entries(ACT_LV).map(([k, x]) => [k, x.t])), 'span2')}
-    ${F('Mục tiêu', SEL('v.nutrition.goal', n.goal || '', [['', 'Tự động theo BMI'], ['lose', 'Giảm cân'], ['keep', 'Duy trì'], ['gain', 'Tăng cân']]))}${F('Thâm hụt khi giảm cân', U('v.nutrition.deficit', n.deficit, 'kcal', {ph: '500'}))}
-    ${F('Đạm', U('v.nutrition.proteinGkg', n.proteinGkg, 'g/kg', {ph: 'tự động'}))}${F('Béo', U('v.nutrition.fatPct', n.fatPct, '%', {ph: '25'}))}
+    ${F('Mức lao động (BYT 2022)', SEL('v.nutrition.labor', BYT_LABOR[n.labor] ? n.labor : (ACT_TO_LABOR[n.activity || p.activity] || 'light'), Object.entries(BYT_LABOR).map(([k, x]) => [k, `${x.t} — ${x.ex}`])), 'span2')}
+    ${F('Mục tiêu', SEL('v.nutrition.goal', n.goal || '', [['', 'Tự động theo BMI'], ['lose', 'Giảm cân'], ['keep', 'Duy trì'], ['gain', 'Tăng cân']]))}${F('BMI mục tiêu', U('v.nutrition.targetBmi', n.targetBmi, 'kg/m²', {ph: 'tự động'}))}
+    ${F('Đạm', U('v.nutrition.protPct', n.protPct, '% năng lượng', {ph: '18'}))}${F('Béo', U('v.nutrition.fatPct', n.fatPct, '%', {ph: '25'}))}
     ${F('Đặt năng lượng thủ công (nếu cần)', U('v.nutrition.kcal', n.kcal, 'kcal', {ph: 'để trống = tự tính'}), 'span2')}
   </div><div style="margin-top:12px" data-live="nutri"></div>
   <div style="margin-top:12px">${F('Chế độ ăn (in cho bệnh nhân)', T('v.nutrition.text', n.text, {rows: 4}))}${tplChips('diet', 'v.nutrition.text', ctx, rxt)}</div></div>
   <div class="card"><h3>Hoạt động thể lực</h3><div class="g3">${F('Vận động mức vừa hiện tại', U('v.activity.minutes', v.activity.minutes, 'phút/tuần', {ph: String(num(p.exerciseMin) ?? '')}))}<div class="field"><label>&nbsp;</label>${CB('v.activity.joint', v.activity.joint ?? jointDefault, 'Có đau khớp — tránh tải lực lên khớp')}</div></div>
-    <div style="margin:10px 0" data-live="act"></div>${T('v.activity.text', v.activity.text, {rows: 4})}${tplChips('exercise', 'v.activity.text', ctx, rxt)}</div>
+    <div style="margin:10px 0" data-live="act"></div>
+    <div class="subhd">Môn bệnh nhân chọn tập</div><div class="checks sports">${SPORTS.map(s => CL('v.activity.sports', v.activity.sports, s[0], s[1])).join('')}</div>
+    <div style="margin:10px 0" data-live="sport"></div>${T('v.activity.text', v.activity.text, {rows: 4})}${tplChips('exercise', 'v.activity.text', ctx, rxt)}</div>
   <div class="card"><h3>Phục hồi chức năng</h3>${T('v.rehab.text', v.rehab.text, {rows: 4})}${tplChips('rehab', 'v.rehab.text', ctx, rxt)}</div>
   <div class="card"><h3>Y học cổ truyền</h3><div data-live="tcmNote" style="margin-bottom:8px"></div>${T('v.tcm.text', v.tcm.text, {rows: 4})}${tplChips('tcm', 'v.tcm.text', ctx, rxt)}</div>
   <div class="card"><h3>Tâm lý</h3><div class="g3">${F('PHQ-9 (0–27)', I('v.psych.phq9', v.psych.phq9, {num: true}))}${F('GAD-7 (0–21)', I('v.psych.gad7', v.psych.gad7, {num: true}))}<div class="field"><label>&nbsp;</label>${CB('v.psych.item9', v.psych.item9, 'PHQ-9 câu 9 > 0 (ý nghĩ tự hại)')}</div></div>
@@ -616,7 +663,7 @@ function sheetHTML(p, v){
     if(v.plan.followDate || rec.length) h += sec('Lịch hẹn', `<div class="box">${v.plan.followDate ? `<div style="font-size:14px">Tái khám: <b>${fmtDate(v.plan.followDate)}</b>${num(v.plan.followDays) ? ` (sau ${fmtN(num(v.plan.followDays))} ngày)` : ''}</div>${v.plan.followReason ? `<div>${esc(v.plan.followReason)}</div>` : ''}` : ''}${rec.map(r => `<div>${esc(r.title)}: khoảng tháng ${r.due.slice(5, 7)}/${r.due.slice(0, 4)}${r.note ? ' — ' + esc(r.note) : ''}</div>`).join('')}<div>Mang theo phiếu này và các kết quả xét nghiệm khi đến khám.</div></div>`);
   }
   if(o.ret && v.plan.returnSigns) h += sec('Đến cơ sở y tế ngay nếu có', `<div class="box pre">${esc(v.plan.returnSigns)}</div>`);
-  if(o.diet){ const n = nutriCalc(p, v); if(n || v.nutrition.text) h += sec('Dinh dưỡng', `${n ? `<div>Cân nặng ${fmtN(n.w, 1)} kg · BMI ${fmtN(n.bmi, 1)} (${n.bmiCls}). Năng lượng khuyến nghị: <b>${fmtN(n.target)} kcal/ngày</b>${n.goal === 'lose' ? ' (giảm cân)' : ''}.</div><table style="margin:4px 0"><tr><th>Bột đường</th><th>Đạm</th><th>Béo</th><th>Muối</th></tr><tr><td>${fmtN(n.carbG)} g (${fmtN(n.carbPct)}%)</td><td>${fmtN(n.protG)} g (${fmtN(n.protPct)}%)</td><td>${fmtN(n.fatG)} g (${fmtN(n.fatPct)}%)</td><td>${n.salt}</td></tr></table><div>Chia bữa: ${MEALS.map(([m, f]) => `${m} ~${fmtN(Math.round(n.target * f / 10) * 10)} kcal`).join('; ')}.</div>` : ''}${v.nutrition.text ? pre(v.nutrition.text) : ''}`); }
+  if(o.diet){ const n = nutriCalc(p, v); if(n || v.nutrition.text) h += sec('Dinh dưỡng', `${n ? `<div>Cân nặng ${fmtN(n.w, 1)} kg · BMI ${fmtN(n.bmi, 1)} (${n.bmiCls}). Năng lượng khuyến nghị: <b>${fmtN(Math.round(n.target / 10) * 10)} kcal/ngày</b>${n.goal === 'lose' ? ` (giảm cân; mục tiêu ≈ ${fmtN(n.tW, 1)} kg, BMI ${fmtN(n.tBmi, 1)}; giảm 2–3 kg/tháng)` : ''}.</div><table style="margin:4px 0"><tr><th>Bột đường</th><th>Đạm</th><th>Béo</th><th>Muối</th></tr><tr><td>${fmtN(n.carbG)} g (${fmtN(n.carbPct)}%)</td><td>${fmtN(n.protG)} g (${fmtN(n.protPct)}%)</td><td>${fmtN(n.fatG)} g (${fmtN(n.fatPct)}%)</td><td>${n.salt}</td></tr></table><div>Chia bữa: ${n.meals.map(([m, f]) => `${m} ~${fmtN(Math.round(n.target * f / 10) * 10)} kcal`).join('; ')}.</div>` : ''}${v.nutrition.text ? pre(v.nutrition.text) : ''}`); }
   if(o.act && v.activity.text) h += sec('Hoạt động thể lực', pre(v.activity.text));
   if(o.rehab && v.rehab.text) h += sec('Phục hồi chức năng', pre(v.rehab.text));
   if(o.tcm && v.tcm.text) h += sec('Y học cổ truyền', pre(v.tcm.text));
@@ -723,7 +770,7 @@ function viewSettings(){
     <div class="row"><button class="btn pri" data-act="export">Tải file sao lưu (.json)</button><label class="btn">Khôi phục từ file sao lưu<input type="file" id="importFile" accept=".json,application/json" hidden></label><span class="small muted">${s.lastBackup ? 'Lần tải gần nhất: ' + fmtDate(s.lastBackup.slice(0, 10)) : ''}</span></div></div>
   ${Store.mode !== 'dir' && S.fileHandle ? `<div class="card"><h3>Tự động lưu ra file</h3><div class="row"><span class="chip ${S.fileNeedsPerm ? 'r2' : 'ok'}">${S.fileNeedsPerm ? 'Tạm dừng' : 'Đang tự lưu'}: ${esc(S.fileHandle.name)}</span>${S.fileNeedsPerm ? '<button class="btn sm" data-act="fileReconnect">Cho phép tiếp tục</button>' : '<button class="btn sm" data-act="fileWriteNow">Lưu ngay</button>'}<button class="btn sm danger" data-act="fileUnlink">Ngừng tự lưu</button></div></div>` : ''}
   <div class="card"><h3>Dữ liệu</h3><div class="small" style="margin-bottom:10px">${S.patients.length} bệnh nhân · ${S.patients.reduce((a, p) => a + p.visits.length, 0)} lượt khám · ${S.drugs.length} thuốc · ${S.tpls.length} mẫu · lưu ${Store.mode === 'dir' ? 'trong thư mục ' + esc(Store.dirName) : 'trong trình duyệt'}</div>
-    <div class="row">${S.patients.some(p => p.demo) ? '<button class="btn" data-act="clearDemo">Xoá ca mẫu</button>' : '<button class="btn" data-act="addDemo">Thêm lại ca mẫu</button>'}<button class="btn danger" data-act="wipeAll">Xoá toàn bộ dữ liệu</button></div></div>
+    <div class="row">${!DEMO_ON() ? '' : S.patients.some(p => p.demo) ? '<button class="btn" data-act="clearDemo">Xoá ca mẫu</button>' : '<button class="btn" data-act="addDemo">Thêm lại ca mẫu</button>'}<button class="btn danger" data-act="wipeAll">Xoá toàn bộ dữ liệu</button></div></div>
   <div class="card"><h3>Về công cụ hỗ trợ quyết định</h3><div class="small">Cảnh báo tương tác, chỉnh liều theo thận, người cao tuổi, thai kỳ và gợi ý sàng lọc được tổng hợp từ tờ hướng dẫn sử dụng, Dược thư, KDIGO, tiêu chí Beers, USPSTF/ADA. Danh mục chỉ bao phủ các thuốc đã nhập — thuốc ngoài danh mục cần được kiểm tra riêng. Kết quả là gợi ý; bác sĩ chịu trách nhiệm quyết định điều trị.</div></div></div>`;
 }
 
@@ -855,6 +902,7 @@ const ACT = {
   fileUnlink: async () => { S.fileHandle = null; S.fileNeedsPerm = false; await Store.del('kv', 'fh'); renderMain(true); setSave('saved'); },
   fileWriteNow: async () => { await writeFileNow(); toast('Đã ghi ra file'); renderMain(true); },
   clearDemo: async () => { if(!confirm('Xoá ca mẫu?')) return; for(const p of S.patients.filter(p => p.demo)) await Store.del('patients', p.id); S.patients = S.patients.filter(p => !p.demo); S.settings.demoCleared = true; await saveSettings(); render(); },
+  sportFill: () => { const p = curP(), v = curV(), t = sportText(sportPlan(p, v)); if(!t) return; v.activity.text = (v.activity.text ? v.activity.text.replace(/\s+$/, '') + '\n' : '') + t; savePatient(p); renderMain(); toast('Đã chèn hướng dẫn tập vào ô vận động'); },
   addDemo: async () => { const p = demoPatient(); S.patients.push(p); await Store.put('patients', p); render(); },
   wipeAll: async () => { if(!confirm('XOÁ TOÀN BỘ bệnh nhân, danh mục, mẫu?' + (Store.mode === 'dir' ? ' (Các file sẽ được chuyển vào du-lieu\\da-xoa)' : ''))) return; if(!confirm('Anh đã sao lưu chưa? Thao tác không hoàn tác được.')) return; for(const s of ['patients', 'drugs', 'templates', 'files', 'kv']) await Store.clear(s); await seedAll(false); S.view = {name: 'home'}; render(); toast('Đã xoá toàn bộ dữ liệu'); },
 };
@@ -954,12 +1002,23 @@ function demoPatient(){
 }
 
 // ================= KHỞI ĐỘNG =================
+// Ca mẫu "Nguyễn Văn A" (bác sĩ bỏ 2026-11-14): chỉ dùng cho kiểm thử tự động — bật bằng window.__HSBN_DEMO (smoke test đặt trước khi tải trang)
+const DEMO_ON = () => !!(typeof window !== 'undefined' && window.__HSBN_DEMO);
+// Xoá ca mẫu còn sót trong dữ liệu (Store.del: ở chế độ thư mục chuyển vào du-lieu/da-xoa, không xoá hẳn)
+async function purgeDemo(){
+  if(DEMO_ON()) return 0;
+  const ds = S.patients.filter(p => p.demo); if(!ds.length) return 0;
+  for(const p of ds){ try { await Store.del('patients', p.id); } catch(e){ console.warn('Không xoá được ca mẫu', e); } }
+  S.patients = S.patients.filter(p => !p.demo);
+  if(S.settings && S.settings.id){ S.settings.demoCleared = true; try { await saveSettings(); } catch(e){ console.warn(e); } }
+  return ds.length;
+}
 async function seedAll(withDemo){
   S.settings = {id: 'settings', clinic: 'Phòng khám Nội tổng quát', doctor: 'BS. Toàn', address: '', phone: '', footer: 'Phiếu dùng để tư vấn và theo dõi điều trị. Vui lòng mang theo khi tái khám.', lastBackup: null, created: new Date().toISOString()};
   await Store.put('kv', S.settings);
   await Store.putMany('drugs', clone(DRUGS_SEED));
   await Store.putMany('templates', clone(TEMPLATES_SEED));
-  if(withDemo) await Store.put('patients', demoPatient());
+  if(withDemo && DEMO_ON()) await Store.put('patients', demoPatient());
   await loadAll();
 }
 async function loadAll(){
@@ -972,6 +1031,7 @@ async function loadAll(){
   await updateSeedDrugs();
   await addNewSeedTpls();
   await updateSeedTpls();
+  await purgeDemo();
 }
 // Mẫu lời dặn bổ sung sau khi phát hành: chỉ thêm id chưa có, mỗi id đúng một lần (BS đã xoá thì không thêm lại)
 const TPL_ADDED = ['adv_psych', 'adv_viagra', 'adv_ed', 'adv_pe', 'adv_sex_f', 'adv_relax', 'adv_trazo', 'adv_sleep', 'adv_child_psy', 'adv_asd', 'adv_stutter', 'adv_cog', 'adv_behav'];
@@ -1031,7 +1091,7 @@ const SEED_ADDED = ['gavis10',
   // Risperdal 1 mg — 2026-11-07
   'risperdal1',
   // alprazolam 0,25 mg thay 0,5 mg — 2026-11-09
-  'alpra025n', 'alpra025f', 'prozac10', 'bupro150'];
+  'alpra025n', 'alpra025f', 'prozac10', 'bupro150', 'seduxen5', 'buspi5', 'stresam50', 'eszopi2', 'doxep3', 'diphen25'];
 async function addNewSeedDrugs(){
   const done = S.settings.seedAdded || [], todo = SEED_ADDED.filter(id => !done.includes(id));
   if(!todo.length) return;
@@ -1064,6 +1124,16 @@ const SEED_UPDATES = [{ver: 'stahl-2026-10', ids: SEED_ADDED.slice(1)},   // 44 
   {ver: 'risperidon-luu-y-2026-11-12', ids: ['risp2n', 'risp2f', 'risperdal1'], only: ['dnote']},
   {ver: 'sulpirid-2026-11-12', ids: ['sulpi50'], only: ['how', 'howOpts', 'dnote']},
   {ver: 'sulpirid-than-2026-11-12', ids: ['sulpi50'], only: ['dnote', 'renal']},
+  {ver: 'escitalopram-2026-11-14', ids: ['escit10', 'escit10n'], only: ['how', 'howOpts', 'dnote']},
+  {ver: 'paroxetin-2026-11-14', ids: ['parox20n', 'parox20f'], only: ['how', 'howOpts', 'dnote']},
+  {ver: 'duloxetin-2026-11-14', ids: ['dulox30n', 'dulox30f'], only: ['dose', 'how', 'howOpts', 'dnote']},
+  {ver: 'propranolol-2026-11-14', ids: ['propra40'], only: ['dose', 'how', 'howOpts', 'dnote']},
+  {ver: 'diazepam-bo-2026-11-15', ids: ['diaz5', 'diaz5f'], only: ['off']},
+  {ver: 'pregabalin-2026-11-15', ids: ['pregab75'], only: ['how', 'howOpts', 'dnote']},
+  {ver: 'hydroxyzin-2026-11-15', ids: ['hydro25'], only: ['dose', 'how', 'howOpts', 'dnote']},
+  {ver: 'etifoxin-bo-2026-11-15', ids: ['etifo50'], only: ['off']},
+  {ver: 'zopiclon-2026-11-15', ids: ['zopi7n', 'zopi7f'], only: ['how', 'howOpts', 'dnote']},
+  {ver: 'melatonin-2026-11-15', ids: ['melato3'], only: ['how', 'howOpts', 'dnote']},
   {ver: 'tuong-tac-tam-than-2026-11-09', ids: DRUGS_SEED.filter(d => PSY_EXTRA_TAGS[d.hc]).map(d => d.id), only: ['tags']}];                          // ưu tiên khuyến cáo mới hơn Stahl 2004 (LactMed, FDA/EMA, SmPC)
 const SEED_CLIN = ['tags', 'how', 'howOpts', 'dnote', 'ae', 'warn', 'pro', 'con', 'renal', 'hep', 'old', 'preg', 'lact', 'cond'];
 async function updateSeedDrugs(){

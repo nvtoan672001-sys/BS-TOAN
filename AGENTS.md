@@ -154,13 +154,18 @@ Các phần khác:
 - **Chặn kê cùng lúc thuốc tâm thần (2026-11-09)**: `pairBlockReasons(p, v, d)` (engine.js) — quy tắc `RULES` mức 3, ít nhất một thuốc nhóm `neuro`, so với đơn hiện tại và thuốc dài hạn; `rxBlocked` (ui.js) báo và không thêm. `RULES` có thể có `cond` (chỉ áp khi có bệnh nền đó). Tag tương tác bổ sung theo hoạt chất ở `PSY_EXTRA_TAGS` (data.js). Nguồn: Dược thư QG 2022 (bản scan, đọc bằng OCR), Stahl. Đổi `lv` của quy tắc có thuốc tâm thần sang 3 là đổi hành vi chặn kê.
 - **Trường thuốc `off: true` (2026-11-09)**: thuốc đã bỏ — `drugSearch`, so sánh, trang danh mục lọc bỏ; `drugById` vẫn tra được để đơn cũ hiện tên. Đang áp cho alprazolam 0,5 mg.
 - **Tự tích "Nhập viện" (2026-11-09)**: `admitReasons(v)` — bệnh sử ghi tự hại, tự gây thương tích, tự sát / tự tử, kích động; `autoRefer` ưu tiên nhập viện hơn chuyển tuyến.
+- **Khung khám tâm thần (2026-11-15)**: mọi nhóm `MENTAL_SX` là đề mục thu gọn `details.mdet`; trầm cảm / hưng cảm / loạn thần gom theo `CLUSTERS` trong `mentalCard` (`c_dep`, `c_man`, `c_psy`). Rối loạn giấc ngủ: `ICD11_MAP` có mã chương 7 (7A00/7A01, 7A21, 7A60–7A6Z, 7B00.1/.2, 7A41, 7A20) lấy từ web WHO.
+- **Dinh dưỡng – vận động bước 5 (2026-11-14)**: `nutriCalc` theo BYT 2022 (`BYT_LABOR`, `ACT_TO_LABOR`; trường mới `v.nutrition.labor`, `targetBmi`, `protPct`); môn tập `v.activity.sports` → `SPORTS`, `SPORT_NOTE` (data.js), `sportPlan` (engine.js), `sportHTML` / `sportText` / `ACT.sportFill` (ui.js).
+- **Ô cách dùng (2026-11-14)**: `howCtl` (ui.js) — một ô chữ duy nhất; để trống = tự ghi; `howOpts` hiện qua `<datalist>` riêng của dòng đơn.
+- **Lo âu lan toả F41.1 theo ICD-10 (2026-11-14)**: nhóm `anx` = `gad_a`, `gad_1`–`gad_22`, `gad_excl` (ICD-10 bản VN tr. 115–117); khoá cũ `anx_*` vẫn tính theo BYT 2020 Bài 22 cho hồ sơ cũ.
+- **Suy nhược thần kinh F48.0 (2026-11-13)**: nhóm `neur` (ICD-10 bản VN tr. 129–130) → `psyDx` gợi ý F48.0; ICD-11 không có mục tương ứng.
 - **Bupropion 150 mg (2026-11-12)**: `bupro150`; chặn ô động kinh, rối loạn ăn uống (chữ tiền sử / F50.x), bệnh sử mất ngủ (khó vào giấc, ngủ < 6 giờ, tỉnh giữa giấc > 2 lần, thức sớm).
 - **Khám lâm sàng theo cơ quan (2026-11-12)**: `EXAM_FORM` (data.js) → `examCard` (ui.js), dữ liệu `v.examSys`; `v.exam` = ô "Ghi thêm". Quy tắc đọc phần khám phải dùng `examText(v)`, không đọc `v.exam` trực tiếp.
 - **Bảng chống chỉ định thuốc tâm thần (2026-11-12)**: khối "chống chỉ định / thận trọng" trong `drugBlockReasons` (`isAntidep`, `MAOI_KW`, `TYPICAL_AP`) — chỉ xét ô tích hồ sơ nền, đơn + thuốc dài hạn, điện tim; tiền sử tim mạch bất kỳ → chặn TCA, citalopram, venlafaxin. Cho con bú: sertralin, paroxetin không bị chặn.
 - **Sertralin (2026-11-12)**: chặn khi tiền sử ghi NSAID / rối loạn đông máu, ô glôcôm, nghề lái xe, điện tim QTc dài.
 - **Prozac 10 mg (2026-11-12)**: `prozac10` thay `fluox20n` / `fluox20f` (`off`); chặn < 18 tuổi, ô lưỡng cực / động kinh, eGFR < 10, tiền sử ghi lưỡng cực hoặc đang dùng IMAO.
 - **Link công cụ tính điểm (2026-11-12)**: `SCALE_LINKS` (data.js, `{khoá LABS: [[nhãn, url]]}`) → `scaleLinkHTML` hiện dưới tên chỉ định ở bước 2; hiện có MADRS → MDCalc.
-- **Benzodiazepin < 9 ngày (2026-11-09)**: `BZD_MAX_DAYS = 8`, `isBzd` — tự giới hạn khi thêm thuốc và khi nhập số ngày; `checkAll` báo mức 3 nếu vượt.
+- **Benzodiazepin ≤ 9 ngày (2026-11-09; đổi 2026-11-15)**: `BZD_MAX_DAYS = 9`, `isBzd` — tự giới hạn khi thêm thuốc và khi nhập số ngày; `checkAll` báo mức 3 nếu vượt.
 - **Ăn vô độ tâm thần → nhập viện (2026-11-09)**: nhánh trong `admitReasons(v, p)` — `bulimia` kèm K < 3,2, Cl < 88, rối loạn nhịp, nhiệt độ < 35,6, hoặc bệnh sử ngất, nôn liên tục, nôn máu.
 - **Chán ăn tâm thần → nhập viện (2026-11-09)**: nhánh trong `admitReasons(v, p)` — `anorexia` kèm mạch < 50, HATT < 90, rối loạn nhịp, nhiệt độ < 35,6, BMI < 15, `p.bodyFat` < 10, hoặc bệnh sử "từ chối ăn".
 - **Tự tích "Chuyển tuyến" (2026-11-07)**: `referReasons(p, v)` (engine.js) + `autoRefer(v, p)` (ui.js, gọi trong `afterChange` khi sửa `v.mental.*`, `v.hpi`, `v.exam`). Điều kiện: có tích mục khám tâm thần VÀ (bệnh sử: tự sát / tự tử / tự hại / bạo lực / gây hại người khác / kích động nặng / không ăn uống; khám: suy kiệt / mất nước (+) / rối loạn định hướng; hoặc nhóm `psy`). Trường mới trong `v.dx`: `dispAuto`, `dispManual` (bác sĩ tự chọn → không ghi đè), `dispPrev`.
@@ -247,7 +252,7 @@ Các phần khác:
 6. **Lưu hồ sơ**: sau khi sửa object bệnh nhân bằng code, gọi `savePatient(p)`. Hàm này debounce, và `go()`/`pagehide` gọi `flushSaves()`. Danh mục thuốc và mẫu thì gọi `Store.put('drugs'|'templates', obj)` trực tiếp.
 7. **File System Access**: chỉ có trên Chromium. `requestPermission`/`showDirectoryPicker` **bắt buộc** gọi từ thao tác của người dùng (click). Handle lưu được trong IndexedDB nhưng phải xin quyền lại sau mỗi lần mở trình duyệt, trừ khi người dùng chọn "Cho phép mỗi lần truy cập". Thư mục bị đổi tên hoặc di chuyển thì handle hỏng → màn hình "Chọn thư mục khác".
 8. **Một tab duy nhất**: hai tab cùng ghi sẽ đè nhau, bên ghi sau thắng. Đừng giả định có đồng bộ giữa các tab.
-9. **Ca mẫu** (`demoPatient()`, `id 'p_demoA'`, `demo:true`) dùng để demo và test. Smoke test dựa vào nó, nên giữ nguyên `id` và cấu trúc.
+9. **Ca mẫu** (`demoPatient()`, `id 'p_demoA'`, `demo:true`) chỉ dùng cho test (bác sĩ bỏ ca mẫu 2026-11-14): chỉ được tạo khi `window.__HSBN_DEMO` (smoke test bật); app thật tự xoá ca mẫu còn sót (`purgeDemo`, cuối `loadAll`). Smoke test dựa vào nó, nên giữ nguyên `id` và cấu trúc.
 10. **Giá thuốc trong seed là giá MẪU.** Đừng trình bày như giá thật.
 11. **Trình duyệt ở Việt Nam**: tên file có dấu được giữ nguyên trong `tep-dinh-kem`. Tên file bệnh nhân dùng `slugName()` (không dấu). Không dùng các ký tự `\/:*?"<>|`, đã có `safeFile()` lo.
 
