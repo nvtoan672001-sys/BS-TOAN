@@ -189,7 +189,7 @@ def main():
             r = pg.evaluate("""async () => { const d = S.drugs.find(x => x.id === 'tiane12'); d.p = 9999; delete d.preg; d.warn = 'cũ';
                 await Store.put('drugs', d); S.settings.seedUpdated = []; await saveSettings(); await loadAll();
                 const e = S.drugs.find(x => x.id === 'tiane12'); return {p: e.p, preg: e.preg && e.preg.lv, warn: e.warn, ver: S.settings.seedUpdated}; }""")
-            assert r['p'] == 9999 and r['preg'] == 3 and r['warn'] != 'cũ' and r['ver'] == ['stahl-2026-10', 'moi-2026-10', 'tha-abcd-2026-10-30', 'zolpidem-2026-11-02', 'trazodon-2026-11-02', 'mirtazapin-2026-11-02', 'tca-2026-11-02', 'diazepam-2026-11-02', 'piracetam-2026-11-05', 'donepezil-2026-11-07', 'piracetam400-2026-11-07', 'amitriptylin-2026-11-09', 'alprazolam-bo-05-2026-11-09', 'fluoxetin-bo-20-2026-11-12', 'sertralin-2026-11-12', 'fluvoxamin-2026-11-12', 'venlafaxin-2026-11-12', 'mirtazapin-2026-11-12', 'amitriptylin-luu-y-2026-11-12', 'valproat-2026-11-12', 'olanzapin-2026-11-12', 'quetiapin-2026-11-12', 'risperidon-luu-y-2026-11-12', 'sulpirid-2026-11-12', 'sulpirid-than-2026-11-12', 'escitalopram-2026-11-14', 'paroxetin-2026-11-14', 'duloxetin-2026-11-14', 'propranolol-2026-11-14', 'diazepam-bo-2026-11-15', 'pregabalin-2026-11-15', 'hydroxyzin-2026-11-15', 'etifoxin-bo-2026-11-15', 'zopiclon-2026-11-15', 'melatonin-2026-11-15', 'tuong-tac-tam-than-2026-11-09'], r
+            assert r['p'] == 9999 and r['preg'] == 3 and r['warn'] != 'cũ' and r['ver'] == ['stahl-2026-10', 'moi-2026-10', 'tha-abcd-2026-10-30', 'zolpidem-2026-11-02', 'trazodon-2026-11-02', 'mirtazapin-2026-11-02', 'tca-2026-11-02', 'diazepam-2026-11-02', 'piracetam-2026-11-05', 'donepezil-2026-11-07', 'piracetam400-2026-11-07', 'amitriptylin-2026-11-09', 'alprazolam-bo-05-2026-11-09', 'fluoxetin-bo-20-2026-11-12', 'sertralin-2026-11-12', 'fluvoxamin-2026-11-12', 'venlafaxin-2026-11-12', 'mirtazapin-2026-11-12', 'amitriptylin-luu-y-2026-11-12', 'valproat-2026-11-12', 'olanzapin-2026-11-12', 'quetiapin-2026-11-12', 'risperidon-luu-y-2026-11-12', 'sulpirid-2026-11-12', 'sulpirid-than-2026-11-12', 'escitalopram-2026-11-14', 'paroxetin-2026-11-14', 'duloxetin-2026-11-14', 'propranolol-2026-11-14', 'diazepam-bo-2026-11-15', 'pregabalin-2026-11-15', 'hydroxyzin-2026-11-15', 'etifoxin-bo-2026-11-15', 'zopiclon-2026-11-15', 'melatonin-2026-11-15', 'zolpidem-2026-11-15', 'zaleplon-2026-11-15', 'sildenafil-2026-11-15', 'tuong-tac-tam-than-2026-11-09'], r
             assert pg.evaluate("S.drugs.find(x => x.id === 'quet100n').lact.lv") == 1, 'quetiapin cho con bú phải theo LactMed (mức lưu ý)'
             # Methylphenidat (bác sĩ đặt 2026-11-05): chặn theo tiền sử; cách dùng chọn sẵn; lưu ý chỉnh liều
             MB = "([id, o]) => { const p = JSON.parse(JSON.stringify(curP())), v = JSON.parse(JSON.stringify(curV())); Object.assign(p, o); v.hpi = ''; v.dx = {icd: '', text: ''}; p.meds = []; return drugBlockReasons(p, v, drugById(id)).join(' | '); }"
@@ -1016,7 +1016,15 @@ def main():
             assert ['F42.1', False] in pg.evaluate(SG, {'sx': ['ocd_comp'], 'weeks': 6})
             assert ['F43.1', True] in pg.evaluate(SG, {'sx': ['ptsd_event', 'ptsd_reexp', 'ptsd_avoid', 'ptsd_arousal', 'ptsd_6m'], 'weeks': 10})
             assert ['F43.1', False] in pg.evaluate(SG, {'sx': ['ptsd_event', 'ptsd_reexp', 'ptsd_arousal', 'ptsd_6m'], 'weeks': 10}), 'sách: né tránh là bắt buộc'
-            assert ['F43.0', True] in pg.evaluate(SG, {'sx': ['ptsd_event', 'ast_acute'], 'weeks': 0})
+            assert ['F43.0', False] in pg.evaluate(SG, {'sx': ['ptsd_event', 'ast_acute'], 'weeks': 0}), 'F43.0 thiếu C1, E'
+            assert ['F43.00', True] in pg.evaluate(SG, {'sx': ['ptsd_event', 'ast_acute', 'ast_gad', 'ast_excl'], 'weeks': 0})
+            assert ['F43.01', True] in pg.evaluate(SG, {'sx': ['ptsd_event', 'ast_acute', 'ast_gad', 'ast_excl', 'ast_c2a', 'ast_c2b'], 'weeks': 0})
+            assert ['F43.02', True] in pg.evaluate(SG, {'sx': ['ptsd_event', 'ast_acute', 'ast_gad', 'ast_excl', 'ast_c2a', 'ast_c2b', 'ast_c2c', 'ast_c2e'], 'weeks': 0})
+            assert ['F43.02', True] in pg.evaluate(SG, {'sx': ['ptsd_event', 'ast_acute', 'ast_gad', 'ast_excl', 'ast_stupor'], 'weeks': 0})
+            assert ['F43.1', True] in pg.evaluate(SG, {'sx': ['ptsd_event', 'ptsd_reexp', 'ptsd_avoid', 'ptsd_d1', 'ptsd_d4', 'ptsd_6m'], 'weeks': 10})
+            assert ['F43.1', False] in pg.evaluate(SG, {'sx': ['ptsd_event', 'ptsd_reexp', 'ptsd_avoid', 'ptsd_d1', 'ptsd_6m'], 'weeks': 10}), 'D2 cần ≥ 2'
+            assert ['F43.8', True] in pg.evaluate(SG, {'sx': ['ptsd_event', 'ptsd_reexp', 'ptsd_avoid', 'ptsd_amn', 'ptsd_6m', 'cptsd_affect', 'cptsd_self', 'cptsd_rel'], 'weeks': 20})
+            assert ['F43.8', True] in pg.evaluate(SG, {'sx': ['pgd_loss', 'pgd_long', 'pgd_6m', 'pgd_impair'], 'weeks': 40})
             assert ['F50.0', True] in pg.evaluate(SG, {'sx': ['an_weight', 'an_self', 'an_body', 'an_endo'], 'weeks': 20})
             assert ['F50.1', False] in pg.evaluate(SG, {'sx': ['an_weight', 'an_self', 'an_body'], 'weeks': 20})
             assert ['F50.2', True] in pg.evaluate(SG, {'sx': ['bn_binge', 'bn_crave', 'bn_comp', 'bn_fat'], 'weeks': 20})
@@ -1077,14 +1085,14 @@ def main():
             _age = pg.evaluate("() => { const p = curP(), o = [p.dob, p.birthYear]; p.dob = ''; p.birthYear = Number(todayISO().slice(0, 4)) - 12; return o; }")
             assert ['F91.3', True] in pg.evaluate(SG, {'sx': ['cd1', 'cd2', 'cd3', 'cd7', 'cd_6m', 'cd_odd_c', 'cd_excl'], 'weeks': 30})
             assert ['F91.3', False] in pg.evaluate(SG, {'sx': ['cd1', 'cd2', 'cd3', 'cd7', 'cd_odd_c', 'cd_excl'], 'weeks': 8}), 'F91.3 cần ≥ 6 tháng'
-            _r = pg.evaluate(SG, {'sx': ['cd10', 'cd17', 'cd18', 'cd_6m', 'cd_excl'], 'weeks': 30}); assert ['F91.2', True] in _r, _r
+            _r = pg.evaluate(SG, {'sx': ['cd10', 'cd17', 'cd18', 'cd_6m', 'cd_excl', 'cd_social'], 'weeks': 30}); assert ['F91.2', True] in _r, _r
             assert ['F91.0', True] in pg.evaluate(SG, {'sx': ['cd10', 'cd15', 'cd9', 'cd_6m', 'cd_excl', 'cd_family'], 'weeks': 30})
             assert ['F91.1', True] in pg.evaluate(SG, {'sx': ['cd10', 'cd15', 'cd22', 'cd_6m', 'cd_excl', 'cd_peer'], 'weeks': 30})
-            r = pg.evaluate(SG, {'sx': ['cd1', 'cd2', 'cd10', 'cd15', 'cd22', 'cd_6m', 'cd_excl'], 'weeks': 30})
+            r = pg.evaluate(SG, {'sx': ['cd1', 'cd2', 'cd10', 'cd15', 'cd22', 'cd_6m', 'cd_excl', 'cd_social'], 'weeks': 30})
             assert ['F91.2', True] in r and not any(x[0] == 'F91.3' for x in r), r
             r = dict((x[0], x) for x in pg.evaluate(I11, {'sx': ['cd1', 'cd2', 'cd3', 'cd7', 'cd_6m', 'cd_odd_c', 'cd_excl', 'odd_sev2'], 'weeks': 30}))
             assert 'Mức độ: trung bình' in r['F91.3'][2], r
-            r = dict((x[0], x) for x in pg.evaluate(I11, {'sx': ['cd10', 'cd17', 'cd18', 'cd_6m', 'cd_excl', 'cd_sev3'], 'weeks': 30}))
+            r = dict((x[0], x) for x in pg.evaluate(I11, {'sx': ['cd10', 'cd17', 'cd18', 'cd_6m', 'cd_excl', 'cd_sev3', 'cd_social'], 'weeks': 30}))
             assert 'Mức độ: nặng' in r['F91.2'][2], r
             ied = ['ied_ep', 'ied_dispro', 'ied_3m', 'ied_imp', 'ied_excl', 'ied_impair']
             assert ['F63.8', True] in pg.evaluate(SG, {'sx': ied, 'weeks': 20})
@@ -1324,6 +1332,61 @@ def main():
               p.conds = c0; p.condNote = n0; p.sex = sx0; return [b0, c, b1, b2, b3, b4, d.howOpts[0], d.dnote]; }""")
             assert r == [0, [1, 1, 1, 1], 1, 1, True, True, 'Uống 1 viên trước ngủ', 'Liều mất ngủ: 3–6 mg.'], r
             assert pg.evaluate("() => { const d = drugById('diphen25'); return !!d && d.howOpts[0] === 'Ngày uống 2 viên trước ngủ' && d.dose.join(',') === '0,0,0,2' && d.g === 'neuro' && !!S.drugs.find(x => x.id === 'diphen25'); }"), 'diphenhydramin 25 mg'
+            r = pg.evaluate("""() => { const p = curP(), v = curV(), c0 = p.conds, n0 = p.condNote, sx0 = p.sex, d = drugById('zolpi10'), B = () => drugBlockReasons(p, v, d).filter(x => /^zolpidem: tiền sử/.test(x)).length;
+              p.conds = []; p.condNote = ''; const a = B(); p.conds = ['asthma']; const b = B(); p.conds = ['liver']; const c = B(); p.conds = []; p.condNote = 'Xơ gan'; const e = B(); p.condNote = '';
+              p.sex = 'Nữ'; p.conds = ['pregnant']; const f = drugBlockReasons(p, v, d).some(x => /mang thai/.test(x)); p.conds = ['breastfeeding']; const g = drugBlockReasons(p, v, d).some(x => /cho con bú/.test(x));
+              p.conds = c0; p.condNote = n0; p.sex = sx0; return [a, b, c, e, f, g, d.how, d.howOpts[0], d.dnote.startsWith('5 mg ở người cao tuổi')]; }""")
+            assert r == [0, 1, 1, 1, True, True, '', 'Uống 1 viên trước ngủ', True], r
+            r = pg.evaluate("""() => { const p = curP(), v = curV(), c0 = p.conds, n0 = p.condNote, d = drugById('zale10'), B = () => drugBlockReasons(p, v, d).filter(x => /^zaleplon: tiền sử xơ gan/.test(x)).length;
+              p.conds = []; p.condNote = ''; const a = B(); p.conds = ['liver']; const b = B(); p.conds = []; p.condNote = 'Xơ gan'; const c = B(); p.conds = c0; p.condNote = n0; return [a, b, c, d.how, d.howOpts[0], d.dnote.startsWith('5–20 mg/ngày')]; }""")
+            assert r == [0, 1, 1, '', 'Uống 1 viên trước ngủ, có thể dùng khi thức giấc giữa đêm nếu còn ≥ 4 giờ ngủ.', True], r
+            # Modafinil 200 mg (bác sĩ đặt 2026-11-15)
+            r = pg.evaluate("""() => { const p = curP(), v = curV(), c0 = p.conds, n0 = p.condNote, m0 = p.meds, sx0 = p.sex, d = drugById('moda200'), B = () => drugBlockReasons(p, v, d).filter(x => /^modafinil:/.test(x)).length;
+              p.conds = []; p.condNote = ''; p.meds = []; const a = B(); p.condNote = 'Đang sử dụng tránh thai hàng ngày'; const b = B(); p.condNote = ''; p.meds = [{id: 'oc', text: 'Drospirenon + ethinyl estradiol'}]; const c = B(); p.meds = [];
+              p.sex = 'Nữ'; p.conds = ['pregnant']; const e = drugBlockReasons(p, v, d).some(x => /mang thai/.test(x)); p.conds = ['breastfeeding']; const f = drugBlockReasons(p, v, d).some(x => /cho con bú/.test(x));
+              p.conds = c0; p.condNote = n0; p.meds = m0; p.sex = sx0; return [a, b, c, e, f, d.howOpts[0], d.dnote, !!S.drugs.find(x => x.id === 'moda200')]; }""")
+            assert r == [0, 1, 1, True, True, 'Dùng 1 viên sau ăn sáng', 'Xơ gan, > 65 tuổi giảm 1/2 liều.', True], r
+            # Rối loạn hành vi: thể F91.0–F91.2 / F91.9, F92.0 (bác sĩ yêu cầu rà 2026-11-15)
+            r = pg.evaluate("""() => { const p = curP(), v = curV(), m0 = JSON.stringify(v.mental || {}), by0 = p.birthYear, dob0 = p.dob; p.dob = ''; p.birthYear = +v.date.slice(0, 4) - 12;
+              const C = (extra, w) => { v.mental = {sx: ['cd9', 'cd10', 'cd18', 'cd_6m', 'cd_excl'].concat(extra), hist: [], excl: [], weeks: w ?? 30, impair: ''}; return psyDx(p, v).sugs.map(s => s.code).filter(c => /^F9[12]/.test(c)); };
+              const r = [C([]), C(['cd_family']), C(['cd_peer']), C(['cd_social']), C(['dep_mood', 'dep_anhed', 'dep_energy', 'dep_conc', 'dep_sleep'])];
+              v.mental = JSON.parse(m0); p.birthYear = by0; p.dob = dob0; return r; }""")
+            assert r[0] == ['F91.9'] and r[1] == ['F91.0'] and r[2] == ['F91.1'] and r[3] == ['F91.2'] and 'F92.0' in r[4], r
+            # Rối loạn ăn uống: cuồng ăn tâm thần, mức độ, kiểu chán ăn (2026-11-15)
+            r = pg.evaluate("""() => { const p = curP(), v = curV(), m0 = JSON.stringify(v.mental || {}), vt0 = JSON.stringify(v.vitals || {});
+              const G = (sx, vit) => { v.mental = {sx, hist: [], excl: [], weeks: 20, impair: ''}; v.vitals = {...JSON.parse(vt0), ...(vit || {})}; return psyDx(p, v).sugs.filter(s => /^F50/.test(s.code)).map(s => [s.code, s.miss.length === 0, s.note.slice(0, 60), (s.i11 || '')]); };
+              const bed = G(['bed_binge', 'bed_feat', 'bed_nocomp', 'bed_distress', 'bed_excl', 'ed_f2']);
+              const bedComp = G(['bed_binge', 'bed_feat', 'bed_nocomp', 'bed_distress', 'bed_excl', 'bn_comp']);
+              const bn = G(['bn_binge', 'bn_crave', 'bn_comp', 'bn_fat', 'ed_f3']);
+              const an = G(['an_weight', 'an_self', 'an_body', 'an_endo'], {weight: 38, height: 165});
+              const anE = G(['an_weight', 'an_self', 'an_body', 'an_endo', 'bn_binge', 'bn_crave'], {weight: 38, height: 165});
+              v.mental = JSON.parse(m0); v.vitals = JSON.parse(vt0);
+              return [bed[0][0], bed[0][1], /trung bình/.test(bed[0][2]), bedComp[0][1], bn[0][0], /nặng/.test(bn[0][2]), an[0][0], an[0][3].includes('6B80.0'), anE.find(x => /^F50\.[01]/.test(x[0]))[0]]; }""")
+            assert r == ['F50.8', True, True, False, 'F50.2', True, 'F50.0', True, 'F50.1'], r
+            # Mức độ các mã tâm thần (2026-11-15): hoảng sợ, ám ảnh sợ khoảng trống, thang đã làm, ICD-11 6C20
+            r = pg.evaluate("""() => { const p = curP(), v = curV(), m0 = JSON.stringify(v.mental || {}), o0 = v.orders;
+              const G = (sx, re) => { v.mental = {sx, hist: [], excl: [], weeks: 30, impair: ''}; return psyDx(p, v).sugs.filter(s => re.test(s.code)).map(s => [s.code, s.note]); };
+              const pan = [G(['pan_attacks', 'pan_sx', 'pan_excl', 'pan_f1'], /^F41\.0/)[0][0], G(['pan_attacks', 'pan_sx', 'pan_excl', 'pan_f2'], /^F41\.0/)[0][0], G(['pan_attacks', 'pan_sx', 'pan_excl'], /^F41\.0/)[0][0]];
+              const ago = [G(['phob_agora', 'phob_sx'], /^F40\.0/)[0][0], G(['phob_agora', 'phob_sx', 'pan_attacks'], /^F40\.0/)[0][0]];
+              v.orders = [{id: 'g7', key: 'gad7', name: 'GAD-7', type: 'n', value: 16, flag: '', note: ''}];
+              const gad = G(['gad_a', 'gad_1', 'gad_15', 'gad_16', 'gad_21', 'gad_excl'], /^F41\.1/)[0][1];
+              const som = G(['som_2y', 'som_visits', 'som_refuse', 'som_d1', 'som_d2', 'som_d7', 'som_d9', 'som_d12', 'som_d13', 'som_excl', 'som_sev2'], /^F45\.[01]/)[0][1];
+              v.mental = JSON.parse(m0); v.orders = o0; return [pan, ago, /GAD-7 = 16/.test(gad), /6C20\.1 vừa/.test(som)]; }""")
+            assert r == [['F41.00', 'F41.01', 'F41.0'], ['F40.00', 'F40.01'], True, True], r
+            r = pg.evaluate("""() => { const p = curP(), v = curV(), m0 = p.meds, rx0 = v.rx, d = drugById('silde50'), B = x => drugBlockReasons(p, v, x).filter(t => /chẹn alpha/.test(t)).length;
+              p.meds = []; v.rx = []; const a = B(d); p.meds = [{id: 'ab', text: 'Tamsulosin 0,4 mg'}]; const b = B(d); p.meds = [];
+              v.rx = [{id: 's1', drugId: 'silde50', s: 0, tr: 0, c: 0, t: 1, days: 1}]; const c = B({id: 'x', n: 'Doxazosin 2 mg', hc: 'doxazosin', tags: []});
+              p.meds = m0; v.rx = rx0; return [a, b, c, d.how, /kích thích tình dục/.test(d.howOpts[0])]; }""")
+            assert r == [0, 1, 1, '', True], r
+            # Flibanserin 100 mg (bác sĩ đặt 2026-11-15)
+            r = pg.evaluate("""() => { const p = curP(), v = curV(), c0 = p.conds, n0 = p.condNote, sx0 = p.sex, vt0 = JSON.stringify(v.vitals || {}), d = drugById('flib100');
+              const B = () => drugBlockReasons(p, v, d).filter(x => /^flibanserin:/.test(x)).length;
+              p.conds = []; p.condNote = ''; p.sex = 'Nữ'; v.vitals = {sbp: 115, dbp: 70}; const a = B();
+              p.conds = ['vestibular']; const b = B(); p.conds = ['liver']; const c = B(); p.conds = [];
+              p.condNote = 'Hạ huyết áp tư thế'; const e = B(); p.condNote = ''; v.vitals = {sbp: 85, dbp: 55}; const f = B(); v.vitals = {sbp: 115, dbp: 70};
+              p.sex = 'Nam'; const g = B();
+              p.conds = c0; p.condNote = n0; p.sex = sx0; v.vitals = JSON.parse(vt0); return [a, b, c, e, f, g, d.dnote, !!S.drugs.find(x => x.id === 'flib100')]; }""")
+            assert r == [0, 1, 1, 1, 1, 1, 'Ngừng nếu không cải thiện sau 8 tuần.', True], r
             # Khám lâm sàng theo cơ quan (bác sĩ đặt 2026-11-12)
             r = pg.evaluate("""() => { const v = curV(), s0 = S.view.step, e0 = JSON.stringify(v.examSys || {}); v.examSys = {};
               go({name: 'visit', pid: S.view.pid, vid: v.id, step: 1}); const sel = document.querySelector('select.howpick[data-for="v.examSys.cv"]');

@@ -1091,7 +1091,7 @@ const SEED_ADDED = ['gavis10',
   // Risperdal 1 mg — 2026-11-07
   'risperdal1',
   // alprazolam 0,25 mg thay 0,5 mg — 2026-11-09
-  'alpra025n', 'alpra025f', 'prozac10', 'bupro150', 'seduxen5', 'buspi5', 'stresam50', 'eszopi2', 'doxep3', 'diphen25'];
+  'alpra025n', 'alpra025f', 'prozac10', 'bupro150', 'seduxen5', 'buspi5', 'stresam50', 'eszopi2', 'doxep3', 'diphen25', 'moda200', 'flib100'];
 async function addNewSeedDrugs(){
   const done = S.settings.seedAdded || [], todo = SEED_ADDED.filter(id => !done.includes(id));
   if(!todo.length) return;
@@ -1134,6 +1134,9 @@ const SEED_UPDATES = [{ver: 'stahl-2026-10', ids: SEED_ADDED.slice(1)},   // 44 
   {ver: 'etifoxin-bo-2026-11-15', ids: ['etifo50'], only: ['off']},
   {ver: 'zopiclon-2026-11-15', ids: ['zopi7n', 'zopi7f'], only: ['how', 'howOpts', 'dnote']},
   {ver: 'melatonin-2026-11-15', ids: ['melato3'], only: ['how', 'howOpts', 'dnote']},
+  {ver: 'zolpidem-2026-11-15', ids: ['zolpi10'], only: ['how', 'howOpts', 'dnote']},
+  {ver: 'zaleplon-2026-11-15', ids: ['zale10'], only: ['how', 'howOpts', 'dnote']},
+  {ver: 'sildenafil-2026-11-15', ids: ['silde50'], only: ['how', 'howOpts', 'dnote']},
   {ver: 'tuong-tac-tam-than-2026-11-09', ids: DRUGS_SEED.filter(d => PSY_EXTRA_TAGS[d.hc]).map(d => d.id), only: ['tags']}];                          // ưu tiên khuyến cáo mới hơn Stahl 2004 (LactMed, FDA/EMA, SmPC)
 const SEED_CLIN = ['tags', 'how', 'howOpts', 'dnote', 'ae', 'warn', 'pro', 'con', 'renal', 'hep', 'old', 'preg', 'lact', 'cond'];
 async function updateSeedDrugs(){

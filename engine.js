@@ -906,6 +906,22 @@ function drugBlockReasons(p, v, d, ctx, line){
   }
   // Sildenafil, tadalafil — nhóm ức chế PDE5 (bác sĩ đặt 2026-11-02; tadalafil cùng quy tắc): đang dùng nitroglycerin / isosorbid (nitrat — LEC6: chống chỉ định); tiền sử nhồi máu cơ tim, đột quỵ,
   // rối loạn nhịp, suy tim, bệnh mạch vành; HA < 90/50 hoặc > 170/100 (sinh hiệu lượt khám này)
+  // Flibanserin (bác sĩ đặt 2026-11-15): tiền sử rối loạn tiền đình, xơ gan, hạ huyết áp (ô / chữ / ICD I95 / HA lượt khám < 90/60); giới nam
+  if(norm(d.hc || '').includes('flibanserin')){
+    const r = [], pcs = p.conds || [], say = k => mentionsSymptom(p.condNote || '', k), C3 = (ctx || ctxOf(p, v)).conds;
+    if(pcs.includes('vestibular') || ['roi loan tien dinh', 'hoi chung tien dinh'].some(say)) r.push('tiền sử rối loạn tiền đình');
+    if(pcs.includes('liver') || ['xo gan', 'suy gan', 'benh gan man'].some(say)) r.push('tiền sử xơ gan / bệnh gan mạn');
+    const sb = num((v.vitals || {}).sbp), db = num((v.vitals || {}).dbp);
+    if(C3.has('orthostatic') || ['ha huyet ap', 'huyet ap thap'].some(say) || dxCodes(v).some(c => /^I95/.test(c)) || (sb != null && sb < 90) || (db != null && db < 60)) r.push('hạ huyết áp' + (sb != null && sb < 90 || db != null && db < 60 ? ` (HA ${sb ?? '?'}/${db ?? '?'})` : ''));
+    if(p.sex === 'Nam') r.push('bệnh nhân nam');
+    if(r.length) out.push('flibanserin: ' + r.join('; '));
+  }
+  // Chẹn alpha giao cảm khi đơn / thuốc dài hạn đã có sildenafil, tadalafil (bác sĩ đặt 2026-11-15)
+  if(['doxazosin', 'prazosin', 'terazosin', 'tamsulosin', 'alfuzosin', 'silodosin'].some(k => H.includes(k))){
+    const pd = (v.rx || []).map(l => drugById(l.drugId)).filter(x => x && (expandTags(x.tags).has('pde5') || /sildenafil|tadalafil/.test(norm(x.hc || '')))).map(x => x.n)
+      .concat((ctx || ctxOf(p, v)).longMeds.filter(m => m.tags.has('pde5') || /sildenafil|tadalafil|viagra|cialis/.test(norm(m.name || ''))).map(m => m.short || m.name));
+    if(pd.length) out.push(`đang dùng ${[...new Set(pd)].join(', ')} — không kê cùng thuốc chẹn alpha giao cảm (tụt huyết áp tư thế)`);
+  }
   const pde5 = ['sildenafil', 'tadalafil'].find(x => H.includes(x)) || (expandTags(d.tags).has('pde5') ? norm(d.hc || 'pde5') : '');
   if(pde5){
     const r = [], C2 = (ctx || ctxOf(p, v)), say = k => mentionsSymptom((p.condNote || '') + ' . ' + ((v && v.hpi) || ''), k);
@@ -927,6 +943,11 @@ function drugBlockReasons(p, v, d, ctx, line){
     if(C2.age != null && C2.age < 18) r.push(`bệnh nhân ${C2.age} tuổi (< 18)`);
     const rn = renalOf(p);
     if(rn && ((rn.egfr != null && rn.egfr < 30) || (rn.crcl != null && rn.crcl < 30))) r.push(`chức năng thận giảm nặng (${[rn.egfr != null ? 'eGFR ≈ ' + fmtN(rn.egfr) : '', rn.crcl != null ? 'CrCl ≈ ' + fmtN(rn.crcl) : ''].filter(Boolean).join(', ')} — < 30)`);
+    // Bác sĩ đặt 2026-11-15: không kê cùng thuốc chẹn alpha giao cảm (đơn hoặc thuốc dài hạn) — tụt huyết áp tư thế
+    const AB = ['doxazosin', 'prazosin', 'terazosin', 'tamsulosin', 'alfuzosin', 'silodosin', 'chen alpha'];
+    const ab = C2.longMeds.filter(m => AB.some(k => norm(m.name || '').includes(k))).map(m => m.short || m.name)
+      .concat((v.rx || []).map(l => drugById(l.drugId)).filter(x => x && AB.some(k => norm(x.hc + ' ' + x.n).includes(k))).map(x => x.n));
+    if(ab.length || ['chen alpha', 'tamsulosin', 'doxazosin', 'alfuzosin'].some(say)) r.push('đang dùng thuốc chẹn alpha giao cảm' + (ab.length ? ` (${[...new Set(ab)].join(', ')})` : '') + ' — tụt huyết áp tư thế');
     if(r.length) out.push(pde5 + ': ' + r.join('; '));
   }
   // Thuốc tăng huyết áp nhóm A, B, C, D: chống chỉ định theo VNHA 2026 (bác sĩ đặt 2026-10-30)
@@ -1019,6 +1040,8 @@ function drugBlockReasons(p, v, d, ctx, line){
     if(['some', 'heavy'].includes((p.risk || {}).alcohol) || ['uong ruou', 'nghien ruou', 'su dung ruou', 'dung ruou', 'uong bia'].some(k => mentionsSymptom(note, k))) out.push('tiền sử uống rượu (duloxetin tăng nguy cơ tổn thương gan)');
   }
   // Zolpidem (bác sĩ đặt 2026-11-02): tiền sử hoặc bệnh sử ghi chóng mặt; tiền sử ghi suy gan, nhược cơ, ngưng thở khi ngủ (hoặc ICD G47.3) → không kê
+  // Zolpidem (bác sĩ đặt thêm 2026-11-15): ô hen / COPD, ô xơ gan (hoặc chữ); mang thai / cho con bú chặn ở quy tắc chung nhóm thần kinh
+  if(norm(d.hc || '').includes('zolpidem')){ const pcs = p.conds || [], r = []; if(pcs.includes('asthma')) r.push('hen / COPD'); if(pcs.includes('liver') || mentionsSymptom(p.condNote || '', 'xo gan')) r.push('xơ gan / bệnh gan mạn'); if(r.length) out.push('zolpidem: tiền sử ' + r.join(', ')); }
   if(norm(d.hc || '').includes('zolpidem')){
     const note = p.condNote || '', hx = note + ' . ' + ((v && v.hpi) || ''), r = [];
     if(['chong mat'].some(k => mentionsSymptom(hx, k))) r.push('tiền sử / bệnh sử ghi chóng mặt (nguy cơ té ngã)');
@@ -1037,6 +1060,11 @@ function drugBlockReasons(p, v, d, ctx, line){
     const r = L.filter(([k, kws]) => pcs.includes(k) || kws.some(say)).map(([, , l]) => l);
     if(r.length) out.push('doxepin: tiền sử ' + r.join(', '));
   }
+  // Modafinil (bác sĩ đặt 2026-11-15): đang dùng thuốc tránh thai hằng ngày (chữ tiền sử / thuốc dài hạn); mang thai / cho con bú chặn ở quy tắc chung nhóm thần kinh
+  if(norm(d.hc || '').includes('modafinil')){
+    const OC = ['tranh thai', 'thuoc ngua thai', 'ethinyl', 'levonorgestrel', 'desogestrel', 'drospirenon', 'gestoden', 'norethisteron', 'cyproteron'];
+    if(OC.some(k => mentionsSymptom(p.condNote || '', k)) || (ctx || ctxOf(p, v)).longMeds.some(m => OC.some(k => norm(m.name || '').includes(k)))) out.push('modafinil: đang dùng thuốc tránh thai hằng ngày (modafinil làm giảm hiệu quả tránh thai)');
+  }
   // Melatonin (bác sĩ đặt 2026-11-15): > 65 hoặc < 18 tuổi; xơ gan (ô hoặc chữ); bệnh thận mạn (ô hoặc chữ); mang thai / cho con bú chặn ở quy tắc chung nhóm thần kinh
   if(norm(d.hc || '').includes('melatonin')){
     const r = [], pcs = p.conds || [], say = k => mentionsSymptom(p.condNote || '', k), age = ageOf(p, v.date);
@@ -1050,6 +1078,8 @@ function drugBlockReasons(p, v, d, ctx, line){
   if(norm(d.hc || '').includes('zopiclon') && mentionsSymptom((p.condNote || '') + ' . ' + ((v && v.hpi) || ''), 'chong mat')) out.push('zopiclon: tiền sử / bệnh sử ghi chóng mặt (nguy cơ té ngã)');
   // Zaleplon (bác sĩ đặt 2026-11-02): tiền sử ghi suy gan → không kê
   if(norm(d.hc || '').includes('zaleplon') && mentionsSymptom(p.condNote || '', 'suy gan')) out.push('zaleplon: tiền sử suy gan');
+  // Zaleplon (bác sĩ đặt thêm 2026-11-15): xơ gan (ô tích hoặc ghi chữ)
+  if(norm(d.hc || '').includes('zaleplon') && ((p.conds || []).includes('liver') || mentionsSymptom(p.condNote || '', 'xo gan'))) out.push('zaleplon: tiền sử xơ gan / bệnh gan mạn');
   // Trazodon (bác sĩ đặt 2026-11-02): tiền sử bệnh mạch vành, rối loạn nhịp, suy gan; tuổi < 18 hoặc > 65 → không kê
   if(norm(d.hc || '').includes('trazodon')){
     const note = p.condNote || '', say = k => mentionsSymptom(note, k), r = [], a = ageOf(p, v.date);
@@ -1447,6 +1477,11 @@ function psyDx(p, v){
   const wk = num(m.weeks), imp = m.impair || '', out = [], alerts = [], todo = [];
   const exclMiss = [...(excl.has('subst') ? ['Có liên quan sử dụng chất tác động tâm thần → xem xét rối loạn do chất (F10–F19)'] : []), ...(excl.has('organic') ? ['Có bệnh cơ thể / thực tổn → xem xét rối loạn tâm thần thực tổn (F00–F09)'] : [])];
   const add = (code, src, met, miss, note) => out.push({code, name: icdName(code), src, met, miss: miss.concat(exclMiss), note});
+  // Mức độ theo thang trắc nghiệm đã nhập ở bước 2 (bác sĩ yêu cầu rà mức độ 2026-11-15): ghi vào ghi chú của gợi ý tương ứng
+  const SCALE_FOR = [[/^F3[23]|^F41\.2|^F43\.2[012]/, ['phq9', 'hamd', 'madrs', 'bdi', 'zung_d', 'dass_d', 'hads_d', 'gds', 'epds']], [/^F41\.1|^F41\.2|^F43\.2[23]/, ['gad7', 'hama', 'zung_a', 'dass_a', 'hads_a']],
+    [/^F41\.0|^F40/, ['hama']], [/^F30|^F31/, ['ymrs']], [/^F51\.0|^G47\.0/, ['isi', 'psqi']], [/^G47\.[14]|^F51\.1/, ['ess']], [/^F10/, ['audit', 'ciwa']], [/^F43\.[18]/, ['pcl5']], [/^F0[0-3]|^F06\.7/, ['mmse', 'moca']], [/^F2/, ['panss']]];
+  const scaleSev = code => { const ks = [...new Set(SCALE_FOR.filter(([re]) => re.test(code)).flatMap(([, k]) => k))];
+    return ks.map(k => { const val = orderNum(v, k); if(val == null) return ''; const r = scaleResult(k, val), l = LABS.find(x => x[1] === k); return `${l ? l[2].split(' (')[0] : k} = ${fmtN(val)}${r ? ' → ' + r.t : ''}`; }).filter(Boolean).join('; '); };
   const i11x = {};   // ghi chú ICD-11 tính từ bảng kiểm, theo mã ICD-10 gợi ý (gộp vào s.i11 ở cuối hàm)
   const durTxt = wk == null ? 'Chưa nhập thời gian kéo dài' : `Thời gian kéo dài ${fmtN(wk)} tuần`;
   // --- Giai đoạn trầm cảm hiện tại (Bài 20) ---
@@ -1552,11 +1587,11 @@ function psyDx(p, v){
     const miss = need('panic', ['pan_sx', 'pan_excl']);
     if(phobAny) miss.push('Cơn hoảng sợ gắn với tình huống ám ảnh sợ → xem ám ảnh sợ khoảng trống có rối loạn hoảng sợ (F40.01)');
     if(depOk) miss.push('Đang đủ tiêu chuẩn trầm cảm — loại trừ cơn hoảng sợ do rối loạn khí sắc (F30–F39)');
-    add('F41.0', 'ICD-10 (bản VN)', ['Cơn hoảng sợ tái diễn, tự phát, không dự đoán trước'].concat(['pan_sx', 'pan_excl'].filter(has).map(k => lab('panic', k))), miss, 'Mức độ: F41.00 trung bình — ≥ 4 cơn trong 4 tuần; F41.01 nặng — ≥ 4 cơn mỗi tuần trong 4 tuần. Loại trừ bệnh tim mạch, cường giáp, hạ đường huyết, do chất (cà phê, amphetamin, cai rượu / benzodiazepin).');
+    add(has('pan_f2') ? 'F41.01' : has('pan_f1') ? 'F41.00' : 'F41.0', 'ICD-10 (bản VN) tr. 114–115', ['Cơn hoảng sợ tái diễn, tự phát, không dự đoán trước'].concat(['pan_sx', 'pan_excl', 'pan_f1', 'pan_f2'].filter(has).map(k => lab('panic', k))), miss, 'Mức độ: F41.00 trung bình — ≥ 4 cơn trong 4 tuần; F41.01 nặng — ≥ 4 cơn mỗi tuần trong 4 tuần. Loại trừ bệnh tim mạch, cường giáp, hạ đường huyết, do chất (cà phê, amphetamin, cai rượu / benzodiazepin).');
   }
   if(phobAny){
     const pk = ['phob_sx', 'phob_avoid', 'phob_insight', 'phob_excl'], base = need('phob', pk), pmet = pk.filter(has).map(k => lab('phob', k));
-    if(has('phob_agora')) add('F40.0', 'ICD-10 (bản VN)', ['Sợ / né tránh ≥ 2 tình huống: đám đông, nơi công cộng, đi một mình, đi xa nhà'].concat(pmet), base, has('pan_attacks') ? 'Có kèm cơn hoảng sợ → F40.01 (có rối loạn hoảng sợ).' : 'Không có cơn hoảng sợ → F40.00.');
+    if(has('phob_agora')) add(has('pan_attacks') ? 'F40.01' : 'F40.00', 'ICD-10 (bản VN) tr. 111–112', ['Sợ / né tránh ≥ 2 tình huống: đám đông, nơi công cộng, đi một mình, đi xa nhà'].concat(pmet), base, has('pan_attacks') ? 'Có kèm cơn hoảng sợ → F40.01 (có rối loạn hoảng sợ).' : 'Không có cơn hoảng sợ → F40.00.');
     if(has('phob_social')) add('F40.1', 'ICD-10 (bản VN)', ['Sợ / né tránh trở thành trung tâm chú ý, sợ bị sỉ nhục'].concat(pmet), base, '');
     if(has('phob_specific')) add('F40.2', 'ICD-10 (bản VN)', ['Sợ / né tránh đồ vật, tình huống cụ thể'].concat(pmet), base, 'Dưới nhóm: loài vật, hiện tượng thiên nhiên, tiêm – máu – bị thương, tình huống (thang máy, đường hầm), loại khác.');
   }
@@ -1567,29 +1602,70 @@ function psyDx(p, v){
     if(c.psy) miss.push('Có triệu chứng loạn thần — loại trừ tâm thần phân liệt và rối loạn liên quan (F20–F29)');
     add(code, 'ICD-10 (bản VN)', ['ocd_obs', 'ocd_comp', 'ocd_2wk', 'ocd_own', 'ocd_impair'].filter(has).map(k => lab('ocd', k)), miss, '');
   }
-  if(has('ptsd_event')){
-    if(has('ast_acute')) add('F43.0', 'ICD-10 (bản VN)', ['Tác nhân stress đặc biệt về tâm thần / cơ thể', lab('ptsd', 'ast_acute')], [], 'Mức độ: F43.00 nhẹ — có triệu chứng lo âu lan toả (B–D của F41.1); F43.01 trung bình — thêm 2 triệu chứng (cách ly xã hội, thu hẹp chú ý, rối loạn định hướng, cáu giận, tuyệt vọng, tăng hoạt động vô mục đích, buồn rầu quá mức); F43.02 nặng — thêm 4 triệu chứng hoặc sững sờ phân ly. Loại trừ: đang có rối loạn tâm thần khác (trừ F41.1, F60), hoặc giai đoạn rối loạn khác kết thúc < 3 tháng.');
-    if(['ptsd_reexp', 'ptsd_avoid', 'ptsd_arousal'].some(has)){
-      const miss = need('ptsd', ['ptsd_reexp', 'ptsd_avoid', 'ptsd_arousal', 'ptsd_6m']);
-      add('F43.1', 'ICD-10 (bản VN); LEC4', ['Sự kiện đe doạ / thảm hoạ đặc biệt'].concat(['ptsd_reexp', 'ptsd_avoid', 'ptsd_arousal', 'ptsd_6m'].filter(has).map(k => lab('ptsd', k))), miss, 'Cần đủ B (hồi tưởng), C (né tránh), D (quên một phần hoặc ≥ 2 dấu hiệu tăng nhạy cảm) trong vòng 6 tháng. Trắc nghiệm hỗ trợ: PC-PTSD-5 (sàng lọc), PCL-5, CAPS-5 (phỏng vấn chẩn đoán), SPRINT-E.');
-    }
+  // --- Rối loạn liên quan stress (ICD-10 bản VN tr. 118–121; ICD-11 6B40–6B42) — rà lại 2026-11-15 ---
+  const AST2 = ['ast_c2a', 'ast_c2b', 'ast_c2c', 'ast_c2d', 'ast_c2e', 'ast_c2f', 'ast_c2g'], PD2 = ['ptsd_d1', 'ptsd_d2', 'ptsd_d3', 'ptsd_d4', 'ptsd_d5'];
+  const gadOk1 = has('ast_gad') || (GAD.filter(has).length >= 4 && ['gad_1', 'gad_2', 'gad_3', 'gad_4'].some(has));
+  if(has('ptsd_event') && (has('ast_acute') || has('ast_gad') || AST2.some(has) || has('ast_stupor'))){
+    const n2 = AST2.filter(has).length, stu = has('ast_stupor');
+    const code = !gadOk1 && !stu ? 'F43.0' : stu || n2 >= 4 ? 'F43.02' : n2 >= 2 ? 'F43.01' : 'F43.00';
+    const miss = need('ptsd', ['ast_acute', 'ast_excl']);
+    if(!gadOk1 && !stu) miss.push('Chưa có: C1 — triệu chứng lo âu lan toả (≥ 4 triệu chứng, ≥ 1 thực vật) để xếp mức độ');
+    add(code, 'ICD-10 (bản VN) tr. 118–119', ['A. Tác nhân stress đặc biệt về tâm thần / cơ thể'].concat(has('ast_acute') ? [lab('ptsd', 'ast_acute')] : [], gadOk1 ? ['C1. Có triệu chứng lo âu lan toả'] : [], n2 ? [`C2. ${n2}/7 triệu chứng: ${AST2.filter(has).map(k => lab('ptsd', k).replace(/^[a-g]\. /, '')).join(', ')}`] : [], stu ? ['Sững sờ phân ly'] : [], has('ast_excl') ? [lab('ptsd', 'ast_excl')] : []), miss,
+      'Mức độ: F43.00 nhẹ — chỉ C1; F43.01 trung bình — C1 + ≥ 2 mục C2; F43.02 nặng — C1 + ≥ 4 mục C2 hoặc sững sờ phân ly. Triệu chứng kéo dài > 48 giờ – vài ngày → xem PTSD (F43.1) hoặc rối loạn sự thích ứng (F43.2).');
   }
-  // --- Chán ăn / ăn vô độ tâm thần (BYT 2020 Bài 26 theo ICD-10; LEC9 handout ICD-10 F50.2) ---
+  const dAmn = has('ptsd_amn'), dN = PD2.filter(has).length, dOk = dAmn || dN >= 2 || has('ptsd_arousal');   // ptsd_arousal: khoá cũ (D gộp)
+  const ptsdAny = has('ptsd_event') && (['ptsd_reexp', 'ptsd_avoid', 'ptsd_amn', 'ptsd_arousal'].some(has) || dN > 0);
+  const ptsdFull = ptsdAny && has('ptsd_reexp') && has('ptsd_avoid') && dOk && has('ptsd_6m');
+  if(ptsdAny){
+    const miss = need('ptsd', ['ptsd_reexp', 'ptsd_avoid']);
+    if(!dOk) miss.push(`Chưa có: D — quên một phần sự kiện, hoặc ≥ 2 dấu hiệu tăng nhạy cảm (hiện ${dN})`);
+    miss.push(...need('ptsd', ['ptsd_6m']));
+    const pcl = orderNum(v, 'pcl5');
+    add('F43.1', 'ICD-10 (bản VN) tr. 119–120; LEC4', ['A. Sự kiện đe doạ / thảm hoạ đặc biệt'].concat(['ptsd_reexp', 'ptsd_avoid'].filter(has).map(k => lab('ptsd', k)), dAmn ? [lab('ptsd', 'ptsd_amn')] : [], dN ? [`D2. ${dN}/5 dấu hiệu tăng nhạy cảm`] : [], has('ptsd_arousal') ? ['D. Quên / tăng nhạy cảm (bảng kiểm cũ)'] : [], has('ptsd_6m') ? [lab('ptsd', 'ptsd_6m')] : []), miss,
+      (pcl != null ? `PCL-5 = ${fmtN(pcl)}/80${pcl >= 31 ? ' (≥ 31–33: phù hợp PTSD)' : ''}. ` : 'ICD-10 không phân mức độ PTSD — đánh giá mức độ bằng PCL-5 / CAPS-5 ở cận lâm sàng. ') + 'Khởi phát muộn hơn 6 tháng có thể vẫn xếp F43.1 nhưng cần ghi rõ.');
+    i11x['F43.1'] = 'ICD-11 6B40: cần đủ 3 — tái trải nghiệm ở hiện tại (hồi tưởng, ác mộng; không chỉ là nhớ lại), né tránh có chủ đích, cảm nhận đe doạ hiện tại tăng (cảnh giác, giật mình), kéo dài ≥ vài tuần, suy giảm chức năng.' + (['cptsd_affect', 'cptsd_self', 'cptsd_rel'].every(has) ? ' Có đủ 3 rối loạn tự tổ chức → PTSD phức tạp 6B41.' : '');
+  }
+  // F43.8 — PTSD phức tạp (ICD-11 6B41), rối loạn tang chế kéo dài (ICD-11 6B42): ICD-10 không có mục riêng
+  const DSO = ['cptsd_affect', 'cptsd_self', 'cptsd_rel'];
+  if(DSO.some(has)){
+    const miss = ptsdFull ? [] : ['Cần đủ tiêu chuẩn PTSD trước (A, B, C, D, E)'];
+    miss.push(...need('ptsd', DSO));
+    add('F43.8', 'ICD-11 6B41 tr. 345–348', ['PTSD phức tạp'].concat(DSO.filter(has).map(k => lab('ptsd', k))), miss, 'ICD-10 chưa có mục PTSD phức tạp: ghi F43.1 (hoặc F43.8) kèm mô tả; ICD-11 6B41. Phân biệt rối loạn nhân cách ranh giới (sợ bị bỏ rơi, hình ảnh bản thân không ổn định).');
+  }
+  const PGD = ['pgd_loss', 'pgd_long', 'pgd_6m', 'pgd_impair'];
+  if(PGD.some(has)){
+    const miss = need('ptsd', PGD);
+    if(wk != null && wk < 26 && !has('pgd_6m')) miss.push(durTxt + ' — cần ≥ 6 tháng sau mất mát');
+    add('F43.8', 'ICD-11 6B42 tr. 348–349', ['Rối loạn tang chế kéo dài'].concat(PGD.filter(has).map(k => lab('ptsd', k))), miss, 'ICD-10 không có mục riêng; tang chế bình thường (Z63.4) không chẩn đoán; phản ứng tang chế kéo dài < 6 tháng, kèm triệu chứng cảm xúc → xem rối loạn sự thích ứng (F43.2). Hỏi ý tưởng tự sát, sử dụng rượu / chất.');
+  }
+  // --- Chán ăn / ăn vô độ / cuồng ăn tâm thần (ICD-10 bản VN tr. 132–133; BYT 2020 Bài 26; LEC9; ICD-11 6B80–6B82) — rà lại 2026-11-15 ---
   const vw = num(((v.vitals || {}).weight)) ?? num(p.weight), vh = num(((v.vitals || {}).height)) ?? num(p.height), bmiNow = bmiOf(vw, vh);
   const anW = has('an_weight') || (bmiNow != null && bmiNow <= 17.5);
   const anKeys = ['an_self', 'an_body', 'an_endo'], anCnt = anKeys.filter(has).length + (anW ? 1 : 0);
-  const anOk = anCnt === 4;
+  const bnAB = has('bn_binge') && has('bn_crave');   // F50.0 E: không đủ tiêu chuẩn A và B của ăn vô độ tâm thần
+  const anOk = anCnt === 4 && !bnAB;
+  const edSev = has('ed_f4') ? 'trầm trọng (≥ 14 đợt / tuần)' : has('ed_f3') ? 'nặng (8–13 đợt / tuần)' : has('ed_f2') ? 'trung bình (4–7 đợt / tuần)' : has('ed_f1') ? 'nhẹ (1–3 đợt / tuần)' : '';
   if(anCnt >= 2 && (has('an_self') || has('an_body'))){
     const met = (anW ? [bmiNow != null && bmiNow <= 17.5 && !has('an_weight') ? `BMI ${fmtN(bmiNow, 1)} (≤ 17,5)` : 'Cân nặng thấp ≥ 15% so với phải có'] : []).concat(anKeys.filter(has).map(k => lab('ed', k)));
-    const miss = (anW ? [] : ['Chưa có: cân nặng thấp ≥ 15% (BMI ≤ 17,5)' + (bmiNow != null ? ` — BMI hiện ${fmtN(bmiNow, 1)}` : '')]).concat(need('ed', anKeys));
+    const miss = (anW ? [] : ['Chưa có: cân nặng thấp ≥ 15% (BMI ≤ 17,5)' + (bmiNow != null ? ` — BMI hiện ${fmtN(bmiNow, 1)}` : '')]).concat(need('ed', anKeys), bnAB ? ['E. Đang đủ tiêu chuẩn A và B của ăn vô độ tâm thần (F50.2) — không chẩn đoán chán ăn tâm thần điển hình'] : []);
     const sev = bmiNow != null && bmiNow < 17.5 ? (bmiNow < 15 ? 'trầm trọng' : bmiNow < 16 ? 'nặng' : bmiNow < 17 ? 'trung bình' : 'nhẹ') : '';
-    add(anOk ? 'F50.0' : 'F50.1', 'BYT 2020 Bài 26', met, anOk ? [] : miss, (anOk ? '' : 'Thiếu một hoặc vài đặc điểm chính → chán ăn tâm thần không điển hình (F50.1). ') + (sev ? `Mức độ theo BMI (LEC9, DSM-5): ${sev}. ` : '') + 'Phân biệt: sút cân do bệnh cơ thể (Crohn, kém hấp thu, u não, ung thư), trầm cảm (không có ý tưởng méo mó về cơ thể).');
+    const anType = has('bn_binge') || has('bn_comp') ? 'Kiểu cuồng ăn – thanh thải (có cơn cuồng ăn hoặc hành vi thải trừ). ' : 'Kiểu hạn chế (không có cuồng ăn / thải trừ trong 3 tháng). ';
+    add(anOk ? 'F50.0' : 'F50.1', 'ICD-10 (bản VN) tr. 132; BYT 2020 Bài 26', met, anOk ? [] : miss, (anOk ? '' : 'Thiếu một hoặc vài đặc điểm chính → chán ăn tâm thần không điển hình (F50.1). ') + (sev ? `Mức độ theo BMI (LEC9, DSM-5): ${sev} (nhẹ ≥ 17; trung bình 16–16,99; nặng 15–15,99; trầm trọng < 15). ` : 'Mức độ theo BMI: nhập cân nặng, chiều cao ở sinh hiệu. ') + anType + 'Phân biệt: sút cân do bệnh cơ thể (Crohn, kém hấp thu, u não, ung thư), trầm cảm (không có ý tưởng méo mó về cơ thể).');
+    if(bmiNow != null) i11x[anOk ? 'F50.0' : 'F50.1'] = `ICD-11 6B80: ${bmiNow < 14 ? '6B80.1 cân nặng thấp nguy hiểm (BMI < 14)' : bmiNow < 18.5 ? '6B80.0 cân nặng thấp rõ (BMI 14–18,5)' : 'BMI ≥ 18,5 — chưa đủ cân nặng thấp theo ICD-11'}; ghi kèm kiểu hạn chế / cuồng ăn – thanh thải.`;
   }
   const bnKeys = ['bn_binge', 'bn_crave', 'bn_comp', 'bn_fat'], bnCnt = bnKeys.filter(has).length;
   if(has('bn_binge') && bnCnt >= 2){
     const miss = need('ed', bnKeys);
     if(anOk) miss.push('Đang đủ tiêu chuẩn chán ăn tâm thần → ưu tiên F50.0');
-    add(bnCnt === 4 && !anOk ? 'F50.2' : 'F50.3', 'LEC9 (ICD-10 F50.2)', bnKeys.filter(has).map(k => lab('ed', k)), bnCnt === 4 && !anOk ? [] : miss, (bnCnt === 4 && !anOk ? '' : 'Thiếu đặc điểm chính → ăn vô độ tâm thần không điển hình (F50.3). ') + 'Kiểm tra kali máu, ECG khi có tự gây nôn / dùng thuốc tẩy, lợi tiểu.');
+    add(bnCnt === 4 && !anOk ? 'F50.2' : 'F50.3', 'ICD-10 (bản VN) tr. 133; LEC9', bnKeys.filter(has).map(k => lab('ed', k)), bnCnt === 4 && !anOk ? [] : miss, (bnCnt === 4 && !anOk ? '' : 'Thiếu đặc điểm chính → ăn vô độ tâm thần không điển hình (F50.3). ') + (edSev ? `Mức độ theo số đợt hành vi bù trừ (DSM-5, LEC9): ${edSev}. ` : 'Mức độ (DSM-5): đánh dấu số đợt hành vi bù trừ / tuần. ') + 'Kiểm tra kali máu, ECG khi có tự gây nôn / dùng thuốc tẩy, lợi tiểu.');
+  }
+  // Cuồng ăn tâm thần — rối loạn ăn uống vô độ (ICD-11 6B82; DSM-5): ICD-10 không có mục riêng → F50.8
+  const BED = ['bed_binge', 'bed_feat', 'bed_nocomp', 'bed_distress', 'bed_excl'];
+  if(has('bed_binge')){
+    const miss = need('ed', BED);
+    if(has('bn_comp')) miss.push('Có hành vi bù trừ → xem ăn vô độ tâm thần (F50.2)');
+    if(anOk) miss.push('Đang đủ tiêu chuẩn chán ăn tâm thần → ưu tiên F50.0');
+    add('F50.8', 'ICD-11 6B82 tr. 425; DSM-5', ['Cuồng ăn tâm thần (rối loạn ăn uống vô độ)'].concat(BED.filter(has).map(k => lab('ed', k))), miss, (edSev ? `Mức độ theo số cơn cuồng ăn (DSM-5): ${edSev}. ` : 'Mức độ (DSM-5): đánh dấu số cơn cuồng ăn / tuần. ') + 'ICD-10 không có mục riêng — ghi F50.8 kèm tên bệnh. Thường kèm thừa cân / béo phì: đánh giá BMI, đường huyết, lipid máu, huyết áp; sàng lọc trầm cảm.');
   }
   const scoffN = [...sx].filter(k => k.startsWith('scoff_')).length;
   if(scoffN >= 2 && anCnt < 2 && !has('bn_binge')) todo.push(`SCOFF = ${scoffN}/5: đánh giá mục "Chán ăn / ăn vô độ tâm thần" để định hướng F50.`);
@@ -1738,17 +1814,24 @@ function psyDx(p, v){
   const cdMet = CDO.concat(CDC).filter(has).map(cdLab).concat(Object.keys(CD_OLD).filter(has).map(k => CD_OLD[k]));
   const cdFull = cdC >= 3 && (cdDur || has('cd_pattern'));
   if(cdC >= 3){
-    const code = has('cd_family') ? 'F91.0' : has('cd_peer') ? 'F91.1' : 'F91.2';
+    const code = has('cd_family') ? 'F91.0' : has('cd_peer') ? 'F91.1' : has('cd_social') ? 'F91.2' : 'F91.9';
     const miss = [];
+    if(code === 'F91.9') miss.push('Chưa xác định thể: tích F91.0 (giới hạn gia đình), F91.1 (kém thích ứng xã hội) hoặc F91.2 (còn thích ứng xã hội) — chưa xếp được thì dùng F91.9');
     if(!cdDur) miss.push('C. ≥ 1 triệu chứng nhóm 9–23 kéo dài ≥ 6 tháng');
     miss.push(...need('cond', ['cd_excl']));
     if(age != null && age >= 18) miss.push('Bệnh nhân ≥ 18 tuổi → đánh giá rối loạn nhân cách chống đối xã hội (F60.2)');
-    if(depLv) miss.push('Có triệu chứng trầm cảm đủ tiêu chuẩn → rối loạn hành vi trầm cảm (F92.0)');
+    if(depLv) miss.push('Có triệu chứng trầm cảm đủ tiêu chuẩn → rối loạn hành vi trầm cảm (F92.0), xem gợi ý F92');
     const early = has('cd_onset10') || (age != null && age < 10);
-    add(code, 'ICD-10 (bản VN) tr. 177–181; LEC11', [`Nhóm 9–23: ${cdC} triệu chứng (cần ≥ 3)`].concat(cdMet).concat(['cd_6m', 'cd_excl', 'cd_family', 'cd_peer'].filter(has).map(cdLab)), miss,
-      (early ? 'Loại khởi phát ở trẻ em (trước 10 tuổi). ' : 'Ghi loại khởi phát (trước / sau 10 tuổi). ') + (code === 'F91.2' ? 'F91.2 cần: rối loạn ở cả ngoài nhà và quan hệ bạn bè bình thường. ' : '') +
+    add(code, 'ICD-10 (bản VN) tr. 177–181; DCR-10 tr. 157–160; LEC11', [`Nhóm 9–23: ${cdC} triệu chứng (cần ≥ 3)`].concat(cdMet).concat(['cd_6m', 'cd_excl', 'cd_family', 'cd_peer', 'cd_social'].filter(has).map(cdLab)), miss,
+      (early ? 'Loại khởi phát ở trẻ em (trước 10 tuổi). ' : 'Ghi loại khởi phát (trước / sau 10 tuổi). ') + '' +
       (has('cd_sev3') ? 'Mức độ: nặng. ' : has('cd_sev2') ? 'Mức độ: trung bình. ' : has('cd_sev1') ? 'Mức độ: nhẹ. ' : 'Đánh dấu mức độ nhẹ / trung bình / nặng. ') + 'Có cả tăng động → F90.1.');
     i11x[code] = `ICD-11 6C91 rối loạn hành vi – chống đối xã hội: ${early ? '6C91.0 khởi phát thời thơ ấu' : '6C91.1 khởi phát tuổi vị thành niên'}; ghi kèm có / không cảm xúc hướng xã hội hạn chế.`;
+    // Rối loạn hỗn hợp hành vi và cảm xúc F92 (ICD-10 bản VN tr. 181–182): đủ F91 + đủ rối loạn khí sắc (F92.0) hoặc rối loạn tâm căn F40–F48 / cảm xúc trẻ em F93 (F92.8)
+    if(cdFull){
+      if(depLv) add('F92.0', 'ICD-10 (bản VN) tr. 181', ['A. Đủ tiêu chuẩn chung rối loạn hành vi F91', 'B. Có giai đoạn trầm cảm theo bảng kiểm'], depOk ? [] : ['B. Giai đoạn trầm cảm cần kéo dài ≥ 2 tuần'], 'Dùng thay cho F91.x khi cả hai cùng đủ tiêu chuẩn (G2 của F91).');
+      const emo = out.filter(s => /^(F4[0-8]|F93)/.test(s.code) && !s.miss.length);
+      if(emo.length) add('F92.8', 'ICD-10 (bản VN) tr. 182', ['A. Đủ tiêu chuẩn chung rối loạn hành vi F91', 'B. Đủ tiêu chuẩn ' + emo.map(s => s.code).join(', ')], [], 'Dùng thay cho F91.x khi cùng đủ tiêu chuẩn rối loạn tâm căn F40–F48 hoặc rối loạn cảm xúc trẻ em F93.');
+    }
   } else if(cdO + cdC >= 4 && cdO >= 1){
     const miss = need('cond', ['cd_odd_c']);
     if(!cdDur) miss.push('D. ≥ 4 triệu chứng kéo dài ≥ 6 tháng');
@@ -2028,6 +2111,11 @@ function psyDx(p, v){
     }
     const m = icd11Of(s.code);
     s.i11 = m ? (m[1] !== '—' ? m[1] + ': ' : '') + m[2] + (x ? ' ' + x : '') : x;
+  });
+  // Mức độ: điểm thang đã nhập + mức độ ICD-11 của rối loạn đau khổ cơ thể (6C20)
+  out.forEach(s => {
+    const ss = scaleSev(s.code); if(ss) s.note = (s.note ? s.note + ' ' : '') + 'Thang đã làm: ' + ss + '.';
+    if(/^F45\.[01]/.test(s.code)){ const sv = has('som_sev3') ? '6C20.2 nặng' : has('som_sev2') ? '6C20.1 vừa' : has('som_sev1') ? '6C20.0 nhẹ' : ''; s.note = (s.note ? s.note + ' ' : '') + (sv ? `Mức độ (ICD-11): ${sv}.` : 'Mức độ (ICD-11 6C20.0 / .1 / .2): đánh dấu ở bảng kiểm.'); }
   });
   out.forEach(s => { s.ok = !s.miss.length; });
   out.sort((a, b) => b.ok - a.ok);
