@@ -66,7 +66,8 @@ function afterChange(path){
     }
     if(v){ if(path === 'v.dx.disp'){ v.dx.dispManual = true; v.dx.dispAuto = false; }
       else if(/^v\.(mental|hpi$|exam$|examSys\.|vitals\.|dx\.(icd2?|main|secondary)$|orders\.)|^p\.(conds|condNote|bodyFat|weight|height)$/.test(path)) autoRefer(v, p);
-      if(/^v\.(hpi$|mental\.sx)/.test(path)) autoPsyOrders(p, v); }
+      if(/^v\.(hpi$|mental\.sx)/.test(path)) autoPsyOrders(p, v);
+      if(/^v\.(hpi$|dx\.icd2?$|vitals\.(weight|height)$|mental\.sx)|^p\.(conds|condNote)$/.test(path) && autoSertraline(p, v) && S.view.step === 3) setTimeout(() => renderMain(true), 400); }
     if(p) savePatient(p);
     if(path === 'p.name' || path === 'p.phone') renderPlist();
   } else if(root === 's'){ saveSettings(); if(path === 's.doctor') $('#docname').textContent = '· ' + (S.settings.doctor || ''); }
@@ -272,6 +273,86 @@ function autoPsyOrders(p, v){
   v.psyAutoKeys = done.concat(keys);
   toast(`Có ${plan.why.join('; ')}: đã tự chọn trắc nghiệm ${keys.map(k => LABS.find(x => x[1] === k)[2].split(' (')[0]).join(', ')}`);
   return keys.length;
+}
+// Lượt khám mới của bệnh nhân có tiền sử F33 / F31 (HIST_TESTS): tự chọn trắc nghiệm, không trùng chỉ định đã có; trả về {n, why}
+function autoF33Orders(p, v){
+  if(!v || v.kind === 'old') return 0;
+  const plan = histTestPlan(p, v), keys = plan.keys.filter(k => !v.orders.some(o => o.key === k) && LABS.some(x => x[1] === k));
+  keys.forEach(k => { const l = LABS.find(x => x[1] === k); v.orders.push({id: uid('o'), key: k, name: l[2], unit: l[3], ref: l[4], type: l[5], value: '', flag: '', note: ''}); });
+  if(keys.length) setTimeout(() => toast(`Tiền sử ${plan.why.join(', ')}: đã tự chọn ${keys.map(k => LABS.find(x => x[1] === k)[2].split(' (')[0]).join(', ')}`), 80);
+  return keys.length;
+}
+// Tự chọn thuốc chống trầm cảm (bác sĩ đặt 2026-11-15): chẩn đoán xác định (chính / phụ) F32.x hoặc F33.x VÀ triệu chứng đích ở bệnh sử (không phủ định):
+//   lo âu / lo lắng → sertralin; mất ngủ / khó ngủ / ăn kém / chán ăn / sụt cân → mirtazapin; mệt mỏi / giảm năng lượng → bupropion + sertralin;
+//   đau … kéo dài / đau mạn tính → sertralin + duloxetin; giảm ham muốn tình dục (hoặc ô bệnh nền "Rối loạn / lo ngại chức năng tình dục") → bupropion; rối loạn nhịp sinh học → agomelatin
+// Thêm dòng chưa có liều, số ngày, cách dùng — bác sĩ tự điền. Mỗi hoạt chất chỉ tự xét một lần mỗi lượt khám (v.autoAD); bị quy tắc chặn kê thì không thêm,
+// báo lý do; đã có thuốc cùng hoạt chất thì bỏ qua; không áp cho hồ sơ cũ. Trả về true nếu đã thêm
+const hpiSays = kws => (p, v) => kws.some(k => saysNotNeg(v.hpi || '', k));
+const longPain = (p, v) => { const t = ' ' + norm(v.hpi || '').replace(/[^a-z0-9]+/g, ' ') + ' '; return /(^| )dau( [a-z0-9]+){0,6} keo dai /.test(t) && !/ (khong|chua|het) (bi |con |co )?dau /.test(t) || saysNotNeg(v.hpi || '', 'dau man tinh') || saysNotNeg(v.hpi || '', 'dau man'); };
+const AUTO_AD = [
+  {test: hpiSays(['lo au', 'lo lang']), why: 'Trầm cảm kèm lo âu', drugs: [['sert50', 'sertralin']]},
+  {test: hpiSays(['mat ngu', 'kho ngu', 'an kem', 'chan an', 'sut can']), why: 'Trầm cảm kèm mất ngủ / ăn kém, sụt cân', drugs: [['mirta30n', 'mirtazapin']]},
+  // F32 / F33 + bệnh sử tiêu chảy / nôn → mirtazapin (bác sĩ đặt 2026-11-15)
+  {test: hpiSays(['tieu chay', 'non', 'non oi']), why: 'Trầm cảm kèm tiêu chảy, nôn', drugs: [['mirta30n', 'mirtazapin']]},
+  {test: hpiSays(['met moi', 'giam nang luong']), why: 'Trầm cảm kèm mệt mỏi, giảm năng lượng', drugs: [['bupro150', 'bupropion'], ['sert50', 'sertralin']]},
+  {test: longPain, why: 'Trầm cảm kèm đau kéo dài', drugs: [['sert50', 'sertralin'], ['dulox30n', 'duloxetin']]},
+  {test: (p, v) => hpiSays(['giam ham muon', 'giam ham muon tinh duc'])(p, v) || (p.conds || []).includes('sexual_dysf'), why: 'Trầm cảm kèm giảm ham muốn / lo ngại tình dục', drugs: [['bupro150', 'bupropion']]},
+  {test: hpiSays(['roi loan nhip sinh hoc', 'nhip sinh hoc']), why: 'Trầm cảm kèm rối loạn nhịp sinh học', drugs: [['agome25', 'agomelatin']]},
+  // Giai đoạn hưng cảm (F30.x; lưỡng cực hiện tại hưng cảm F31.1, F31.2) + mất ngủ → quetiapin (bác sĩ đặt 2026-11-15)
+  {dx: /^(F30|F31\.[12])/i, test: hpiSays(['mat ngu', 'kho ngu']), why: 'Hưng cảm kèm mất ngủ', drugs: [['quet100n', 'quetiapin']]},
+  {dx: /^(F30|F31\.[12])/i, test: hpiSays(['kich dong']), why: 'Hưng cảm kèm kích động', drugs: [['risp2n', 'risperidon']]},
+  // Hưng cảm + tiền sử béo phì / đái tháo đường / rối loạn lipid (ô tích hoặc ghi chữ), hoặc BMI hiện tại béo phì (≥ 25, BYT 2022) → quetiapin (bác sĩ đặt 2026-11-15)
+  {dx: /^(F30|F31\.[12])/i, test: (p, v) => { const pcs = p.conds || [], say = k => saysNotNeg(p.condNote || '', k), vt = v.vitals || {}, b = bmiOf(num(vt.weight) ?? num(p.weight), num(vt.height) ?? num(p.height));
+    return pcs.includes('diabetes') || pcs.includes('dyslipid') || ['beo phi', 'dai thao duong', 'tieu duong', 'roi loan lipid', 'roi loan mo mau', 'mo mau cao'].some(say) || (b != null && b >= 25); },
+    why: 'Hưng cảm kèm béo phì / đái tháo đường / rối loạn lipid', drugs: [['quet100n', 'quetiapin']]},
+  // Mọi giai đoạn hưng cảm → natri valproat (bác sĩ đặt 2026-11-15)
+  {dx: /^(F30|F31\.[12])/i, test: () => true, why: 'Giai đoạn hưng cảm', drugs: [['valp500n', 'valpro']]},
+  // Rối loạn cảm xúc lưỡng cực, hiện tại giai đoạn trầm cảm (F31.3, F31.4, F31.5) → natri valproat + quetiapin (bác sĩ đặt 2026-11-15)
+  {dx: /^F31\.[345]/i, test: () => true, why: 'Lưỡng cực, giai đoạn trầm cảm', drugs: [['valp500n', 'valpro'], ['quet100n', 'quetiapin']]},
+  // Mọi giai đoạn trầm cảm / trầm cảm tái diễn (F32.x, F33.x) → sertralin + olanzapin (bác sĩ đặt 2026-11-15, theo đúng yêu cầu: không giới hạn ở thể có loạn thần)
+  {test: () => true, why: 'Giai đoạn trầm cảm', drugs: [['sert50', 'sertralin'], ['olan10n', 'olanzapin']]},
+  // F32 / F33 + khám tâm thần có ≥ 4/8 triệu chứng cơ thể (nhóm dep_som) → sertralin + sulpirid (bác sĩ đặt 2026-11-15)
+  {test: (p, v) => { const sx = new Set(((v.mental || {}).sx) || []), g = MENTAL_SX.find(x => x.g === 'dep_som'); return !!g && g.items.filter(([k]) => sx.has(k)).length >= 4; }, why: 'Trầm cảm có ≥ 4/8 triệu chứng cơ thể', drugs: [['sert50', 'sertralin'], ['sulpi50', 'sulpirid']]}];
+// Không tự chọn (bác sĩ đặt 2026-11-15): F32 / F33 + bệnh sử lo âu / lo lắng → không tự thêm bupropion (bác sĩ vẫn kê tay được)
+const AUTO_AD_NOT = [{hc: 'bupropion', dx: /^F3[23]/i, test: hpiSays(['lo au', 'lo lang'])}];
+function autoSertraline(p, v){
+  if(!v || v.kind === 'old') return false;
+  const codes = dxCodes(v); if(!codes.length) return false;
+  const done = v.autoAD || (v.autoAD = []), lines = v.autoADLines || (v.autoADLines = []);
+  let added = false;
+  const isHc = (l, hc) => { const x = drugById(l.drugId); return x && norm(x.hc || '').includes(hc); };
+  const pick = (id, hc) => S.drugs.find(x => x.id === id && !x.off) || S.drugs.find(x => !x.off && norm(x.hc || '').includes(hc));
+  // Bác sĩ đặt 2026-11-15: F32 / F33 + bệnh sử mệt mỏi / giảm năng lượng mà bupropion bị chống chỉ định (quy tắc chặn kê) → chỉ chọn venlafaxin, không chọn sertralin
+  const dep = codes.some(c => /^F3[23]/i.test(c)), fatigue = dep && hpiSays(['met moi', 'giam nang luong'])(p, v);
+  const bup = fatigue && pick('bupro150', 'bupropion'), bupBlocked = !!bup && (pairBlockReasons(p, v, bup).length + drugBlockReasons(p, v, bup).length) > 0;
+  const noSert = fatigue && bupBlocked;
+  if(noSert){
+    // bỏ dòng sertralin do app tự thêm trước đó nếu bác sĩ chưa điền gì
+    v.rx = v.rx.filter(l => !(lines.includes(l.id) && isHc(l, 'sertralin') && !(num(l.s) || num(l.tr) || num(l.c) || num(l.t)) && !l.how && !l.days));
+    if(!done.includes('venlafaxin')){ done.push('venlafaxin');
+      const d = pick('venla75n', 'venlafaxin');
+      if(d && !v.rx.some(l => isHc(l, 'venlafaxin'))){
+        const blk = pairBlockReasons(p, v, d).concat(drugBlockReasons(p, v, d));
+        if(blk.length) toast(`Trầm cảm kèm mệt mỏi (bupropion chống chỉ định) — chưa tự chọn ${d.n} vì: ${blk[0]}`);
+        else { const l = {id: uid('r'), drugId: d.id, s: 0, tr: 0, c: 0, t: 0, days: null, how: '', note: ''}; v.rx.push(l); lines.push(l.id); toast(`Trầm cảm kèm mệt mỏi, bupropion chống chỉ định: đã tự chọn ${d.n} — anh điền liều, số ngày, cách dùng`); added = true; }
+      }
+    }
+  }
+  AUTO_AD.forEach(r => {
+    if(!codes.some(c => (r.dx || /^F3[23]/i).test(c)) || !r.test(p, v)) return;
+    r.drugs.forEach(([id, hc]) => {
+      if(noSert && (hc === 'sertralin' || hc === 'bupropion')) return;
+      if(AUTO_AD_NOT.some(x => x.hc === hc && codes.some(c => x.dx.test(c)) && x.test(p, v))) return;
+      if(done.includes(hc)) return; done.push(hc);
+      if(v.rx.some(l => isHc(l, hc))) return;
+      const d = pick(id, hc); if(!d) return;
+      const blk = pairBlockReasons(p, v, d).concat(drugBlockReasons(p, v, d));
+      if(blk.length){ toast(`${r.why} — chưa tự chọn ${d.n} vì: ${blk[0]}`); return; }
+      const l = {id: uid('r'), drugId: d.id, s: 0, tr: 0, c: 0, t: 0, days: null, how: '', note: ''}; v.rx.push(l); lines.push(l.id);
+      toast(`${r.why}: đã tự chọn ${d.n} — anh điền liều, số ngày, cách dùng`); added = true;
+    });
+  });
+  return added;
 }
 function nextCode(){ const n = S.patients.map(p => parseInt(String(p.code || '').replace(/\D/g, '')) || 0); return 'BN' + String(Math.max(0, ...n) + 1).padStart(4, '0'); }
 
@@ -836,12 +917,12 @@ const ACT = {
       conds: [], allergies: [], meds: [], risk: {smoke: 'never', alcohol: 'no'}, fam: [], screen: {}, recalls: [], visits: [], activity: 'sedentary'};
     S.patients.push(p);
     if(a.dataset.only){ savePatient(p); go({name: 'patient', pid: p.id, tab: 'profile'}); return; }
-    const v = newVisitObj(p, 'clinic'); v.reason = n.reason || ''; p.visits.push(v); const nAuto = autoCogOrders(p, v); savePatient(p);
+    const v = newVisitObj(p, 'clinic'); v.reason = n.reason || ''; p.visits.push(v); const nAuto = autoCogOrders(p, v), nF33 = autoF33Orders(p, v); savePatient(p);
     go({name: 'visit', pid: p.id, vid: v.id, step: 1}); if(nAuto) toast(`Tiền sử rối loạn nhận thức: đã tự chọn ${nAuto} chỉ định cận lâm sàng`);
   },
   openP: a => go({name: 'patient', pid: a.dataset.id, tab: a.dataset.tab || 'visits'}),
   ptab: a => { S.view.tab = a.dataset.tab; renderMain(); },
-  newVisit: a => { const p = curP(), v = newVisitObj(p, a.dataset.kind); if(a.dataset.kind === 'old'){ v.status = 'done'; v.print.reason = false; } p.visits.push(v); const nAuto = a.dataset.kind === 'clinic' ? autoCogOrders(p, v) : 0; if(nAuto) setTimeout(() => toast(`Tiền sử rối loạn nhận thức: đã tự chọn ${nAuto} chỉ định cận lâm sàng`), 50); savePatient(p); go({name: 'visit', pid: p.id, vid: v.id, step: 1}); if(a.dataset.kind === 'old') toast('Nhập ngày khám, nơi khám, chẩn đoán, xét nghiệm, đơn thuốc cũ'); },
+  newVisit: a => { const p = curP(), v = newVisitObj(p, a.dataset.kind); if(a.dataset.kind === 'old'){ v.status = 'done'; v.print.reason = false; } p.visits.push(v); const nAuto = a.dataset.kind === 'clinic' ? autoCogOrders(p, v) : 0, nF33 = a.dataset.kind === 'clinic' ? autoF33Orders(p, v) : 0; if(nAuto) setTimeout(() => toast(`Tiền sử rối loạn nhận thức: đã tự chọn ${nAuto} chỉ định cận lâm sàng`), 50); savePatient(p); go({name: 'visit', pid: p.id, vid: v.id, step: 1}); if(a.dataset.kind === 'old') toast('Nhập ngày khám, nơi khám, chẩn đoán, xét nghiệm, đơn thuốc cũ'); },
   openV: a => go({name: 'visit', pid: S.view.pid, vid: a.dataset.id, step: 1}),
   step: a => { const n = Number(a.dataset.step), m = n >= 4 && rxGate(curV());
     if(m){ toast(m); if((S.view.step || 1) !== 3){ S.view.step = 3; renderMain(); } updateLive(); const c = $('#norxCard'); if(c) c.scrollIntoView({block: 'center', behavior: 'smooth'}); return; }

@@ -1403,6 +1403,156 @@ def main():
               v.hpi = 'Buồn chán kèm mất ngủ, lo âu, có ý tưởng tự sát'; afterChange('v.hpi'); const c = K();
               v.hpi = h0; v.mental = JSON.parse(m0); v.orders = o0; v.psyAutoKeys = a0; return [a, b, c]; }""")
             assert r == [6, 5, 6], r
+            # Tiền sử F33 → lượt khám mới tự chọn MADRS, PSQI, Beck (bác sĩ đặt 2026-11-15)
+            r = pg.evaluate("""() => { const p = curP(), n0 = p.condNote, vis0 = p.visits.slice();
+              const v1 = newVisitObj(p, 'clinic'); const a = autoF33Orders(p, v1);
+              p.condNote = 'Rối loạn trầm cảm tái diễn 2 năm'; const v2 = newVisitObj(p, 'clinic'); const b = autoF33Orders(p, v2), bk = v2.orders.map(o => o.key).filter(k => ['madrs', 'psqi', 'bdi'].includes(k)).sort().join(',');
+              p.condNote = ''; const old = newVisitObj(p, 'clinic'); old.dx = {...old.dx, icd: 'F33.1 – Rối loạn trầm cảm tái diễn, giai đoạn hiện tại vừa'}; p.visits.push(old);
+              const v3 = newVisitObj(p, 'clinic'); const c = autoF33Orders(p, v3); const v4 = newVisitObj(p, 'old'); v4.kind = 'old'; const d = autoF33Orders(p, v4);
+              p.condNote = n0; p.visits = vis0; return [a, b, bk, c, d]; }""")
+            assert r == [0, 3, 'bdi,madrs,psqi', 3, 0], r
+            # Tiền sử F31 → MADRS, YMRS, PHQ-9, PSQI (bác sĩ đặt 2026-11-15)
+            r = pg.evaluate("""() => { const p = curP(), n0 = p.condNote, c0 = p.conds, vis0 = p.visits.slice(); p.condNote = ''; p.conds = [];
+              const K = v => v.orders.map(o => o.key).filter(k => ['madrs', 'ymrs', 'phq9', 'psqi', 'bdi'].includes(k)).sort().join(',');
+              const v1 = newVisitObj(p, 'clinic'); autoF33Orders(p, v1);
+              p.conds = ['bipolar']; const v2 = newVisitObj(p, 'clinic'); autoF33Orders(p, v2); p.conds = [];
+              const old = newVisitObj(p, 'clinic'); old.dx = {...old.dx, icd: 'F31.3 – RLCXLC, hiện tại trầm cảm nhẹ hoặc vừa'}; p.visits.push(old);
+              const v3 = newVisitObj(p, 'clinic'); autoF33Orders(p, v3);
+              p.condNote = 'Trầm cảm tái diễn'; const v4 = newVisitObj(p, 'clinic'); autoF33Orders(p, v4);
+              p.condNote = n0; p.conds = c0; p.visits = vis0; return [K(v1), K(v2), K(v3), K(v4)]; }""")
+            assert r == ['', 'madrs,phq9,psqi,ymrs', 'madrs,phq9,psqi,ymrs', 'bdi,madrs,phq9,psqi,ymrs'], r
+            # Tự chọn sertralin khi F32 / F33 + bệnh sử lo âu (bác sĩ đặt 2026-11-15)
+            r = pg.evaluate("""() => { const p = curP(), v = curV(), h0 = v.hpi, dx0 = JSON.stringify(v.dx), rx0 = v.rx, a0 = v.autoAD, m0 = p.meds, c0 = p.conds, n0 = p.condNote, j0 = p.job, s0 = p.sex, by0 = p.birthYear, dob0 = p.dob;
+              p.meds = []; p.conds = []; p.condNote = ''; p.job = ''; p.dob = ''; p.birthYear = +v.date.slice(0, 4) - 40;
+              const S1 = () => v.rx.filter(l => /sertralin/.test(norm((drugById(l.drugId) || {}).hc || ''))).map(l => [l.s + l.tr + l.c + l.t, l.days, l.how]);
+              v.rx = []; v.autoAD = []; v.hpi = 'Buồn chán, lo âu 1 tháng'; v.dx = {...v.dx, icd: 'K29.7 – Viêm dạ dày', icd2: '', main: '', secondary: ''}; afterChange('v.dx.icd'); const a = S1().length;
+              v.dx.icd = 'F32.1 – Giai đoạn trầm cảm vừa'; afterChange('v.dx.icd'); const b = S1();
+              v.rx = []; afterChange('v.hpi'); const c = S1().length;
+              v.rx = []; v.autoAD = []; v.hpi = 'Buồn chán, không lo âu'; v.dx.icd = 'F33.1 – Trầm cảm tái diễn'; afterChange('v.dx.icd'); const d = S1().length;
+              v.hpi = 'Lo lắng nhiều'; afterChange('v.hpi'); const e = S1().length;
+              v.hpi = h0; v.dx = JSON.parse(dx0); v.rx = rx0; v.autoAD = a0; p.meds = m0; p.conds = c0; p.condNote = n0; p.job = j0; p.sex = s0; p.birthYear = by0; p.dob = dob0;
+              return [a, b, c, d, e]; }""")
+            assert r == [0, [[0, None, '']], 0, 1, 1], r   # từ 2026-11-15 mọi F32 / F33 tự chọn sertralin
+            # Tự chọn mirtazapin khi F32 / F33 + mất ngủ / ăn kém, sụt cân (bác sĩ đặt 2026-11-15)
+            r = pg.evaluate("""() => { const p = curP(), v = curV(), h0 = v.hpi, dx0 = JSON.stringify(v.dx), rx0 = v.rx, a0 = v.autoAD, m0 = p.meds, c0 = p.conds, n0 = p.condNote, j0 = p.job, by0 = p.birthYear, dob0 = p.dob, vt0 = JSON.stringify(v.vitals), rk0 = JSON.stringify(p.risk || {});
+              p.meds = []; p.conds = []; p.condNote = ''; p.job = ''; p.dob = ''; p.birthYear = +v.date.slice(0, 4) - 40; v.vitals = {weight: 55, height: 165}; p.risk = {smoke: 'never', alcohol: 'no'};
+              const H = hc => v.rx.filter(l => norm((drugById(l.drugId) || {}).hc || '').includes(hc)).length;
+              v.rx = []; v.autoAD = []; v.hpi = 'Buồn chán, mất ngủ, ăn kém, sụt cân 3 kg'; v.dx = {...v.dx, icd: 'F32.1 – Giai đoạn trầm cảm vừa', icd2: '', main: '', secondary: ''}; afterChange('v.dx.icd');
+              const a = [H('mirtazapin'), H('sertralin')];
+              v.rx = []; v.autoAD = []; v.hpi = 'Buồn chán, lo âu, mất ngủ'; afterChange('v.hpi'); const b = [H('mirtazapin'), H('sertralin')];
+              v.rx = []; v.autoAD = []; v.hpi = 'Buồn chán, không mất ngủ, ăn uống bình thường'; afterChange('v.hpi'); const c = [H('mirtazapin'), H('sertralin')];
+              v.hpi = h0; v.dx = JSON.parse(dx0); v.rx = rx0; v.autoAD = a0; p.meds = m0; p.conds = c0; p.condNote = n0; p.job = j0; p.birthYear = by0; p.dob = dob0; v.vitals = JSON.parse(vt0); p.risk = JSON.parse(rk0);
+              return [a, b, c]; }""")
+            assert r == [[1, 1], [1, 0], [0, 1]], r   # từ 2026-11-15 mọi F32 / F33 tự chọn sertralin, trừ lo âu kèm mất ngủ (chặn sertralin)
+            # Tự chọn bupropion + sertralin khi F32 / F33 + mệt mỏi, giảm năng lượng (bác sĩ đặt 2026-11-15)
+            r = pg.evaluate("""() => { const p = curP(), v = curV(), h0 = v.hpi, dx0 = JSON.stringify(v.dx), rx0 = v.rx, a0 = v.autoAD, m0 = p.meds, c0 = p.conds, n0 = p.condNote, j0 = p.job, by0 = p.birthYear, dob0 = p.dob;
+              p.meds = []; p.conds = []; p.condNote = ''; p.job = ''; p.dob = ''; p.birthYear = +v.date.slice(0, 4) - 40;
+              const H = hc => v.rx.filter(l => norm((drugById(l.drugId) || {}).hc || '').includes(hc)).length;
+              v.rx = []; v.autoAD = []; v.hpi = 'Mệt mỏi, giảm năng lượng, buồn chán'; v.dx = {...v.dx, icd: 'F33.1 – Trầm cảm tái diễn', icd2: '', main: '', secondary: ''}; afterChange('v.dx.icd');
+              const a = [H('bupropion'), H('sertralin')];
+              v.rx = []; v.autoAD = []; v.hpi = 'Mệt mỏi, giảm năng lượng, khó vào giấc'; afterChange('v.hpi'); const b = [H('bupropion'), H('sertralin')];
+              v.hpi = h0; v.dx = JSON.parse(dx0); v.rx = rx0; v.autoAD = a0; p.meds = m0; p.conds = c0; p.condNote = n0; p.job = j0; p.birthYear = by0; p.dob = dob0;
+              return [a, b]; }""")
+            assert r == [[1, 1], [0, 0]], r   # khó vào giấc → bupropion bị chặn → chỉ venlafaxin (2026-11-15)
+            # Tự chọn: đau kéo dài → sertralin + duloxetin; giảm ham muốn / lo ngại tình dục → bupropion (bác sĩ đặt 2026-11-15)
+            r = pg.evaluate("""() => { const p = curP(), v = curV(), h0 = v.hpi, dx0 = JSON.stringify(v.dx), rx0 = v.rx, a0 = v.autoAD, m0 = p.meds, c0 = p.conds, n0 = p.condNote, j0 = p.job, by0 = p.birthYear, dob0 = p.dob, rk0 = JSON.stringify(p.risk || {});
+              p.meds = []; p.conds = []; p.condNote = ''; p.job = ''; p.dob = ''; p.birthYear = +v.date.slice(0, 4) - 40; p.risk = {smoke: 'never', alcohol: 'no'};
+              const H = hc => v.rx.filter(l => norm((drugById(l.drugId) || {}).hc || '').includes(hc)).length;
+              const R = (hpi, conds) => { v.rx = []; v.autoAD = []; v.hpi = hpi; p.conds = conds || []; v.dx = {...v.dx, icd: 'F32.1 – Giai đoạn trầm cảm vừa', icd2: '', main: '', secondary: ''}; afterChange('v.dx.icd'); return ['sertralin', 'duloxetin', 'bupropion'].map(H); };
+              const r = [R('Buồn chán, đau lưng kéo dài 6 tháng'), R('Buồn chán, không đau, ngủ được'), R('Buồn chán, giảm ham muốn tình dục'), R('Buồn chán', ['sexual_dysf']), R('Buồn chán, rối loạn nhịp sinh học').concat([H('agomelatin')])];
+              v.hpi = h0; v.dx = JSON.parse(dx0); v.rx = rx0; v.autoAD = a0; p.meds = m0; p.conds = c0; p.condNote = n0; p.job = j0; p.birthYear = by0; p.dob = dob0; p.risk = JSON.parse(rk0);
+              return r; }""")
+            assert r == [[1, 1, 0], [1, 0, 0], [1, 0, 1], [1, 0, 1], [1, 0, 0, 1]], r   # từ 2026-11-15 mọi F32 / F33 tự chọn sertralin
+            # Hưng cảm + mất ngủ → quetiapin (bác sĩ đặt 2026-11-15)
+            r = pg.evaluate("""() => { const p = curP(), v = curV(), h0 = v.hpi, dx0 = JSON.stringify(v.dx), rx0 = v.rx, a0 = v.autoAD, m0 = p.meds, c0 = p.conds, n0 = p.condNote, by0 = p.birthYear, dob0 = p.dob, o0 = v.orders;
+              p.meds = []; p.conds = []; p.condNote = ''; p.dob = ''; p.birthYear = +v.date.slice(0, 4) - 40; v.orders = []; const rk1 = JSON.stringify(p.risk || {}); p.risk = {smoke: 'never', alcohol: 'no'}; const vt1 = JSON.stringify(v.vitals); v.vitals = {weight: 60, height: 165};
+              const R = (icd, hpi) => { v.rx = []; v.autoAD = []; v.hpi = hpi; v.dx = {...v.dx, icd, icd2: '', main: '', secondary: ''}; afterChange('v.dx.icd'); return ['quetiapin', 'mirtazapin', 'risperidon'].map(hc => v.rx.filter(l => norm((drugById(l.drugId) || {}).hc || '').includes(hc)).length); };
+              const r = [R('F30.1 – Hưng cảm không loạn thần', 'Hưng phấn, mất ngủ 1 tuần'), R('F31.1 – Lưỡng cực, hiện tại hưng cảm', 'Mất ngủ'), R('F30.1 – Hưng cảm không loạn thần', 'Hưng phấn, ngủ được'), R('F30.2 – Hưng cảm có loạn thần', 'Kích động, la hét'), R('F30.1 – Hưng cảm không loạn thần', 'Không kích động')];
+              v.hpi = h0; v.dx = JSON.parse(dx0); v.rx = rx0; v.autoAD = a0; p.meds = m0; p.conds = c0; p.condNote = n0; p.birthYear = by0; p.dob = dob0; v.orders = o0; p.risk = JSON.parse(rk1); v.vitals = JSON.parse(vt1); return r; }""")
+            assert r == [[1, 0, 0], [1, 0, 0], [0, 0, 0], [0, 0, 1], [0, 0, 0]], r
+            # Hưng cảm + béo phì / ĐTĐ / rối loạn lipid → quetiapin (bác sĩ đặt 2026-11-15)
+            r = pg.evaluate("""() => { const p = curP(), v = curV(), h0 = v.hpi, dx0 = JSON.stringify(v.dx), rx0 = v.rx, a0 = v.autoAD, m0 = p.meds, c0 = p.conds, n0 = p.condNote, by0 = p.birthYear, dob0 = p.dob, vt0 = JSON.stringify(v.vitals), w0 = p.weight, h1 = p.height;
+              p.meds = []; p.dob = ''; p.birthYear = +v.date.slice(0, 4) - 40;
+              const R = (conds, note, w) => { v.rx = []; v.autoAD = []; v.hpi = 'Hưng phấn'; p.conds = conds; p.condNote = note; v.vitals = {weight: w, height: 165}; v.dx = {...v.dx, icd: 'F30.1 – Hưng cảm', icd2: '', main: '', secondary: ''}; afterChange('v.dx.icd'); return v.rx.filter(l => norm((drugById(l.drugId) || {}).hc || '').includes('quetiapin')).length; };
+              const r = [R([], '', 60), R(['diabetes'], '', 60), R(['dyslipid'], '', 60), R([], 'Béo phì 5 năm', 60), R([], '', 80), R([], 'Không đái tháo đường', 60)];
+              v.hpi = h0; v.dx = JSON.parse(dx0); v.rx = rx0; v.autoAD = a0; p.meds = m0; p.conds = c0; p.condNote = n0; p.birthYear = by0; p.dob = dob0; v.vitals = JSON.parse(vt0); p.weight = w0; p.height = h1; return r; }""")
+            assert r == [0, 1, 1, 1, 1, 0], r
+            # Hưng cảm → natri valproat (bác sĩ đặt 2026-11-15)
+            r = pg.evaluate("""() => { const p = curP(), v = curV(), h0 = v.hpi, dx0 = JSON.stringify(v.dx), rx0 = v.rx, a0 = v.autoAD, m0 = p.meds, c0 = p.conds, n0 = p.condNote, by0 = p.birthYear, dob0 = p.dob, s0 = p.sex, vt0 = JSON.stringify(v.vitals), rk0 = JSON.stringify(p.risk || {});
+              p.meds = []; p.conds = []; p.condNote = ''; p.dob = ''; p.birthYear = +v.date.slice(0, 4) - 40; p.sex = 'Nam'; v.vitals = {weight: 60, height: 165}; p.risk = {smoke: 'never', alcohol: 'no'}; const jb0 = p.job; p.job = ''; const mt0 = JSON.stringify(v.mental || {}), od0 = v.orders; v.mental = {sx: [], hist: [], excl: []}; v.orders = [];
+              const R = icd => { v.rx = []; v.autoAD = []; p.conds = []; v.hpi = 'Hưng phấn'; v.dx = {...v.dx, icd, icd2: '', main: '', secondary: ''}; afterChange('v.dx.icd'); return v.rx.filter(l => norm((drugById(l.drugId) || {}).hc || '').includes('valpro')).map(l => [l.s + l.tr + l.c + l.t, l.days]); };
+              const Q = () => v.rx.map(l => norm((drugById(l.drugId) || {}).hc || '')).filter(h => /valpro|quetiapin|sertralin/.test(h)).sort().join(',');
+              const r = [R('F30.1 – Hưng cảm'), R('F32.1 – Trầm cảm vừa'), (R('F31.3 – Lưỡng cực, hiện tại trầm cảm nhẹ hoặc vừa'), Q()), (R('F33.1 – Trầm cảm tái diễn'), v.rx.map(l => norm((drugById(l.drugId) || {}).hc || '')).filter(h => /olanzapin|sertralin/.test(h)).sort().join(','))];
+              v.hpi = h0; v.dx = JSON.parse(dx0); v.rx = rx0; v.autoAD = a0; p.meds = m0; p.conds = c0; p.condNote = n0; p.birthYear = by0; p.dob = dob0; p.sex = s0; v.vitals = JSON.parse(vt0); p.risk = JSON.parse(rk0); p.job = jb0; v.mental = JSON.parse(mt0); v.orders = od0; return r; }""")
+            assert r == [[[0, None]], [], 'quetiapin,valproat natri', 'olanzapin,sertralin'], r
+            # F32 / F33 + lo âu → không tự chọn bupropion (bác sĩ đặt 2026-11-15)
+            r = pg.evaluate("""() => { const p = curP(), v = curV(), h0 = v.hpi, dx0 = JSON.stringify(v.dx), rx0 = v.rx, a0 = v.autoAD, m0 = p.meds, c0 = p.conds, n0 = p.condNote, j0 = p.job, by0 = p.birthYear, dob0 = p.dob;
+              p.meds = []; p.conds = []; p.condNote = ''; p.job = ''; p.dob = ''; p.birthYear = +v.date.slice(0, 4) - 40;
+              const R = hpi => { v.rx = []; v.autoAD = []; v.hpi = hpi; v.dx = {...v.dx, icd: 'F32.1 – Trầm cảm vừa', icd2: '', main: '', secondary: ''}; afterChange('v.dx.icd'); return v.rx.filter(l => norm((drugById(l.drugId) || {}).hc || '').includes('bupropion')).length; };
+              const r = [R('Mệt mỏi, giảm năng lượng'), R('Mệt mỏi, giảm năng lượng, lo âu')];
+              v.hpi = h0; v.dx = JSON.parse(dx0); v.rx = rx0; v.autoAD = a0; p.meds = m0; p.conds = c0; p.condNote = n0; p.job = j0; p.birthYear = by0; p.dob = dob0; return r; }""")
+            assert r == [1, 0], r
+            # Mệt mỏi + bupropion chống chỉ định → chỉ venlafaxin, không sertralin (bác sĩ đặt 2026-11-15)
+            r = pg.evaluate("""() => { const p = curP(), v = curV(), h0 = v.hpi, dx0 = JSON.stringify(v.dx), rx0 = v.rx, a0 = v.autoAD, l0 = v.autoADLines, m0 = p.meds, c0 = p.conds, n0 = p.condNote, j0 = p.job, by0 = p.birthYear, dob0 = p.dob;
+              p.meds = []; p.condNote = ''; p.job = ''; p.dob = ''; p.birthYear = +v.date.slice(0, 4) - 40;
+              const H = () => ['bupropion', 'sertralin', 'venlafaxin'].map(hc => v.rx.filter(l => norm((drugById(l.drugId) || {}).hc || '').includes(hc)).length);
+              const R = conds => { v.rx = []; v.autoAD = []; v.autoADLines = []; p.conds = conds; v.hpi = 'Mệt mỏi, giảm năng lượng'; v.dx = {...v.dx, icd: 'F32.1 – Trầm cảm vừa', icd2: '', main: '', secondary: ''}; afterChange('v.dx.icd'); return H(); };
+              const r = [R([]), R(['epilepsy'])];
+              v.rx = []; v.autoAD = []; v.autoADLines = []; p.conds = []; v.hpi = 'Buồn chán'; afterChange('v.dx.icd'); const before = H(); p.conds = ['epilepsy']; v.hpi = 'Mệt mỏi, giảm năng lượng'; afterChange('v.hpi'); r.push(before, H());
+              v.hpi = h0; v.dx = JSON.parse(dx0); v.rx = rx0; v.autoAD = a0; v.autoADLines = l0; p.meds = m0; p.conds = c0; p.condNote = n0; p.job = j0; p.birthYear = by0; p.dob = dob0; return r; }""")
+            assert r == [[1, 1, 0], [0, 0, 1], [0, 1, 0], [0, 0, 1]], r
+            # F32 / F33 + ≥ 4/8 triệu chứng cơ thể → sertralin + sulpirid (bác sĩ đặt 2026-11-15)
+            r = pg.evaluate("""() => { const p = curP(), v = curV(), h0 = v.hpi, dx0 = JSON.stringify(v.dx), rx0 = v.rx, a0 = v.autoAD, l0 = v.autoADLines, m0 = p.meds, c0 = p.conds, n0 = p.condNote, j0 = p.job, by0 = p.birthYear, dob0 = p.dob, mm0 = JSON.stringify(v.mental || {});
+              p.meds = []; p.conds = []; p.condNote = ''; p.job = ''; p.dob = ''; p.birthYear = +v.date.slice(0, 4) - 40;
+              const som = MENTAL_SX.find(x => x.g === 'dep_som').items.map(([k]) => k);
+              const R = n => { v.rx = []; v.autoAD = []; v.autoADLines = []; v.hpi = 'Buồn chán'; v.mental = {sx: som.slice(0, n), hist: [], excl: []}; v.dx = {...v.dx, icd: 'F32.1 – Trầm cảm vừa', icd2: '', main: '', secondary: ''}; afterChange('v.mental.sx'); return v.rx.filter(l => norm((drugById(l.drugId) || {}).hc || '').includes('sulpirid')).length; };
+              const r = [R(3), R(4)];
+              v.hpi = h0; v.dx = JSON.parse(dx0); v.rx = rx0; v.autoAD = a0; v.autoADLines = l0; p.meds = m0; p.conds = c0; p.condNote = n0; p.job = j0; p.birthYear = by0; p.dob = dob0; v.mental = JSON.parse(mm0); return r; }""")
+            assert r == [0, 1], r
+            # Tramadol + thuốc tâm thần → chặn hai chiều, tăng nguy cơ co giật (bác sĩ đặt 2026-11-15)
+            r = pg.evaluate("""() => { const p = curP(), v = curV(), rx0 = v.rx, m0 = p.meds;
+              p.meds = []; const T = drugById('trama37'), Sx = S.drugs.find(x => x.id === 'sert50'), Pi = S.drugs.find(x => x.g === 'neuro' && /cholinesterase/.test(norm(x.cls || '')));
+              const B = d => drugBlockReasons(p, v, d).some(x => x.includes('co giật'));
+              v.rx = []; const a = B(T);
+              v.rx = [{id: 'x1', drugId: Sx.id}]; const b = B(T);
+              v.rx = [{id: 'x2', drugId: T.id}]; const c = B(Sx), d2 = Pi ? B(Pi) : false;
+              v.rx = rx0; p.meds = m0; return [a, b, c, d2]; }""")
+            assert r == [False, True, True, False], r
+            # F32 / F33 + tiêu chảy / nôn → mirtazapin (bác sĩ đặt 2026-11-15)
+            r = pg.evaluate("""() => { const p = curP(), v = curV(), h0 = v.hpi, dx0 = JSON.stringify(v.dx), rx0 = v.rx, a0 = v.autoAD, l0 = v.autoADLines, m0 = p.meds, c0 = p.conds, n0 = p.condNote, j0 = p.job, by0 = p.birthYear, dob0 = p.dob, vt0 = JSON.stringify(v.vitals), rk0 = JSON.stringify(p.risk || {});
+              p.meds = []; p.conds = []; p.condNote = ''; p.job = ''; p.dob = ''; p.birthYear = +v.date.slice(0, 4) - 40; v.vitals = {weight: 55, height: 165}; p.risk = {smoke: 'never', alcohol: 'no'};
+              const R = (icd, hpi) => { v.rx = []; v.autoAD = []; v.autoADLines = []; v.hpi = hpi; v.dx = {...v.dx, icd, icd2: '', main: '', secondary: ''}; afterChange('v.dx.icd'); return v.rx.filter(l => norm((drugById(l.drugId) || {}).hc || '').includes('mirtazapin')).length; };
+              const r = [R('F32.1 – Giai đoạn trầm cảm vừa', 'Buồn chán, tiêu chảy 3 ngày'), R('F33.1 – Trầm cảm tái diễn', 'Buồn chán, nôn nhiều'), R('F32.1 – Giai đoạn trầm cảm vừa', 'Buồn chán, không tiêu chảy, không nôn'), R('K29.7 – Viêm dạ dày', 'Tiêu chảy, nôn')];
+              v.hpi = h0; v.dx = JSON.parse(dx0); v.rx = rx0; v.autoAD = a0; v.autoADLines = l0; p.meds = m0; p.conds = c0; p.condNote = n0; p.job = j0; p.birthYear = by0; p.dob = dob0; v.vitals = JSON.parse(vt0); p.risk = JSON.parse(rk0); return r; }""")
+            assert r == [1, 1, 0, 0], r
+            # Chặn fluoxetin: F32 / F33 + lo âu / cơn hoảng sợ; đang dùng statin (bác sĩ đặt 2026-11-15)
+            r = pg.evaluate("""() => { const p = curP(), v = curV(), h0 = v.hpi, dx0 = JSON.stringify(v.dx), rx0 = v.rx, m0 = p.meds;
+              p.meds = []; const F = drugById('prozac10'), St = S.drugs.find(x => !x.off && norm(x.hc || '').includes('atorvastatin'));
+              const B = (icd, hpi, rx) => { v.hpi = hpi; v.rx = rx || []; v.dx = {...v.dx, icd, icd2: '', main: '', secondary: ''}; const r = fluoxBlockReasons(p, v); return [r.some(x => /lo âu|hoảng sợ/.test(x)), r.some(x => x.includes('statin'))]; };
+              const r = [B('F32.1 – Trầm cảm vừa', 'Buồn chán, lo âu'), B('F33.1 – Trầm cảm tái diễn', 'Có cơn hoảng sợ'), B('F32.1 – Trầm cảm vừa', 'Không lo âu, không hoảng sợ'), B('K29.7 – Viêm dạ dày', 'Lo âu'), B('K29.7 – Viêm dạ dày', 'Đau bụng', [{id: 'x1', drugId: St.id}])];
+              v.hpi = h0; v.dx = JSON.parse(dx0); v.rx = rx0; p.meds = m0; return r; }""")
+            assert r == [[True, False], [True, False], [False, False], [False, False], [False, True]], r
+            # Fluoxetin không kê cùng TCA, thioridazin, pimozid, alprazolam, codein; sertralin không kê cùng pimozid, disulfiram (bác sĩ đặt 2026-11-15)
+            r = pg.evaluate("""() => { const p = curP(), v = curV(), rx0 = v.rx, m0 = p.meds;
+              p.meds = []; const F = drugById('prozac10'), Al = drugById('alpra025n'), Tc = S.drugs.find(x => !x.off && /3 vong/.test(norm(x.cls || ''))), Se = drugById('sert50');
+              const B = (d, rx, meds) => { v.rx = rx.map((x, i) => ({id: 'y' + i, drugId: x.id})); p.meds = meds || []; return drugBlockReasons(p, v, d).some(x => /không kê cùng/.test(x)); };
+              const r = [B(F, [Al]), B(F, [Tc]), B(Al, [F]), B(Tc, [F]), B(F, [Se]), B(F, [], [{text: 'Pimozid 2 mg'}]), B(F, [], [{text: 'Codein 30 mg'}]), B(Se, [], [{text: 'Pimozid 2 mg'}]), B(Se, [], [{text: 'Disulfiram 500 mg'}]), B(Se, [Al])];
+              v.rx = rx0; p.meds = m0; return r; }""")
+            assert r == [True, True, True, True, False, True, True, True, True, False], r
+            # Sertralin: tiền sử hội chứng ruột kích thích → chặn (bác sĩ đặt 2026-11-15)
+            r = pg.evaluate("""() => { const p = curP(), v = curV(), n0 = p.condNote, dx0 = JSON.stringify(v.dx), d = drugById('sert50');
+              const B = () => drugBlockReasons(p, v, d).some(x => x.includes('ruột kích thích'));
+              v.dx = {...v.dx, icd: 'F32.1 – Trầm cảm vừa', icd2: '', main: '', secondary: ''}; p.condNote = ''; const a = B();
+              p.condNote = 'Hội chứng ruột kích thích 2 năm'; const b = B(); p.condNote = 'Không ruột kích thích'; const c = B();
+              p.condNote = ''; v.dx = {...v.dx, icd2: 'K58.9 – Hội chứng ruột kích thích'}; const e = B();
+              p.condNote = n0; v.dx = JSON.parse(dx0); return [a, b, c, e]; }""")
+            assert r == [False, True, False, True], r
+            # Sertralin: F32 / F33 + lo âu kèm mất ngủ → chặn (bác sĩ đặt 2026-11-15)
+            r = pg.evaluate("""() => { const p = curP(), v = curV(), h0 = v.hpi, dx0 = JSON.stringify(v.dx), d = drugById('sert50');
+              const B = (icd, hpi) => { v.hpi = hpi; v.dx = {...v.dx, icd, icd2: '', main: '', secondary: ''}; return drugBlockReasons(p, v, d).some(x => x.includes('lo âu và mất ngủ')); };
+              const r = [B('F32.1 – Trầm cảm vừa', 'Lo lắng, mất ngủ'), B('F33.1 – Trầm cảm tái diễn', 'Lo âu, khó ngủ'), B('F32.1 – Trầm cảm vừa', 'Lo âu, ngủ được, không mất ngủ'), B('F32.1 – Trầm cảm vừa', 'Mất ngủ'), B('F41.1 – Lo âu lan toả', 'Lo âu, mất ngủ')];
+              v.hpi = h0; v.dx = JSON.parse(dx0); return r; }""")
+            assert r == [True, True, False, False, False], r
             # Khám lâm sàng theo cơ quan (bác sĩ đặt 2026-11-12)
             r = pg.evaluate("""() => { const v = curV(), s0 = S.view.step, e0 = JSON.stringify(v.examSys || {}); v.examSys = {};
               go({name: 'visit', pid: S.view.pid, vid: v.id, step: 1}); const sel = document.querySelector('select.howpick[data-for="v.examSys.cv"]');

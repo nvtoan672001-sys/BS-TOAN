@@ -546,6 +546,15 @@ function fluoxBlockReasons(p, v, ctx){
   const t = ((v && v.hpi) || '') + ' . ' + ((v && v.reason) || '') + ' . ' + (p.condNote || '');
   if(C.has('insomnia') || ['mat ngu', 'kho ngu'].some(k => mentionsSymptom(t, k))) out.push('mất ngủ');
   if(C.has('epilepsy') && !(p.conds || []).includes('epilepsy')) out.push('tiền sử động kinh');
+  // Bác sĩ đặt 2026-11-15: chẩn đoán xác định F32 / F33 + bệnh sử lo âu / cơn hoảng sợ (không phủ định); đang dùng statin (đơn hoặc thuốc dài hạn) — mọi chẩn đoán
+  if(v && dxCodes(v).some(c => /^F3[23]/i.test(c))){
+    const hx = [['lo au', 'lo âu'], ['hoang so', 'cơn hoảng sợ'], ['hoang loan', 'cơn hoảng sợ']].filter(([k]) => saysNotNeg(v.hpi || '', k)).map(x => x[1]);
+    if(hx.length) out.push('trầm cảm kèm ' + [...new Set(hx)].join(', '));
+  }
+  const isSt = x => !!x && (norm(x.hc || '').includes('statin') || expandTags(x.tags || []).has('statin'));
+  const st = ((v && v.rx) || []).map(l => drugById(l.drugId)).filter(isSt).map(x => x.n)
+    .concat((ctx || ctxOf(p, v)).longMeds.filter(m => m.tags.has('statin') || isSt(m.drug) || norm(m.name || '').includes('statin')).map(m => (m.short || m.name) + ' (dài hạn)'));
+  if(st.length) out.push('đang dùng statin (' + st.join(', ') + ')');
   return out;
 }
 // Đang hút thuốc lá (hồ sơ "Đang hút" hoặc tiền sử ghi "hút thuốc"; "đã bỏ" không tính) / béo phì (BMI ≥ 25, ICD E66, "béo phì")
@@ -825,6 +834,10 @@ function drugBlockReasons(p, v, d, ctx, line){
     if((p.conds || []).includes('glaucoma')) r.push('hồ sơ nền tích glôcôm góc đóng');
     if(['lai xe', 'tai xe', 'xe om', 'taxi', 'xe tai', 'xe khach', 'giao hang'].some(k => mentionsSymptom(p.job || '', k))) r.push(`nghề nghiệp lái xe (${p.job})`);
     if(qtcLong(p, v)) r.push('điện tim ghi QTc dài');
+    // Bác sĩ đặt 2026-11-15: tiền sử hội chứng ruột kích thích (ô tiền sử ghi chữ, hoặc ICD K58 ở chẩn đoán lượt khám)
+    if(['hoi chung ruot kich thich', 'ruot kich thich', 'ibs'].some(say) || dxCodes(v).some(c => /^K58/i.test(c))) r.push('tiền sử hội chứng ruột kích thích');
+    // Bác sĩ đặt 2026-11-15: chẩn đoán xác định F32 / F33 VÀ bệnh sử có lo âu / lo lắng KÈM mất ngủ / khó ngủ (không phủ định)
+    if(dxCodes(v).some(c => /^F3[23]/i.test(c)) && ['lo au', 'lo lang'].some(k => saysNotNeg(v.hpi || '', k)) && ['mat ngu', 'kho ngu'].some(k => saysNotNeg(v.hpi || '', k))) r.push('trầm cảm kèm lo âu và mất ngủ');
     if(r.length) out.push('sertralin: ' + r.join('; '));
   }
   // (lưỡng cực, IMAO, động kinh của Prozac: một phần đã có ở khối "Bảng chống chỉ định" phía trên; giữ lại để lý do ghi rõ tên thuốc)
@@ -906,6 +919,36 @@ function drugBlockReasons(p, v, d, ctx, line){
   }
   // Sildenafil, tadalafil — nhóm ức chế PDE5 (bác sĩ đặt 2026-11-02; tadalafil cùng quy tắc): đang dùng nitroglycerin / isosorbid (nitrat — LEC6: chống chỉ định); tiền sử nhồi máu cơ tim, đột quỵ,
   // rối loạn nhịp, suy tim, bệnh mạch vành; HA < 90/50 hoặc > 170/100 (sinh hiệu lượt khám này)
+  // Tramadol + bất kỳ thuốc điều trị bệnh tâm thần (bác sĩ đặt 2026-11-15): tăng nguy cơ co giật — chặn cả hai chiều (kê tramadol khi đơn / thuốc dài hạn có thuốc tâm thần,
+  // và kê thuốc tâm thần khi đã có tramadol). Thuốc tâm thần = nhóm 'neuro' trừ hỗ trợ / tuần hoàn não, peptid, ức chế cholinesterase, NMDA, ergot, MAO-B (Parkinson), thuốc tăng tỉnh táo (ngủ rũ)
+  {
+    const isTrama = x => !!x && norm(x.hc || '').includes('tramadol');
+    const isPsy = x => !!x && x.g === 'neuro' && !/ho tro|peptid|cholinesterase|nmda|ergot|mao typ b|tang tinh tao/.test(norm(x.cls || ''));
+    const oth = (v.rx || []).filter(l => !line || l.id !== line.id).map(l => drugById(l.drugId)).filter(x => x && x.id !== d.id).map(x => ({name: x.n, d: x}))
+      .concat((ctx || ctxOf(p, v)).longMeds.map(m => ({name: (m.short || m.name) + ' (dài hạn)', d: m.drug, t: norm(m.name || '')})));
+    if(isTrama(d)){ const h = oth.filter(o => isPsy(o.d)).map(o => o.name); if(h.length) out.push('tramadol: đang dùng thuốc điều trị bệnh tâm thần (' + h.join(', ') + ') — tăng nguy cơ co giật'); }
+    else if(isPsy(d)){ const h = oth.filter(o => isTrama(o.d) || (o.t || '').includes('tramadol')).map(o => o.name); if(h.length) out.push('đang dùng tramadol (' + h.join(', ') + ') — tăng nguy cơ co giật'); }
+  }
+  // Cặp không kê cùng (bác sĩ đặt 2026-11-15) — đơn hoặc thuốc dài hạn (nhận cả theo tên ghi tay), chặn cả hai chiều:
+  //   fluoxetin × TCA (3 vòng), thioridazin, pimozid, alprazolam, codein (buspiron: đã có quy tắc riêng, hai chiều); sertralin × pimozid, disulfiram
+  {
+    const TCA_KW = ['amitriptylin', 'nortriptylin', 'imipramin', 'clomipramin', 'doxepin', 'desipramin', 'trimipramin', 'dosulepin', 'amoxapin'];
+    const NO_WITH = [
+      {host: 'fluoxetin', kws: ['fluoxetin', 'prozac'], parts: [['TCA (chống trầm cảm 3 vòng)', x => /3 vong/.test(norm(x.cls || '')), TCA_KW], ['thioridazin', null, ['thioridazin']],
+        ['pimozid', null, ['pimozid']], ['alprazolam', null, ['alprazolam']], ['codein', null, ['codein']]]},
+      {host: 'sertralin', kws: ['sertralin'], parts: [['pimozid', null, ['pimozid']], ['disulfiram', null, ['disulfiram']]]}];
+    const txt = x => norm((x.hc || '') + ' ' + (x.n || ''));
+    const oth = (v.rx || []).filter(l => !line || l.id !== line.id).map(l => drugById(l.drugId)).filter(x => x && x.id !== d.id).map(x => ({name: x.n, d: x, t: txt(x)}))
+      .concat((ctx || ctxOf(p, v)).longMeds.map(m => ({name: (m.short || m.name) + ' (dài hạn)', d: m.drug, t: norm(m.name || '') + ' ' + (m.drug ? txt(m.drug) : '')})));
+    const dt = txt(d);
+    NO_WITH.forEach(R => {
+      const partOf = (x, t) => R.parts.find(([, f, kws]) => (x && f && f(x)) || kws.some(k => t.includes(k)));
+      const isHost = t => R.kws.some(k => t.includes(k));
+      if(isHost(dt)){ const h = oth.map(o => { const q = partOf(o.d, o.t); return q ? `${o.name} — ${q[0]}` : null; }).filter(Boolean);
+        if(h.length) out.push(`${R.host} không kê cùng: ` + h.join('; ')); }
+      else { const q = partOf(d, dt); if(q){ const f = oth.filter(o => isHost(o.t)).map(o => o.name); if(f.length) out.push(`đang dùng ${R.host} (${f.join(', ')}) — không kê cùng ${q[0]}`); } }
+    });
+  }
   // Flibanserin (bác sĩ đặt 2026-11-15): tiền sử rối loạn tiền đình, xơ gan, hạ huyết áp (ô / chữ / ICD I95 / HA lượt khám < 90/60); giới nam
   if(norm(d.hc || '').includes('flibanserin')){
     const r = [], pcs = p.conds || [], say = k => mentionsSymptom(p.condNote || '', k), C3 = (ctx || ctxOf(p, v)).conds;
@@ -1394,6 +1437,22 @@ function sportPlan(p, v){
   if(rows.some(r => r.int === 'Nặng')) tips.push('Môn cường độ nặng: 1 phút mức nặng tương đương 2 phút mức vừa khi cộng thời gian tuần (WHO 2020).');
   return {w, a, rows, hr, tips};
 }
+
+// ================= TRẮC NGHIỆM TỰ CHỌN KHI TÁI KHÁM THEO TIỀN SỬ (bác sĩ đặt 2026-11-15) =================
+// Tiền sử = lượt khám trước có mã chẩn đoán (chính / phụ) thuộc nhóm, hoặc ô tiền sử ghi mã / tên bệnh (không phủ định), hoặc ô bệnh nền tương ứng
+//   F33 trầm cảm tái diễn → MADRS, PSQI, Beck (BDI); F31 rối loạn cảm xúc lưỡng cực → MADRS, YMRS, PHQ-9, PSQI
+const HIST_TESTS = [
+  {code: 'F33', re: /^F33/i, kw: ['tram cam tai dien', 'roi loan tram cam tai dien'], cond: null, keys: ['madrs', 'psqi', 'bdi'], t: 'trầm cảm tái diễn (F33)'},
+  {code: 'F31', re: /^F31/i, kw: ['roi loan cam xuc luong cuc', 'luong cuc'], cond: 'bipolar', keys: ['madrs', 'ymrs', 'phq9', 'psqi'], t: 'rối loạn cảm xúc lưỡng cực (F31)'}];
+const F33_TESTS = HIST_TESTS[0].keys;
+function histHas(p, v, h){
+  if((p.visits || []).some(x => x !== v && dxCodes(x).some(c => h.re.test(c)))) return true;
+  if(h.cond && (p.conds || []).includes(h.cond)) return true;
+  const note = p.condNote || '';
+  return new RegExp('\\b' + h.code, 'i').test(note) || h.kw.some(k => saysNotNeg(note, k));
+}
+function f33History(p, v){ return histHas(p, v, HIST_TESTS[0]); }
+function histTestPlan(p, v){ const hs = HIST_TESTS.filter(h => histHas(p, v, h)); return {keys: [...new Set(hs.flatMap(h => h.keys))], why: hs.map(h => h.t)}; }
 
 // ================= TRẮC NGHIỆM TÂM LÝ TỰ CHỌN (bác sĩ đặt 2026-11-15) =================
 // Tín hiệu lấy từ bệnh sử (bỏ câu phủ định, saysNotNeg) HOẶC bảng kiểm khám tâm thần:
