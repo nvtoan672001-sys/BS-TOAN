@@ -745,6 +745,38 @@ function drugBlockReasons(p, v, d, ctx, line){
       if(pcs.includes('glaucoma')) r.push('hồ sơ nền tích glôcôm góc đóng');
       if(pcs.includes('bph')) r.push('hồ sơ nền tích phì đại tiền liệt tuyến (bí tiểu)');
       if(pcs.includes('epilepsy')) r.push('hồ sơ nền tích động kinh');
+      // Bác sĩ đặt 2026-11-16: tiền sử (ghi chữ ở ô tiền sử, ngoài các ô tích ở trên) QT dài, bệnh mạch vành, rối loạn nhịp, suy tim, động kinh, phì đại tiền liệt tuyến,
+      // glôcôm góc đóng, cường giáp, rối loạn điện giải, xơ gan; BMI < 19
+      const say = k => mentionsSymptom(p.condNote || '', k), T = [];
+      if(!pcs.includes('qt_long') && (qtcLong(p, v) || ['qt dai', 'qt keo dai', 'qtc dai', 'qtc keo dai'].some(say))) T.push('QT dài');
+      if(!pcs.includes('cvd') && ['benh mach vanh', 'dau that nguc', 'thieu mau co tim', 'nhoi mau co tim', 'dat stent'].some(say)) T.push('bệnh mạch vành');
+      if(!pcs.includes('af') && ['roi loan nhip', 'rung nhi', 'ngoai tam thu', 'nhip nhanh', 'block nhi that'].some(say)) T.push('rối loạn nhịp');
+      if(!pcs.includes('heart_failure') && ['suy tim'].some(say)) T.push('suy tim');
+      if(!pcs.includes('epilepsy') && ['dong kinh', 'co giat'].some(say)) T.push('động kinh');
+      if(!pcs.includes('bph') && ['phi dai tien liet tuyen', 'phi dai tuyen tien liet', 'u xo tien liet tuyen', 'tang sinh lanh tinh tien liet tuyen'].some(say)) T.push('phì đại tiền liệt tuyến');
+      if(!pcs.includes('glaucoma') && ['glocom', 'glaucom', 'glaucoma', 'tang nhan ap', 'thien dau thong'].some(say)) T.push('glôcôm góc đóng');
+      if(['cuong giap', 'basedow', 'nhiem doc giap', 'graves'].some(say) || dxCodes(v).some(c => /^E05/i.test(c))) T.push('cường giáp');
+      if(['roi loan dien giai', 'ha kali', 'ha natri', 'ha magie', 'kali mau thap', 'natri mau thap'].some(say)) T.push('rối loạn điện giải');
+      if(!pcs.includes('liver') && ['xo gan', 'benh gan man'].some(say)) T.push('xơ gan');
+      else if(pcs.includes('liver')) T.push('xơ gan / bệnh gan mạn (ô tích)');
+      if(T.length) r.push('tiền sử ghi ' + T.join(', '));
+      const vt = v.vitals || {}, bmi = bmiOf(num(vt.weight) || p.weight, num(vt.height) || p.height);
+      if(bmi != null && bmi < 19) r.push(`BMI ${fmtN(bmi, 1)} (< 19)`);
+      // Bác sĩ đặt 2026-11-16: tiền sử uống rượu hoặc đang uống rượu (hồ sơ nguy cơ "thỉnh thoảng" / "nhiều", hoặc ghi chữ)
+      if((ctx || ctxOf(p, v)).conds.has('alcohol') || ['uong ruou', 'nghien ruou', 'ruou bia', 'lam dung ruou'].some(say)) r.push('tiền sử / đang uống rượu');
+    }
+    // Amitriptylin không kê cùng fluvoxamin (bác sĩ đặt 2026-11-16) — đơn hoặc thuốc dài hạn, chặn cả hai chiều
+    if(hc.includes('amitriptylin')){ const f = oth.filter(o => o.t.includes('fluvoxamin')).map(o => o.name); if(f.length) r.push(`amitriptylin không kê cùng fluvoxamin (${f.join(', ')})`); }
+    else if(hc.includes('fluvoxamin')){ const f = oth.filter(o => o.t.includes('amitriptylin')).map(o => o.name); if(f.length) r.push(`đang dùng amitriptylin (${f.join(', ')}) — không kê cùng fluvoxamin`); }
+    // TCA không kê cùng (bác sĩ đặt 2026-11-16) — đơn hoặc thuốc dài hạn (nhận cả tên ghi tay), chặn cả hai chiều: pimozid, thioridazin, moxifloxacin;
+    // paroxetin, duloxetin (ức chế CYP2D6), cimetidin, phenothiazin, haloperidol, clonidin. Fluoxetin, bupropion × TCA: đã chặn hai chiều ở bảng NO_WITH / BUP_PART
+    {
+      const PHENO = ['clorpromazin', 'chlorpromazin', 'levomepromazin', 'fluphenazin', 'flufenazin', 'perphenazin', 'trifluoperazin', 'prochlorperazin', 'promethazin', 'alimemazin', 'thioridazin', 'phenothiazin'];
+      const TP = [['pimozid', ['pimozid']], ['thioridazin', ['thioridazin']], ['moxifloxacin', ['moxifloxacin']], ['paroxetin (ức chế CYP2D6)', ['paroxetin']], ['duloxetin (ức chế CYP2D6)', ['duloxetin']],
+        ['cimetidin', ['cimetidin']], ['phenothiazin', PHENO], ['haloperidol', ['haloperidol']], ['clonidin', ['clonidin']]];
+      const partOf = (x, t) => TP.find(([, kws]) => kws.some(k => t.includes(k))) || (x && /phenothiazin/.test(norm(x.cls || '')) ? ['phenothiazin'] : null);
+      if(isTca(d)){ const h = oth.map(o => { const q = partOf(o.drug, o.t); return q ? `${o.name} — ${q[0]}` : null; }).filter(Boolean); if(h.length) r.push('thuốc chống trầm cảm 3 vòng không kê cùng: ' + h.join('; ')); }
+      else { const q = partOf(d, norm(d.hc + ' ' + d.n)); if(q){ const f = oth.filter(o => isTca(o.drug) || ['amitriptylin', 'nortriptylin', 'imipramin', 'clomipramin', 'doxepin'].some(x => o.t.includes(x))).map(o => o.name); if(f.length) r.push(`đang dùng thuốc chống trầm cảm 3 vòng (${f.join(', ')}) — không kê cùng ${q[0]}`); } }
     }
     // Bất kỳ tiền sử tim mạch nào (ô tích: THA, bệnh mạch vành / đột quỵ, mạch ngoại biên, rối loạn nhịp, suy tim, QT kéo dài) → chặn TCA, citalopram, venlafaxin (bác sĩ đặt 2026-11-12)
     const CV_CONDS = [['htn', 'tăng huyết áp'], ['cvd', 'bệnh mạch vành / đột quỵ'], ['pad', 'bệnh mạch ngoại biên'], ['af', 'rối loạn nhịp'], ['heart_failure', 'suy tim'], ['qt_long', 'QT kéo dài']];
@@ -784,8 +816,31 @@ function drugBlockReasons(p, v, d, ctx, line){
       if(!n.length || n.some(m => m[1] || Number(m[2]) > 2)) sl.push('tỉnh giữa giấc > 2 lần');
     }
     if(hs('thuc som') || hs('thuc giac som') || hs('day som')) sl.push('sáng thức sớm');
+    if(!sl.length && ['mat ngu', 'kho ngu'].some(k => saysNotNeg(hpi, k))) sl.push('mất ngủ');   // bác sĩ đặt 2026-11-16: mọi "mất ngủ" ở bệnh sử
     if(sl.length) r.push('bệnh sử mất ngủ: ' + sl.join(', '));
+    // Bác sĩ đặt 2026-11-16: tiền sử động kinh (chữ), uống rượu (hồ sơ nguy cơ hoặc chữ), chấn thương sọ não, IMAO (chữ / thuốc dài hạn / đơn)
+    if(!(p.conds || []).includes('epilepsy') && ['dong kinh', 'co giat'].some(say)) r.push('tiền sử động kinh');
+    if(C.has('alcohol') || ['uong ruou', 'nghien ruou', 'ruou bia', 'lam dung ruou'].some(say)) r.push('tiền sử uống rượu');
+    if(['chan thuong so nao', 'chan thuong dau', 'chan thuong so'].some(say)) r.push('tiền sử chấn thương sọ não');
+    const mao = MAOI_KW.some(say) || (v.rx || []).map(l => drugById(l.drugId)).filter(Boolean).concat((ctx || ctxOf(p, v)).longMeds.map(m => ({n: m.name, hc: m.drug ? m.drug.hc : ''})))
+      .some(x => MAOI_KW.some(k => norm((x.hc || '') + ' ' + (x.n || '')).includes(k)));
+    if(mao) r.push('tiền sử / đang dùng IMAO');
     if(r.length) out.push('bupropion: ' + r.join('; '));
+  }
+  // Bupropion không kê cùng (bác sĩ đặt 2026-11-16) — đơn hoặc thuốc dài hạn (nhận cả tên ghi tay), chặn cả hai chiều:
+  //   Wellbutrin (cùng hoạt chất bupropion), thioridazin, TCA (3 vòng), chẹn beta, codein, levodopa, amantadin
+  {
+    const TCA_KW = ['amitriptylin', 'nortriptylin', 'imipramin', 'clomipramin', 'doxepin', 'desipramin', 'trimipramin', 'dosulepin', 'amoxapin'];
+    const BB_KW = ['propranolol', 'metoprolol', 'bisoprolol', 'atenolol', 'carvedilol', 'nebivolol', 'labetalol', 'sotalol'];
+    const txt = x => norm((x.hc || '') + ' ' + (x.n || '')), dt = txt(d), isBup = t => t.includes('bupropion') || t.includes('wellbutrin');
+    const BUP_PART = [['thioridazin', (x, t) => t.includes('thioridazin')], ['TCA (chống trầm cảm 3 vòng)', (x, t) => (x && /3 vong/.test(norm(x.cls || ''))) || TCA_KW.some(k => t.includes(k))],
+      ['chẹn beta', (x, t) => (x && expandTags(x.tags || []).has('beta_blocker')) || BB_KW.some(k => t.includes(k))], ['codein', (x, t) => t.includes('codein')],
+      ['levodopa', (x, t) => t.includes('levodopa')], ['amantadin', (x, t) => t.includes('amantadin')]];
+    const oth = (v.rx || []).filter(l => !line || l.id !== line.id).map(l => drugById(l.drugId)).filter(x => x && x.id !== d.id).map(x => ({name: x.n, d: x, t: txt(x)}))
+      .concat((ctx || ctxOf(p, v)).longMeds.map(m => ({name: (m.short || m.name) + ' (dài hạn)', d: m.drug, t: norm(m.name || '') + ' ' + (m.drug ? txt(m.drug) : '')})));
+    if(isBup(dt)){ const h = oth.map(o => { if(isBup(o.t)) return o.name + ' — Wellbutrin / cùng hoạt chất bupropion'; const q = BUP_PART.find(([, f]) => f(o.d, o.t)); return q ? `${o.name} — ${q[0]}` : null; }).filter(Boolean);
+      if(h.length) out.push('bupropion không kê cùng: ' + h.join('; ')); }
+    else { const q = BUP_PART.find(([, f]) => f(d, dt)); if(q){ const f = oth.filter(o => isBup(o.t)).map(o => o.name); if(f.length) out.push(`đang dùng bupropion (${f.join(', ')}) — không kê cùng ${q[0]}`); } }
   }
   // Mirtazapin (bác sĩ đặt 2026-11-12): tiền sử rối loạn tiền đình, rối loạn lipid máu (ô tích hoặc ghi chữ ở ô tiền sử); bệnh sử táo bón (bỏ câu phủ định)
   if(norm(d.hc || '').includes('mirtazapin')){
@@ -813,6 +868,40 @@ function drugBlockReasons(p, v, d, ctx, line){
     const age = ageOf(p, v.date); if(age != null && age < 10) r.push(`${age} tuổi (< 10)`);
     if(r.length) out.push('natri valproat: ' + r.join('; '));
   }
+  // Valproat không kê cùng (bác sĩ đặt 2026-11-16) — đơn hoặc thuốc dài hạn (nhận cả tên ghi tay), chặn cả hai chiều: carbamazepin, phenytoin, phenobarbital,
+  // rifampicin, aspirin, ibuprofen, fluoxetin, fluvoxamin, topiramat, clorpromazin, erythromycin, clonazepam (aspirin / ibuprofen chiều valproat: đã chặn ở khối trên).
+  // Lamotrigin: bác sĩ bỏ chặn 2026-11-16 (được kê cùng)
+  {
+    const VP = ['valpro', 'depakin', 'depakote', 'divalproex'];
+    const VPART = [['carbamazepin', ['carbamazepin', 'tegretol']], ['phenytoin', ['phenytoin']], ['phenobarbital', ['phenobarbital', 'gardenal']],
+      ['rifampicin', ['rifampicin', 'rifampin']], ['aspirin', ['aspirin', 'acetylsalicylic']], ['ibuprofen', ['ibuprofen']], ['fluoxetin', ['fluoxetin', 'prozac']], ['fluvoxamin', ['fluvoxamin']],
+      ['topiramat', ['topiramat']], ['clorpromazin', ['clorpromazin', 'chlorpromazin', 'aminazin']], ['erythromycin', ['erythromycin']], ['clonazepam', ['clonazepam', 'rivotril']]];
+    const txt = x => norm((x.hc || '') + ' ' + (x.n || '')), dt = txt(d), isVp = t => VP.some(k => t.includes(k));
+    const oth = (v.rx || []).filter(l => !line || l.id !== line.id).map(l => drugById(l.drugId)).filter(x => x && x.id !== d.id).map(x => ({name: x.n, t: txt(x)}))
+      .concat((ctx || ctxOf(p, v)).longMeds.map(m => ({name: (m.short || m.name) + ' (dài hạn)', t: norm(m.name || '') + ' ' + (m.drug ? txt(m.drug) : '')})));
+    const partOf = t => VPART.find(([, kws]) => kws.some(k => t.includes(k)));
+    if(isVp(dt)){ const h = oth.map(o => { const q = partOf(o.t); return q && !['aspirin', 'ibuprofen'].includes(q[0]) ? `${o.name} — ${q[0]}` : null; }).filter(Boolean); if(h.length) out.push('valproat không kê cùng: ' + h.join('; ')); }
+    else { const q = partOf(dt); if(q){ const f = oth.filter(o => isVp(o.t)).map(o => o.name); if(f.length) out.push(`đang dùng valproat (${f.join(', ')}) — không kê cùng ${q[0]}`); } }
+  }
+  // Lamotrigin (bác sĩ đặt 2026-11-16): tiền sử có dị ứng (bất kỳ — ô tích dị ứng, ô ghi dị ứng khác không phủ định, hoặc ô tiền sử ghi "dị ứng")
+  if(norm(d.hc || '').includes('lamotrigin')){
+    const at = norm(p.allergyText || '').trim(), noneTxt = /^(khong|chua|-)( |$)/.test(at) || at === "";
+    const al = (p.allergies || []).map(k => (ALLERGY.find(x => x.k === k) || {}).t || k).concat(at && !noneTxt ? [p.allergyText] : []);
+    if(!al.length && saysNotNeg(p.condNote || '', 'di ung')) al.push('ghi ở tiền sử');
+    if(al.length) out.push('lamotrigin: tiền sử dị ứng (' + al.join(', ') + ') — nguy cơ phát ban nặng');
+  }
+  // Carbamazepin, lamotrigin (bác sĩ đặt 2026-11-16): đang dùng thuốc tránh thai hằng ngày (chữ tiền sử / thuốc dài hạn / đơn) — chặn cả hai chiều
+  {
+    const OC = ['tranh thai', 'thuoc ngua thai', 'ethinyl', 'levonorgestrel', 'desogestrel', 'drospirenon', 'gestoden', 'norethisteron', 'cyproteron'];
+    const txt = x => norm((x.hc || '') + ' ' + (x.n || '')), dt = txt(d);
+    const oth = (v.rx || []).filter(l => !line || l.id !== line.id).map(l => drugById(l.drugId)).filter(x => x && x.id !== d.id).map(x => ({name: x.n, t: txt(x)}))
+      .concat((ctx || ctxOf(p, v)).longMeds.map(m => ({name: (m.short || m.name) + ' (dài hạn)', t: norm(m.name || '') + ' ' + (m.drug ? txt(m.drug) : '')})));
+    const HOST = [['carbamazepin', ['carbamazepin', 'tegretol'], 'carbamazepin làm giảm tác dụng thuốc tránh thai'], ['lamotrigin', ['lamotrigin', 'lamictal'], 'thuốc tránh thai làm giảm nồng độ lamotrigin']];
+    const hd = HOST.find(([, kws]) => kws.some(k => dt.includes(k)));
+    if(hd){
+      if(OC.some(k => mentionsSymptom(p.condNote || '', k)) || oth.some(o => OC.some(k => o.t.includes(k)))) out.push(`${hd[0]}: đang dùng thuốc tránh thai hằng ngày (${hd[2]})`);
+    } else if(OC.some(k => dt.includes(k))){ HOST.forEach(([nm, kws]) => { const f = oth.filter(o => kws.some(k => o.t.includes(k))).map(o => o.name); if(f.length) out.push(`đang dùng ${nm} (${f.join(', ')}) — không kê cùng thuốc tránh thai hằng ngày`); }); }
+  }
   // Olanzapin (bác sĩ đặt 2026-11-12): tiền sử glôcôm góc đóng, đái tháo đường, rối loạn lipid, rối loạn tiền đình, động kinh (ô tích hoặc ghi chữ ở ô tiền sử).
   // Béo phì (BMI ≥ 25 / E66 / ghi chữ) đã chặn ở smokeObeseReasons.
   if(norm(d.hc || '').includes('olanzapin')){
@@ -822,6 +911,53 @@ function drugBlockReasons(p, v, d, ctx, line){
       ['vestibular', ['roi loan tien dinh', 'hoi chung tien dinh'], 'rối loạn tiền đình'], ['epilepsy', ['dong kinh'], 'động kinh']];
     const r = L.filter(([k, kws]) => pcs.includes(k) || kws.some(say)).map(([, , l]) => l);
     if(r.length) out.push('olanzapin: tiền sử ' + r.join(', '));
+  }
+  // Olanzapin (bác sĩ đặt 2026-11-16): tiền sử có hút thuốc — kể cả đã bỏ (đang hút đã chặn ở smokeObeseReasons); không kê cùng fluvoxamin (đơn / thuốc dài hạn, hai chiều)
+  {
+    const txt = x => norm((x.hc || '') + ' ' + (x.n || '')), dt = txt(d);
+    const oth = (v.rx || []).filter(l => !line || l.id !== line.id).map(l => drugById(l.drugId)).filter(x => x && x.id !== d.id).map(x => ({name: x.n, t: txt(x)}))
+      .concat((ctx || ctxOf(p, v)).longMeds.map(m => ({name: (m.short || m.name) + ' (dài hạn)', t: norm(m.name || '') + ' ' + (m.drug ? txt(m.drug) : '')})));
+    if(dt.includes('olanzapin')){
+      const sm = (p.risk || {}).smoke, note = norm((p.condNote || '') + ' . ' + (p.social || ''));
+      if(sm !== 'current' && (sm === 'former' || /hut thuoc/.test(note))) out.push('olanzapin: tiền sử hút thuốc' + (sm === 'former' ? ' (đã bỏ)' : ''));
+      const f = oth.filter(o => o.t.includes('fluvoxamin')).map(o => o.name); if(f.length) out.push(`olanzapin không kê cùng fluvoxamin (${f.join(', ')})`);
+    } else if(dt.includes('fluvoxamin')){ const f = oth.filter(o => o.t.includes('olanzapin')).map(o => o.name); if(f.length) out.push(`đang dùng olanzapin (${f.join(', ')}) — không kê cùng fluvoxamin`); }
+  }
+  // Quetiapin không kê cùng ketoconazol, erythromycin, fluvoxamin, nefazodon, carbamazepin, phenytoin (bác sĩ đặt 2026-11-16) — đơn / thuốc dài hạn, hai chiều
+  {
+    const QP = [['ketoconazol', ['ketoconazol']], ['erythromycin', ['erythromycin']], ['fluvoxamin', ['fluvoxamin']], ['nefazodon', ['nefazodon']],
+      ['carbamazepin', ['carbamazepin', 'tegretol']], ['phenytoin', ['phenytoin']]];
+    const txt = x => norm((x.hc || '') + ' ' + (x.n || '')), dt = txt(d), isQ = t => t.includes('quetiapin') || t.includes('seroquel');
+    const oth = (v.rx || []).filter(l => !line || l.id !== line.id).map(l => drugById(l.drugId)).filter(x => x && x.id !== d.id).map(x => ({name: x.n, t: txt(x)}))
+      .concat((ctx || ctxOf(p, v)).longMeds.map(m => ({name: (m.short || m.name) + ' (dài hạn)', t: norm(m.name || '') + ' ' + (m.drug ? txt(m.drug) : '')})));
+    const partOf = t => QP.find(([, kws]) => kws.some(k => t.includes(k)));
+    if(isQ(dt)){ const h = oth.map(o => { const q = partOf(o.t); return q ? `${o.name} — ${q[0]}` : null; }).filter(Boolean); if(h.length) out.push('quetiapin không kê cùng: ' + h.join('; ')); }
+    else { const q = partOf(dt); if(q){ const f = oth.filter(o => isQ(o.t)).map(o => o.name); if(f.length) out.push(`đang dùng quetiapin (${f.join(', ')}) — không kê cùng ${q[0]}`); } }
+  }
+  // Risperidon không kê cùng fluoxetin, paroxetin, carbamazepin (bác sĩ đặt 2026-11-16) — đơn / thuốc dài hạn, hai chiều
+  {
+    const RP = [['fluoxetin', ['fluoxetin', 'prozac']], ['paroxetin', ['paroxetin']], ['carbamazepin', ['carbamazepin', 'tegretol']]];
+    const txt = x => norm((x.hc || '') + ' ' + (x.n || '')), dt = txt(d), isR = t => t.includes('risperidon') || t.includes('risperdal');
+    const oth = (v.rx || []).filter(l => !line || l.id !== line.id).map(l => drugById(l.drugId)).filter(x => x && x.id !== d.id).map(x => ({name: x.n, t: txt(x)}))
+      .concat((ctx || ctxOf(p, v)).longMeds.map(m => ({name: (m.short || m.name) + ' (dài hạn)', t: norm(m.name || '') + ' ' + (m.drug ? txt(m.drug) : '')})));
+    const partOf = t => RP.find(([, kws]) => kws.some(k => t.includes(k)));
+    if(isR(dt)){ const h = oth.map(o => { const q = partOf(o.t); return q ? `${o.name} — ${q[0]}` : null; }).filter(Boolean); if(h.length) out.push('risperidon không kê cùng: ' + h.join('; ')); }
+    else { const q = partOf(dt); if(q){ const f = oth.filter(o => isR(o.t)).map(o => o.name); if(f.length) out.push(`đang dùng risperidon (${f.join(', ')}) — không kê cùng ${q[0]}`); } }
+  }
+  // Alprazolam không kê cùng fluvoxamin, nefazodon, kháng nấm nhóm azol, macrolid, carbamazepin (bác sĩ đặt 2026-11-16) — đơn / thuốc dài hạn, hai chiều.
+  // Fluoxetin × alprazolam: đã chặn hai chiều ở bảng NO_WITH (không lặp lý do)
+  {
+    const AZ = ['ketoconazol', 'itraconazol', 'fluconazol', 'voriconazol', 'posaconazol', 'isavuconazol', 'miconazol'];
+    const MAC = ['clarithromycin', 'erythromycin', 'azithromycin', 'roxithromycin', 'spiramycin', 'josamycin', 'telithromycin'];
+    const AP = [['fluvoxamin', (x, t) => t.includes('fluvoxamin')], ['nefazodon', (x, t) => t.includes('nefazodon')],
+      ['kháng nấm nhóm azol', (x, t) => AZ.some(k => t.includes(k))], ['macrolid', (x, t) => (x && expandTags(x.tags || []).has('macrolide')) || MAC.some(k => t.includes(k))],
+      ['carbamazepin', (x, t) => t.includes('carbamazepin') || t.includes('tegretol')]];
+    const txt = x => norm((x.hc || '') + ' ' + (x.n || '')), dt = txt(d), isA = t => t.includes('alprazolam') || t.includes('xanax');
+    const oth = (v.rx || []).filter(l => !line || l.id !== line.id).map(l => drugById(l.drugId)).filter(x => x && x.id !== d.id).map(x => ({name: x.n, d: x, t: txt(x)}))
+      .concat((ctx || ctxOf(p, v)).longMeds.map(m => ({name: (m.short || m.name) + ' (dài hạn)', d: m.drug, t: norm(m.name || '') + ' ' + (m.drug ? txt(m.drug) : '')})));
+    const partOf = (x, t) => AP.find(([, f]) => f(x, t));
+    if(isA(dt)){ const h = oth.map(o => { const q = partOf(o.d, o.t); return q ? `${o.name} — ${q[0]}` : null; }).filter(Boolean); if(h.length) out.push('alprazolam không kê cùng: ' + h.join('; ')); }
+    else { const q = partOf(d, dt); if(q){ const f = oth.filter(o => isA(o.t)).map(o => o.name); if(f.length) out.push(`đang dùng alprazolam (${f.join(', ')}) — không kê cùng ${q[0]}`); } }
   }
   // Sulpirid (bác sĩ đặt 2026-11-12): < 15 tuổi → không kê
   if(norm(d.hc || '').includes('sulpirid')){ const age = ageOf(p, v.date); if(age != null && age < 15) out.push(`sulpirid: ${age} tuổi (< 15)`); }
@@ -948,6 +1084,22 @@ function drugBlockReasons(p, v, d, ctx, line){
         if(h.length) out.push(`${R.host} không kê cùng: ` + h.join('; ')); }
       else { const q = partOf(d, dt); if(q){ const f = oth.filter(o => isHost(o.t)).map(o => o.name); if(f.length) out.push(`đang dùng ${R.host} (${f.join(', ')}) — không kê cùng ${q[0]}`); } }
     });
+  }
+  // Milnacipran (Gligca 25 mg; bác sĩ đặt 2026-11-16): bệnh sử táo bón (không phủ định); eGFR / CrCl < 30; không kê cùng digoxin (tăng tác dụng huyết động bất lợi),
+  // clonidin (ức chế tác dụng chống tăng huyết áp), clomipramin (hạ huyết áp tư thế) — đơn hoặc thuốc dài hạn, chặn cả hai chiều
+  {
+    const MIL_PART = [['digoxin', 'tăng tác dụng huyết động bất lợi'], ['clonidin', 'ức chế tác dụng chống tăng huyết áp'], ['clomipramin', 'hạ huyết áp tư thế']];
+    const txt = x => norm((x.hc || '') + ' ' + (x.n || '')), dt = txt(d), isMil = t => t.includes('milnacipran') || t.includes('gligca');
+    const oth = (v.rx || []).filter(l => !line || l.id !== line.id).map(l => drugById(l.drugId)).filter(x => x && x.id !== d.id).map(x => ({name: x.n, t: txt(x)}))
+      .concat((ctx || ctxOf(p, v)).longMeds.map(m => ({name: (m.short || m.name) + ' (dài hạn)', t: norm(m.name || '') + ' ' + (m.drug ? txt(m.drug) : '')})));
+    if(isMil(dt)){
+      const r = [], rn = renalOf(p);
+      if(saysNotNeg(v.hpi || '', 'tao bon')) r.push('bệnh sử táo bón');
+      if(rn && rn.egfr != null && rn.egfr < 30) r.push(`MLCT ≈ ${fmtN(rn.egfr)} mL/phút/1,73 m² (< 30)`);
+      else if(rn && rn.crcl != null && rn.crcl < 30) r.push(`CrCl ≈ ${fmtN(rn.crcl)} mL/phút (< 30)`);
+      oth.forEach(o => { const q = MIL_PART.find(([k]) => o.t.includes(k)); if(q) r.push(`đang dùng ${o.name} — ${q[1]}`); });
+      if(r.length) out.push('milnacipran: ' + r.join('; '));
+    } else { const q = MIL_PART.find(([k]) => dt.includes(k)); if(q){ const f = oth.filter(o => isMil(o.t)).map(o => o.name); if(f.length) out.push(`đang dùng milnacipran (${f.join(', ')}) — ${q[1]}`); } }
   }
   // Flibanserin (bác sĩ đặt 2026-11-15): tiền sử rối loạn tiền đình, xơ gan, hạ huyết áp (ô / chữ / ICD I95 / HA lượt khám < 90/60); giới nam
   if(norm(d.hc || '').includes('flibanserin')){
@@ -1129,9 +1281,24 @@ function drugBlockReasons(p, v, d, ctx, line){
     if(C.has('cvd') || ['benh mach vanh', 'dau that nguc', 'thieu mau co tim', 'nhoi mau co tim', 'dat stent'].some(say)) r.push('tiền sử bệnh mạch vành');
     if(C.has('af') || ['roi loan nhip', 'rung nhi', 'ngoai tam thu', 'nhip nhanh'].some(say)) r.push('tiền sử rối loạn nhịp');
     if(say('suy gan')) r.push('suy gan');
+    // Bác sĩ đặt thêm 2026-11-16: xơ gan, rối loạn chức năng tình dục, ngất, rối loạn tiền đình (ô tích hoặc ghi chữ)
+    const pcs = p.conds || [];
+    if(pcs.includes('liver') || ['xo gan', 'benh gan man'].some(say)) r.push('tiền sử xơ gan');
+    if(pcs.includes('sexual_dysf') || ['roi loan tinh duc', 'roi loan chuc nang tinh duc', 'roi loan cuong', 'liet duong', 'xuat tinh som', 'giam ham muon'].some(say)) r.push('tiền sử rối loạn tình dục');
+    if(['ngat', 'ngat xiu', 'xiu'].some(say)) r.push('tiền sử ngất');
+    if(pcs.includes('vestibular') || ['roi loan tien dinh', 'hoi chung tien dinh'].some(say)) r.push('tiền sử rối loạn tiền đình');
     if(a != null && a < 18) r.push(`${a} tuổi (< 18)`);
     if(a != null && a > 65) r.push(`${a} tuổi (> 65)`);
     if(r.length) out.push('trazodon: ' + r.join('; '));
+  }
+  // Trazodon không kê cùng digoxin, phenytoin, clonidin (bác sĩ đặt 2026-11-16) — đơn hoặc thuốc dài hạn, chặn cả hai chiều
+  {
+    const TZ_PART = ['digoxin', 'phenytoin', 'clonidin'];
+    const txt = x => norm((x.hc || '') + ' ' + (x.n || '')), dt = txt(d), isTz = t => t.includes('trazodon');
+    const oth = (v.rx || []).filter(l => !line || l.id !== line.id).map(l => drugById(l.drugId)).filter(x => x && x.id !== d.id).map(x => ({name: x.n, t: txt(x)}))
+      .concat((ctx || ctxOf(p, v)).longMeds.map(m => ({name: (m.short || m.name) + ' (dài hạn)', t: norm(m.name || '') + ' ' + (m.drug ? txt(m.drug) : '')})));
+    if(isTz(dt)){ const h = oth.map(o => { const k = TZ_PART.find(k => o.t.includes(k)); return k ? `${o.name} — ${k}` : null; }).filter(Boolean); if(h.length) out.push('trazodon không kê cùng: ' + h.join('; ')); }
+    else { const k = TZ_PART.find(k => dt.includes(k)); if(k){ const f = oth.filter(o => isTz(o.t)).map(o => o.name); if(f.length) out.push(`đang dùng trazodon (${f.join(', ')}) — không kê cùng ${k}`); } }
   }
   if(isAgomelatine(d)){
     const tx = transaminaseHigh(p, v); if(tx.length) out.push('men gan tăng > 3 lần: ' + tx.join(', '));
@@ -1475,6 +1642,12 @@ function psyAutoPlan(v){
   if(dep && anx && slp) addK(['hamd'].concat(DASS, ['hcl32', 'psqi']), 'trầm cảm kèm lo âu và mất ngủ');
   else if(dep && slp) addK(['madrs'].concat(DASS, ['hcl32', 'psqi']), 'trầm cảm kèm mất ngủ, không lo âu');
   else if(dep && anx) addK(['hamd'].concat(DASS, ['hcl32', 'zung_a']), 'trầm cảm kèm lo âu, không mất ngủ');
+  // Bác sĩ đặt 2026-11-16: khám tâm thần CHỈ tích các ô nhóm lo âu lan toả (≥ 1 ô, không ô nhóm khác) VÀ bệnh sử có lo âu / lo lắng, không mất quan tâm thích thú,
+  // không mệt mỏi → DASS-21 (trầm cảm, lo âu, stress), SAS (Zung lo âu), HAM-A; thêm PSQI nếu bệnh sử có mất ngủ
+  const anxKeys = new Set(MENTAL_SX.filter(g => g.g === 'anx').flatMap(g => g.items.map(([k]) => k)));
+  const onlyGad = sx.size > 0 && [...sx].every(k => anxKeys.has(k));
+  const anhed = ['mat quan tam', 'mat moi quan tam', 'mat hung thu', 'mat thich thu', 'mat moi quan tam thich thu', 'khong con hung thu'].some(say), fatig = ['met moi', 'giam nang luong'].some(say);
+  if(onlyGad && hAnx && !anhed && !fatig) addK(DASS.concat(['zung_a', 'hama'], hSlp ? ['psqi'] : []), 'lo âu lan toả' + (hSlp ? ' kèm mất ngủ' : ''));
   if(hMan || (mMan && (mAnx || mDep || mSlp))) addK(DASS.concat(['hcl32', 'psqi', 'ymrs']), 'triệu chứng hưng cảm');   // YMRS: bác sĩ thêm 2026-11-15
   if(['tu sat', 'tu tu'].some(say) || sx.has('dep_suicide')) addK(['cssrs'], 'ý tưởng / hành vi tự sát');
   return {keys, why};
@@ -1641,6 +1814,7 @@ function psyDx(p, v){
   const gadAny = gadSx.length > 0 || sx.has('gad_a') || sx.has('gad_excl');
   const GL = k => MENTAL_SX.find(x => x.g === 'anx').items.find(i => i[0] === k)[1].split(/[—:;(]/)[0].trim();
   const autoSx = sx.has('anx_auto') || gadAuto.length > 0;
+  let gadFull = false;
   if(gadAny){
     const dur6 = sx.has('gad_a') || (wk != null && wk >= 26);
     const met = (dur6 ? ['A. Căng thẳng, lo lắng ≥ 6 tháng' + (sx.has('gad_a') ? '' : ` (${fmtN(wk)} tuần)`)] : []).concat(gadSx.length ? [`B. ${gadSx.length}/22 triệu chứng (${gadAuto.length} thực vật): ${gadSx.map(GL).join(', ')}`] : [], sx.has('gad_excl') ? ['D. Đã loại trừ bệnh cơ thể, thực tổn, do chất'] : []);
@@ -1650,7 +1824,7 @@ function psyDx(p, v){
     const cOther = [['pan_attacks', 'rối loạn hoảng sợ F41.0'], ['phob_agora', 'ám ảnh sợ F40'], ['phob_social', 'ám ảnh sợ F40'], ['phob_specific', 'ám ảnh sợ F40'], ['ocd_obs', 'ám ảnh nghi thức F42'], ['ocd_comp', 'ám ảnh nghi thức F42'], ['hyp_a1', 'nghi bệnh F45.2']].filter(([k]) => sx.has(k)).map(([, l]) => l);
     if(cOther.length) miss.push('C. Không được đáp ứng tiêu chuẩn ' + [...new Set(cOther)].join(', ') + ' — đang có dấu hiệu, xem lại');
     if(!sx.has('gad_excl')) miss.push('Chưa có: D. Loại trừ bệnh cơ thể (cường giáp), rối loạn thực tổn, do chất (amphetamin, cai benzodiazepin)');
-    const age = ageOf(p, v.date);
+    const age = ageOf(p, v.date); gadFull = !miss.length;
     add('F41.1', 'ICD-10 (bản VN) tr. 115–117', met, miss, (depOk ? 'Đang đủ tiêu chuẩn giai đoạn trầm cảm — cân nhắc trầm cảm là chẩn đoán chính. ' : '') + (age != null && age < 18 ? 'Trẻ em, thanh thiếu niên: có thể dùng tiêu chuẩn lo âu lan toả ở trẻ em F93.80.' : ''));
   } else if(anxSx.length){
     const gadMiss = ['anx_fear', 'anx_motor', 'anx_auto', 'anx_primary'].filter(k => !sx.has(k)).map(k => 'Chưa có: ' + ({anx_fear: 'Sợ hãi', anx_motor: 'Căng thẳng vận động', anx_auto: 'Triệu chứng thần kinh tự trị', anx_primary: 'Lo âu – sợ hãi là biểu hiện chính, nguyên phát'})[k]);
@@ -1658,11 +1832,18 @@ function psyDx(p, v){
     gadMiss.push('Hồ sơ dùng bảng kiểm cũ (BYT 2020 Bài 22) — tích lại theo ICD-10 để đối chiếu đủ tiêu chuẩn');
     if(!depOk || gadMiss.length <= 2) add('F41.1', 'Bài 22', anxSx.map(k => ({anx_fear: 'Sợ hãi', anx_motor: 'Căng thẳng vận động', anx_auto: 'Triệu chứng thần kinh tự trị', anx_primary: 'Lo âu – sợ hãi là biểu hiện chính, nguyên phát'})[k]), gadMiss, 'Loại trừ cường giáp, rối loạn thực tổn, do chất (amphetamin, cai benzodiazepin).');
   }
-  // --- Hỗn hợp lo âu và trầm cảm F41.2 (BYT 2020 Bài 23; ICD-10 bản VN tr. 117: không có tiêu chuẩn nghiên cứu riêng, theo mô tả lâm sàng) ---
+  // --- Hỗn hợp lo âu và trầm cảm F41.2 (BYT 2020 Bài 23; ICD-10 bản VN tr. 117: không có tiêu chuẩn nghiên cứu riêng, theo mô tả lâm sàng; ICD-11 6A73) ---
+  // Rà lại 2026-11-16: thêm loại trừ khi lo âu đã đủ F41.1 / có dấu hiệu hoảng sợ, ám ảnh sợ (Bài 23: lo âu nặng hơn trầm cảm → rối loạn lo âu khác),
+  // tiền sử hưng cảm / hưng cảm nhẹ / hỗn hợp (Bài 23 chẩn đoán phân biệt; ICD-11 6A73 bắt buộc); ghi chú yêu cầu ICD-11 (≥ 2 tuần, khó chịu / suy giảm chức năng)
   if((gadAny || anxSx.length) && (sx.has('dep_mood') || sx.has('dep_anhed')) && !depOk){
-    const mm = []; if(!autoSx) mm.push('Cần có triệu chứng thần kinh tự trị (run, đánh trống ngực, khô miệng, sôi bụng…)');
+    const mm = []; if(!autoSx) mm.push('Cần có triệu chứng thần kinh tự trị (run, đánh trống ngực, khô miệng, sôi bụng…) — chỉ lo lắng quá mức mà không có thì loại trừ');
     if(excl.has('stress')) mm.push('Liên quan chặt chẽ sự kiện stress → chuyển sang rối loạn sự thích ứng');
-    add('F41.2', 'Bài 23; ICD-10 (bản VN) tr. 117', ['Có khí sắc giảm / mất hứng thú', 'Có biểu hiện lo âu', 'Chưa đủ nặng để chẩn đoán riêng trầm cảm'], mm, 'Nếu cả trầm cảm và lo âu đều đủ nặng thì ưu tiên chẩn đoán trầm cảm. ICD-10 không có tiêu chuẩn nghiên cứu riêng cho F41.2.');
+    if(gadFull) mm.push('Lo âu đã đủ tiêu chuẩn lo âu lan toả F41.1 (lo âu nặng hơn trầm cảm) → chẩn đoán F41.1');
+    const oth = [['pan_attacks', 'hoảng sợ'], ['phob_agora', 'ám ảnh sợ'], ['phob_social', 'ám ảnh sợ'], ['phob_specific', 'ám ảnh sợ']].filter(([k]) => sx.has(k)).map(x => x[1]);
+    if(oth.length) mm.push('Có dấu hiệu ' + [...new Set(oth)].join(', ') + ' — nếu đủ tiêu chuẩn thì chẩn đoán rối loạn lo âu / ám ảnh sợ tương ứng');
+    if(pastMan || (p.conds || []).includes('bipolar')) mm.push('Tiền sử có giai đoạn hưng cảm / hưng cảm nhẹ / hỗn hợp → rối loạn cảm xúc lưỡng cực, không chẩn đoán F41.2');
+    add('F41.2', 'Bài 23; ICD-10 (bản VN) tr. 117; ICD-11 6A73', ['Có khí sắc giảm / mất hứng thú', 'Có biểu hiện lo âu', 'Chưa đủ nặng để chẩn đoán riêng trầm cảm'].concat(autoSx ? ['Có triệu chứng thần kinh tự trị'] : []), mm,
+      'Nếu cả trầm cảm và lo âu đều đủ nặng thì ưu tiên chẩn đoán trầm cảm. ICD-10 không có tiêu chuẩn nghiên cứu riêng cho F41.2. ICD-11 (6A73) yêu cầu thêm: triệu chứng trầm cảm và lo âu có mặt phần lớn thời gian ≥ 2 tuần' + (wk != null && wk < 2 ? ` (hiện ${fmtN(wk)} tuần)` : '') + '; gây khó chịu hoặc suy giảm chức năng đáng kể; không do bệnh cơ thể (cường / suy giáp) hay chất / thuốc.');
   }
   // --- Rối loạn hoảng sợ, ám ảnh sợ, ám ảnh nghi thức, stress cấp / PTSD (ICD-10 WHO — BYT 2020 không có bài riêng) ---
   const has = k => sx.has(k), lab = (g, k) => MENTAL_SX.find(x => x.g === g).items.find(i => i[0] === k)[1].split(/[:;(]/)[0].trim();

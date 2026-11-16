@@ -67,7 +67,7 @@ function afterChange(path){
     if(v){ if(path === 'v.dx.disp'){ v.dx.dispManual = true; v.dx.dispAuto = false; }
       else if(/^v\.(mental|hpi$|exam$|examSys\.|vitals\.|dx\.(icd2?|main|secondary)$|orders\.)|^p\.(conds|condNote|bodyFat|weight|height)$/.test(path)) autoRefer(v, p);
       if(/^v\.(hpi$|mental\.sx)/.test(path)) autoPsyOrders(p, v);
-      if(/^v\.(hpi$|dx\.icd2?$|vitals\.(weight|height)$|mental\.sx)|^p\.(conds|condNote)$/.test(path) && autoSertraline(p, v) && S.view.step === 3) setTimeout(() => renderMain(true), 400); }
+      if(/^v\.(hpi$|dx\.icd2?$|vitals\.(weight|height)$|mental\.sx|orders\.)|^p\.(conds|condNote)$/.test(path) && autoSertraline(p, v) && S.view.step === 3) setTimeout(() => renderMain(true), 400); }
     if(p) savePatient(p);
     if(path === 'p.name' || path === 'p.phone') renderPlist();
   } else if(root === 's'){ saveSettings(); if(path === 's.doctor') $('#docname').textContent = '· ' + (S.settings.doctor || ''); }
@@ -309,6 +309,14 @@ const AUTO_AD = [
   {dx: /^(F30|F31\.[12])/i, test: () => true, why: 'Giai đoạn hưng cảm', drugs: [['valp500n', 'valpro']]},
   // Rối loạn cảm xúc lưỡng cực, hiện tại giai đoạn trầm cảm (F31.3, F31.4, F31.5) → natri valproat + quetiapin (bác sĩ đặt 2026-11-15)
   {dx: /^F31\.[345]/i, test: () => true, why: 'Lưỡng cực, giai đoạn trầm cảm', drugs: [['valp500n', 'valpro'], ['quet100n', 'quetiapin']]},
+  // Lo âu lan toả F41.1 + điện tim (kết quả mới nhất) đã có và không ghi QTc dài → escitalopram (bác sĩ đặt 2026-11-16); chưa có điện tim thì chưa tự chọn
+  {dx: /^F41\.1/i, test: (p, v) => !!latestEcg(p, v) && !qtcLong(p, v), why: 'Lo âu lan toả, điện tim không có QTc dài', drugs: [['escit10n', 'escitalopram']]},
+  // Rối loạn lo âu (F40.x ám ảnh sợ, F41.x lo âu khác) + tiền sử béo phì / đái tháo đường / rối loạn lipid (ô tích hoặc ghi chữ) hoặc BMI hiện tại > 23 → sertralin (bác sĩ đặt 2026-11-16)
+  {dx: /^F4[01]/i, test: (p, v) => { const pcs = p.conds || [], say = k => saysNotNeg(p.condNote || '', k), vt = v.vitals || {}, b = bmiOf(num(vt.weight) ?? num(p.weight), num(vt.height) ?? num(p.height));
+    return pcs.includes('diabetes') || pcs.includes('dyslipid') || ['beo phi', 'dai thao duong', 'tieu duong', 'roi loan lipid', 'roi loan mo mau', 'mo mau cao'].some(say) || (b != null && b > 23); },
+    why: 'Rối loạn lo âu kèm béo phì / đái tháo đường / rối loạn lipid / BMI > 23', drugs: [['sert50', 'sertralin']]},
+  // Rối loạn hỗn hợp lo âu và trầm cảm F41.2 → sertralin (bác sĩ đặt 2026-11-16)
+  {dx: /^F41\.2/i, test: () => true, why: 'Rối loạn hỗn hợp lo âu và trầm cảm', drugs: [['sert50', 'sertralin']]},
   // Mọi giai đoạn trầm cảm / trầm cảm tái diễn (F32.x, F33.x) → sertralin + olanzapin (bác sĩ đặt 2026-11-15, theo đúng yêu cầu: không giới hạn ở thể có loạn thần)
   {test: () => true, why: 'Giai đoạn trầm cảm', drugs: [['sert50', 'sertralin'], ['olan10n', 'olanzapin']]},
   // F32 / F33 + khám tâm thần có ≥ 4/8 triệu chứng cơ thể (nhóm dep_som) → sertralin + sulpirid (bác sĩ đặt 2026-11-15)
@@ -1184,7 +1192,7 @@ const SEED_ADDED = ['gavis10',
   // Risperdal 1 mg — 2026-11-07
   'risperdal1',
   // alprazolam 0,25 mg thay 0,5 mg — 2026-11-09
-  'alpra025n', 'alpra025f', 'prozac10', 'bupro150', 'seduxen5', 'buspi5', 'stresam50', 'eszopi2', 'doxep3', 'diphen25', 'moda200', 'flib100'];
+  'alpra025n', 'alpra025f', 'prozac10', 'bupro150', 'seduxen5', 'buspi5', 'stresam50', 'eszopi2', 'doxep3', 'diphen25', 'moda200', 'flib100', 'milna25'];
 async function addNewSeedDrugs(){
   const done = S.settings.seedAdded || [], todo = SEED_ADDED.filter(id => !done.includes(id));
   if(!todo.length) return;
@@ -1230,6 +1238,8 @@ const SEED_UPDATES = [{ver: 'stahl-2026-10', ids: SEED_ADDED.slice(1)},   // 44 
   {ver: 'zolpidem-2026-11-15', ids: ['zolpi10'], only: ['how', 'howOpts', 'dnote']},
   {ver: 'zaleplon-2026-11-15', ids: ['zale10'], only: ['how', 'howOpts', 'dnote']},
   {ver: 'sildenafil-2026-11-15', ids: ['silde50'], only: ['how', 'howOpts', 'dnote']},
+  {ver: 'trazodon-2026-11-16', ids: ['trazo50'], only: ['how', 'howOpts', 'dnote', 'dose']},
+  {ver: 'lamotrigin-2026-11-16', ids: ['lamo50n', 'lamo50f'], only: ['how', 'howOpts', 'dnote', 'dose']},
   {ver: 'tuong-tac-tam-than-2026-11-09', ids: DRUGS_SEED.filter(d => PSY_EXTRA_TAGS[d.hc]).map(d => d.id), only: ['tags']}];                          // ưu tiên khuyến cáo mới hơn Stahl 2004 (LactMed, FDA/EMA, SmPC)
 const SEED_CLIN = ['tags', 'how', 'howOpts', 'dnote', 'ae', 'warn', 'pro', 'con', 'renal', 'hep', 'old', 'preg', 'lact', 'cond'];
 async function updateSeedDrugs(){
