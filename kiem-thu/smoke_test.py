@@ -1716,6 +1716,11 @@ def main():
               p.condNote = 'Béo phì'; r.push(R('F41.0 – Rối loạn hoảng sợ', [], 55)); p.condNote = '';
               v.hpi = h0; v.dx = JSON.parse(dx0); v.rx = rx0; v.autoAD = a0; v.autoADLines = l0; p.meds = m0; p.conds = c0; p.condNote = n0; p.job = j0; p.risk = JSON.parse(rk0); v.vitals = JSON.parse(vt0); v.orders = o0; return r; }''')
             assert r == [1, 1, 1, 0, 0, 1], r
+            # Khám tâm thần xếp theo thứ tự ICD (bác sĩ đặt 2026-11-16)
+            r = pg.evaluate('''() => { const p = curP(), v = curV(), o0 = S.mOpen; S.mOpen = {...(S.mOpen || {}), [v.id]: true};
+              const h = mentalCard(p, v); S.mOpen = o0; return [...h.matchAll(/data-g="([a-z_0-9]+)"/g)].map(m => m[1]); }''')
+            assert r[:6] == ['dem', 'amn', 'del', 'mci', 'sud', 'c_man'] and r.index('c_man') < r.index('c_dep') < r.index('c_psy') < r.index('phob') < r.index('ed') < r.index('id') < r.index('kid2'), r
+            assert len(r) == len(set(r)) and r[-1] == 'kid2', r
             # Khám lâm sàng theo cơ quan (bác sĩ đặt 2026-11-12)
             r = pg.evaluate("""() => { const v = curV(), s0 = S.view.step, e0 = JSON.stringify(v.examSys || {}); v.examSys = {};
               go({name: 'visit', pid: S.view.pid, vid: v.id, step: 1}); const sel = document.querySelector('select.howpick[data-for="v.examSys.cv"]');

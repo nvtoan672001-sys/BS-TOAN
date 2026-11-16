@@ -549,7 +549,7 @@ function mentalCard(p, v){
   const cnt = g => g.items.filter(([k]) => sxSet.has(k)).length;
   const det = (id, t, src, n, body) => `<details class="mgrp mdet" data-g="${id}"${n ? ' open' : ''}><summary><span class="lbl">${esc(t)}${n ? ` <span class="chip pri">${n}</span>` : ''} <span class="tiny muted">${esc(srcTxt(src))}</span></span></summary>${body}</details>`;
   const grpX = g => {
-    const c = CLUSTERS.find(x => x.gs[0] === g.g);
+    const c = CLUSTERS.find(x => x.gs[0] === g.g);   // cụm hiện ở vị trí nhóm đầu tiên của nó (dep_core, man_a, psy)
     if(c){
       const gs = c.gs.map(k => MENTAL_SX.find(x => x.g === k)).filter(Boolean), n = gs.reduce((s, x) => s + cnt(x), 0) + (c.id === 'c_dep' && m.severe ? 1 : 0);
       const body = gs.map(x => grp(x.t, x.src, checklistHTML(x, m.sx)) + (x.g === 'dep_som' ? `<div class="mgrp">${CB('v.mental.severe', m.severe, '<b>Một số triệu chứng đặc biệt nặng</b> <span class="tiny muted">— điều kiện của trầm cảm nặng (BYT 2020, Bài 20); bác sĩ đánh giá</span>')}</div>` : '')).join('');
@@ -558,8 +558,15 @@ function mentalCard(p, v){
     if(inCl.has(g.g)) return '';
     return det(g.g, g.t, g.src, cnt(g), `<div class="checks">${checklistHTML(g, m.sx)}</div>`);
   };
+  // Thứ tự hiển thị theo mã ICD-10 (bác sĩ đặt 2026-11-16): F00–F06 → F10/F17 → F30–F33 (+ loạn thần kèm) → F40–F48 → F50–F52 → F63 → F70–F79 → F80–F84 → F90–F98.
+  // Chỉ đổi thứ tự hiển thị; MENTAL_SX (data.js) giữ nguyên. Nhóm mới chưa có trong danh sách thì xếp cuối.
+  const ICD_ORDER = ['dem', 'amn', 'del', 'mci', 'sud', 'man_a', 'man_b', 'mix', 'dep_core', 'dep_common', 'dep_som', 'psy',
+    'phob', 'panic', 'anx', 'ocd', 'ptsd', 'adj', 'diss', 'som', 'neur', 'ed', 'scoff', 'slp', 'sexdx', 'sex', 'gam',
+    'id', 'dev', 'asd', 'adhd', 'cond', 'kemo', 'tic', 'kid', 'kid2'];
+  const ordIx = g => { const i = ICD_ORDER.indexOf(g.g); return i < 0 ? 999 : i; };
+  const sortedSx = MENTAL_SX.slice().sort((a, b) => ordIx(a) - ordIx(b));
   return `<div class="card">${head}<div data-live="mentalSum"></div>
-    ${MENTAL_SX.map(grpX).join('')}
+    ${sortedSx.map(grpX).join('')}
     <div class="g3 mgrp">${F('Thời gian kéo dài giai đoạn hiện tại', U('v.mental.weeks', m.weeks, 'tuần'))}<div class="field spanall"><label>Mức ảnh hưởng chức năng</label><div class="row">${MENTAL_IMPAIR.map(([k, l]) => RAD('v.mental.impair', m.impair, k, l)).join('')}</div></div></div>
     ${grp('Tiền sử giai đoạn khí sắc', 'Bài 19, 21', MENTAL_HIST.map(([k, l]) => CL('v.mental.hist', m.hist, k, l)).join(''))}
     ${grp('Yếu tố cần loại trừ', 'Bài 18–23', MENTAL_EXCL.map(([k, l]) => CL('v.mental.excl', m.excl, k, l)).join(''))}
