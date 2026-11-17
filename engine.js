@@ -1101,6 +1101,20 @@ function drugBlockReasons(p, v, d, ctx, line){
       if(r.length) out.push('milnacipran: ' + r.join('; '));
     } else { const q = MIL_PART.find(([k]) => dt.includes(k)); if(q){ const f = oth.filter(o => isMil(o.t)).map(o => o.name); if(f.length) out.push(`đang dùng milnacipran (${f.join(', ')}) — ${q[1]}`); } }
   }
+  // Vareniclin (bác sĩ đặt 2026-11-17): tiền sử động kinh (ô tích hoặc ghi chữ)
+  if(norm(d.hc || '').includes('vareniclin') && ((p.conds || []).includes('epilepsy') || ['dong kinh', 'co giat'].some(k => mentionsSymptom(p.condNote || '', k)))) out.push('vareniclin: tiền sử động kinh');
+  // Naltrexon (bác sĩ đặt 2026-11-17): tiền sử xơ gan, rối loạn tiền đình (ô tích hoặc ghi chữ); AST hoặc ALT mới nhất > 2 lần giới hạn trên
+  if(norm(d.hc || '').includes('naltrexon')){
+    const r = [], pcs = p.conds || [], say = k => mentionsSymptom(p.condNote || '', k);
+    if(pcs.includes('liver') || ['xo gan', 'benh gan man'].some(say)) r.push('tiền sử xơ gan');
+    if(pcs.includes('vestibular') || ['roi loan tien dinh', 'hoi chung tien dinh'].some(say)) r.push('tiền sử rối loạn tiền đình');
+    for(const k of ['ast', 'alt']){
+      const o = latestOrder(p, v, k); if(!o) continue;
+      const lb = LABS.find(l => l[1] === k), uln = upperRef(o.o.ref, upperRef(lb && lb[4], 40)), val = num(o.o.value);
+      if(uln && val > 2 * uln) r.push(`${k.toUpperCase()} ${fmtN(val)} U/L (> 2 × ${fmtN(uln)}${o.current ? '' : ', ngày ' + fmtDate(o.date)})`);
+    }
+    if(r.length) out.push('naltrexon: ' + r.join('; '));
+  }
   // Flibanserin (bác sĩ đặt 2026-11-15): tiền sử rối loạn tiền đình, xơ gan, hạ huyết áp (ô / chữ / ICD I95 / HA lượt khám < 90/60); giới nam
   if(norm(d.hc || '').includes('flibanserin')){
     const r = [], pcs = p.conds || [], say = k => mentionsSymptom(p.condNote || '', k), C3 = (ctx || ctxOf(p, v)).conds;
@@ -1343,8 +1357,8 @@ function zopicloneHalf(p, v, d, ctx){
   return out;
 }
 // Kết luận tổng điểm trắc nghiệm theo SCALE_BANDS; null nếu không có bảng hoặc chưa nhập / ngoài khoảng
-function scaleResult(key, value){
-  const b = SCALE_BANDS[key], n = num(value); if(!b || n == null || n < 0) return null;
+function scaleResult(key, value, p, v){
+  const alt = SCALE_BANDS_ALT[key], b = alt && p && alt.when(p, v) ? alt.bands : SCALE_BANDS[key], n = num(value); if(!b || n == null || n < 0) return null;
   const r = b.find(x => n <= x[0]); return r ? {t: r[1], lv: r[2]} : null;
 }
 // ---- Thuốc tăng huyết áp nhóm A (ức chế men chuyển / chẹn thụ thể), B (chẹn beta), C (chẹn kênh canxi), D (lợi tiểu thiazid / giống thiazid)
@@ -1648,6 +1662,12 @@ function psyAutoPlan(v){
   const onlyGad = sx.size > 0 && [...sx].every(k => anxKeys.has(k));
   const anhed = ['mat quan tam', 'mat moi quan tam', 'mat hung thu', 'mat thich thu', 'mat moi quan tam thich thu', 'khong con hung thu'].some(say), fatig = ['met moi', 'giam nang luong'].some(say);
   if(onlyGad && hAnx && !anhed && !fatig) addK(DASS.concat(['zung_a', 'hama'], hSlp ? ['psqi'] : []), 'lo âu lan toả' + (hSlp ? ' kèm mất ngủ' : ''));
+  // Bác sĩ đặt 2026-11-16: khám tâm thần tích ≥ 1 ô thuộc mã F43 (nhóm `ptsd`: F43.0, F43.1, F43.8; nhóm `adj`: F43.2) → PSS-10, PC-PTSD-5, ADNM-20, DASS-21
+  if(grp(['ptsd', 'adj'])) addK(['pss', 'pcptsd5', 'adnm20'].concat(DASS), 'rối loạn liên quan stress (F43)');
+  // Bác sĩ đặt 2026-11-16: khám tâm thần tích ≥ 1 ô nhóm rối loạn giấc ngủ (`slp`: F51, G47, G25.8) → DASS-21 (trầm cảm, lo âu, stress), Epworth, PSQI, ISI
+  if(mSlp) addK(DASS.concat(['ess', 'psqi', 'isi']), 'rối loạn giấc ngủ (khám tâm thần)');   // ISI: bác sĩ thêm 2026-11-16
+  // Bác sĩ đặt 2026-11-16: khám tâm thần tích ≥ 1 ô nhóm nghiện rượu / thuốc lá (`sud`) → CIWA-Ar, DASS-21 (trầm cảm, lo âu, stress), AUDIT, Fagerström
+  if(grp(['sud'])) addK(['ciwa'].concat(DASS, ['audit', 'fager']), 'nghiện rượu / thuốc lá (khám tâm thần)');
   if(hMan || (mMan && (mAnx || mDep || mSlp))) addK(DASS.concat(['hcl32', 'psqi', 'ymrs']), 'triệu chứng hưng cảm');   // YMRS: bác sĩ thêm 2026-11-15
   if(['tu sat', 'tu tu'].some(say) || sx.has('dep_suicide')) addK(['cssrs'], 'ý tưởng / hành vi tự sát');
   return {keys, why};
@@ -1737,9 +1757,9 @@ function psyDx(p, v){
   const add = (code, src, met, miss, note) => out.push({code, name: icdName(code), src, met, miss: miss.concat(exclMiss), note});
   // Mức độ theo thang trắc nghiệm đã nhập ở bước 2 (bác sĩ yêu cầu rà mức độ 2026-11-15): ghi vào ghi chú của gợi ý tương ứng
   const SCALE_FOR = [[/^F3[23]|^F41\.2|^F43\.2[012]/, ['phq9', 'hamd', 'madrs', 'bdi', 'zung_d', 'dass_d', 'hads_d', 'gds', 'epds']], [/^F41\.1|^F41\.2|^F43\.2[23]/, ['gad7', 'hama', 'zung_a', 'dass_a', 'hads_a']],
-    [/^F41\.0|^F40/, ['hama']], [/^F30|^F31/, ['ymrs']], [/^F51\.0|^G47\.0/, ['isi', 'psqi']], [/^G47\.[14]|^F51\.1/, ['ess']], [/^F10/, ['audit', 'ciwa']], [/^F43\.[18]/, ['pcl5']], [/^F0[0-3]|^F06\.7/, ['mmse', 'moca']], [/^F2/, ['panss']]];
+    [/^F41\.0|^F40/, ['hama']], [/^F30|^F31/, ['ymrs']], [/^F51\.0|^G47\.0/, ['isi', 'psqi']], [/^G47\.[14]|^F51\.1/, ['ess']], [/^F10/, ['audit', 'ciwa']], [/^F17/, ['fager']], [/^F43\.[18]/, ['pcl5']], [/^F0[0-3]|^F06\.7/, ['mmse', 'moca']], [/^F2/, ['panss']]];
   const scaleSev = code => { const ks = [...new Set(SCALE_FOR.filter(([re]) => re.test(code)).flatMap(([, k]) => k))];
-    return ks.map(k => { const val = orderNum(v, k); if(val == null) return ''; const r = scaleResult(k, val), l = LABS.find(x => x[1] === k); return `${l ? l[2].split(' (')[0] : k} = ${fmtN(val)}${r ? ' → ' + r.t : ''}`; }).filter(Boolean).join('; '); };
+    return ks.map(k => { const val = orderNum(v, k); if(val == null) return ''; const r = scaleResult(k, val, p, v), l = LABS.find(x => x[1] === k); return `${l ? l[2].split(' (')[0] : k} = ${fmtN(val)}${r ? ' → ' + r.t : ''}`; }).filter(Boolean).join('; '); };
   const i11x = {};   // ghi chú ICD-11 tính từ bảng kiểm, theo mã ICD-10 gợi ý (gộp vào s.i11 ở cuối hàm)
   const durTxt = wk == null ? 'Chưa nhập thời gian kéo dài' : `Thời gian kéo dài ${fmtN(wk)} tuần`;
   // --- Giai đoạn trầm cảm hiện tại (Bài 20) ---
@@ -2039,12 +2059,12 @@ function psyDx(p, v){
     add('F51.0', 'BYT 2020 Bài 27; ICD-10 (bản VN) tr. 134; DCR-10 tr. 114', ['Khó vào giấc / khó duy trì / ngủ không ngon'].concat(['ins_freq', 'slp_impair', 'slp_excl'].filter(has).map(k => lab('slp', k))), miss, durN + 'Đánh giá thêm PSQI, ISI; hỏi ngáy, ngưng thở (G47.3), chân không yên (G25.8).');
   }
   if(has('cir_mismatch')) add('F51.2', 'ICD-10 (bản VN) tr. 135', [lab('slp', 'cir_mismatch')].concat(['slp_impair', 'slp_excl'].filter(has).map(k => lab('slp', k))), need('slp', ['slp_impair', 'slp_excl']), 'Phân biệt rối loạn nhịp thức – ngủ thực tổn (G47.2): làm việc theo ca, lệch múi giờ, bệnh thần kinh.');
-  if(has('sw_walk')) add('F51.3', 'ICD-10 (bản VN) tr. 135', [lab('slp', 'sw_walk')].concat(has('slp_excl') ? [lab('slp', 'slp_excl')] : []), need('slp', ['slp_excl']), 'Loại trừ rối loạn tâm thần thực tổn (mất trí), động kinh. Sau cơn không có rối loạn hoạt động tâm thần, có thể lú lẫn ngắn.');
-  if(has('nt_terror')) add('F51.4', 'ICD-10 (bản VN) tr. 135–136', [lab('slp', 'nt_terror')].concat(has('slp_excl') ? [lab('slp', 'slp_excl')] : []), need('slp', ['slp_excl']), 'Phân biệt ác mộng (F51.5: tỉnh táo, nhớ rõ giấc mơ) và động kinh về đêm.');
+  if(has('sw_walk')) add('F51.3', 'ICD-10 (bản VN) tr. 135', [lab('slp', 'sw_walk')].concat(has('slp_excl') ? [lab('slp', 'slp_excl')] : []), need('slp', ['slp_excl']), 'Loại trừ rối loạn tâm thần thực tổn (mất trí), động kinh. Sau cơn không có rối loạn hoạt động tâm thần, có thể lú lẫn ngắn. Mục đích nghiên cứu (ICD-10 bản VN tr. 134): có thể lấy ≥ 4 cơn trong 1 năm làm tiêu chuẩn.');
+  if(has('nt_terror')) add('F51.4', 'ICD-10 (bản VN) tr. 135–136', [lab('slp', 'nt_terror')].concat(has('slp_excl') ? [lab('slp', 'slp_excl')] : []), need('slp', ['slp_excl']), 'Phân biệt ác mộng (F51.5: tỉnh táo, nhớ rõ giấc mơ) và động kinh về đêm. Mục đích nghiên cứu (ICD-10 bản VN tr. 134): có thể lấy ≥ 4 cơn trong 1 năm làm tiêu chuẩn.');
   if(has('nm_dream')){
     const miss = need('slp', ['slp_impair', 'slp_excl']);
     if(has('ptsd_event')) miss.push('Có sự kiện sang chấn → ác mộng có thể là triệu chứng của rối loạn stress sau sang chấn (F43.1)');
-    add('F51.5', 'ICD-10 (bản VN) tr. 136', [lab('slp', 'nm_dream')].concat(['slp_impair', 'slp_excl'].filter(has).map(k => lab('slp', k))), miss, '');
+    add('F51.5', 'ICD-10 (bản VN) tr. 136', [lab('slp', 'nm_dream')].concat(['slp_impair', 'slp_excl'].filter(has).map(k => lab('slp', k))), miss, 'Mục đích nghiên cứu (ICD-10 bản VN tr. 134): có thể lấy ≥ 4 cơn trong 1 năm làm tiêu chuẩn.');
   }
   if(has('osa_snore') || has('osa_day')){
     const ahi = orderNum(v, 'ahi'), sym = has('osa_snore') || has('osa_day');
@@ -2054,6 +2074,46 @@ function psyDx(p, v){
   }
   if(has('nar_attack')) add('G47.4', 'LEC2 (DSM-5)', [lab('slp', 'nar_attack')].concat(has('nar_cata') ? [lab('slp', 'nar_cata')] : []), has('nar_cata') ? [] : ['Cần có cơn mất trương lực đột ngột (cataplexy), hoặc thiếu hypocretin-1 trong dịch não tuỷ, hoặc đa ký giấc ngủ / MSLT điển hình'], 'Phân biệt ngủ nhiều không thực tổn (F51.1), ngưng thở khi ngủ (G47.3).');
   if(has('hyp_day')) add('F51.1', 'ICD-10 (bản VN) tr. 134–135; DCR-10 tr. 114–115', ['Buồn ngủ quá mức ban ngày'].concat(['hyp_nonarco', 'slp_impair', 'slp_excl'].filter(has).map(k => lab('slp', k))), need('slp', ['hyp_nonarco', 'slp_impair', 'slp_excl']), 'Có cơn ngủ rũ / mất trương lực đột ngột → G47.4; ngưng thở khi ngủ → G47.3. DSM-5 (LEC2): ngủ nhiều ≥ 3 lần/tuần, ≥ 3 tháng.');
+  // Hội chứng chân không yên G25.8 (bổ sung 2026-11-16): LEC2 chỉ liệt kê trong nhóm rối loạn vận động liên quan giấc ngủ, không ghi tiêu chuẩn →
+  // tiêu chuẩn đồng thuận IRLSSG 2014 (Allen RP và cs., Sleep Med 2014;15:860–873): đủ 5 tiêu chuẩn bắt buộc; DSM-5 thêm ≥ 3 lần/tuần, ≥ 3 tháng, gây khó chịu / suy giảm
+  const RLS = ['rls_urge', 'rls_rest', 'rls_move', 'rls_night', 'rls_excl'];
+  if(RLS.concat(['rls_freq']).some(has)){
+    add('G25.8', 'IRLSSG 2014; LEC2 (DSM-5)', RLS.concat(['rls_freq']).filter(has).map(k => lab('slp', k)), need('slp', RLS),
+      (has('rls_freq') ? '' : 'Chưa ghi ý nghĩa lâm sàng (≥ 3 lần/tuần, ≥ 3 tháng, gây khó chịu) — DSM-5 cần có. ') + 'Tìm nguyên nhân thứ phát: thiếu sắt (ferritin), bệnh thận mạn, thai kỳ, bệnh thần kinh ngoại biên; thuốc làm nặng: SSRI / SNRI, mirtazapin, chống loạn thần, kháng histamin an thần. Phân biệt bồn chồn do thuốc (akathisia), chuột rút về đêm.');
+  }
+  // Hội chứng cai F1x.3 / cai có sảng F1x.4 (bổ sung 2026-11-16; ICD-10 bản VN tr. 77–81 — tiêu chuẩn chung G1–G3 + tiêu chuẩn riêng từng chất; ICD-11 tr. 497)
+  const WD = [
+    {k: 'wd_alc', c: '10', nm: 'rượu', sx: Array.from({length: 10}, (_, i) => 'wa_' + (i + 1)), n: 3},
+    {k: 'wd_opi', c: '11', nm: 'thuốc phiện', sx: Array.from({length: 12}, (_, i) => 'wo_' + (i + 1)), n: 3},
+    {k: 'wd_can', c: '12', nm: 'cần sa', sx: ['wc_1'], n: 1, noCrit: true},
+    {k: 'wd_sed', c: '13', nm: 'thuốc an dịu, thuốc ngủ', sx: Array.from({length: 11}, (_, i) => 'ws_' + (i + 1)), n: 3},
+    {k: 'wd_coc', c: '14', nm: 'cocain', sx: Array.from({length: 6}, (_, i) => 'wk_' + (i + 1)), n: 2, mood: true},
+    {k: 'wd_sti', c: '15', nm: 'chất kích thích', sx: Array.from({length: 6}, (_, i) => 'wk_' + (i + 1)), n: 2, mood: true},
+    {k: 'wd_tob', c: '17', nm: 'thuốc lá', sx: Array.from({length: 10}, (_, i) => 'wt_' + (i + 1)), n: 2},
+    {k: 'wd_multi', c: '19', nm: 'nhiều loại ma tuý', sx: [], n: 0}];
+  const wdAny = MENTAL_SX.find(x => x.g === 'wd') && MENTAL_SX.find(x => x.g === 'wd').items.some(([k]) => has(k));
+  if(wdAny){
+    let subs = WD.filter(s => has(s.k));
+    if(!subs.length && has('sud_alc')) subs = [WD[0]];
+    if(!subs.length && has('sud_tob')) subs = [WD[6]];
+    if(!subs.length){ const guess = WD.filter(s => s.sx.some(has)); if(guess.length === 1) subs = guess; }
+    if(!subs.length) todo.push('Có biểu hiện cai: chọn chất đã ngừng / giảm ở mục "Hội chứng cai".');
+    subs.forEach(s => {
+      const got = s.sx.filter(has), delir = has('wd_delir'), seiz = has('wd_seiz') || has('wa_10') || has('ws_11');
+      const code = 'F' + s.c + (delir ? '.4' : '.3') + (s.c === '12' ? '' : seiz ? '1' : '0');
+      const met = ['G1', 'G3'].map(g => 'wd_' + g.toLowerCase()).filter(has).map(k => lab('wd', k)).concat(got.length ? [`${got.length} triệu chứng cai ${s.nm}: ` + got.map(k => lab('wd', k)).join(', ')] : [], s.mood && has('wk_mood') ? ['Rối loạn khí sắc'] : [], seiz ? ['Có co giật'] : [], delir ? ['Có sảng'] : []);
+      const miss = need('wd', ['wd_g1', 'wd_g3']);
+      if(s.noCrit) miss.push('ICD-10 chưa có tiêu chuẩn nghiên cứu xác định cho cai cần sa (hội chứng định nghĩa kém) — chẩn đoán theo lâm sàng');
+      else if(s.c === '19') miss.push('Ghi thêm mã cai của từng chất nếu xác định được (F19 chỉ dùng khi không xác định được chất chủ yếu)');
+      else if(got.length < s.n) miss.push(`G2. Cần ≥ ${s.n} triệu chứng cai ${s.nm} — hiện ${got.length}`);
+      if(s.mood && !has('wk_mood')) miss.push('Chưa có: B. Rối loạn khí sắc (buồn hoặc mất khoái cảm)');
+      if(delir && !['del_cons', 'del_cog', 'del_psymo', 'del_sleep'].every(has)) miss.push('F1x.4: cần đủ tiêu chuẩn sảng F05 (A–D ở mục "Sảng")');
+      const note = (s.c === '10' ? 'Đánh giá mức độ cai bằng CIWA-Ar; bổ sung thiamin. ' : s.c === '13' ? 'Giảm liều benzodiazepin từ từ, không ngừng đột ngột. ' : '') +
+        (s.c === '15' ? 'Cafein được xếp vào F15. ' : '') + 'Chữ số thứ 5: ' + (delir ? 'F1x.40 không co giật / F1x.41 có co giật.' : 'F1x.30 không biến chứng / F1x.31 có co giật.');
+      add(code, 'ICD-10 (bản VN) tr. 77–81', met, miss, note);
+      if(s.c === '10' || s.c === '13') alerts.push({lv: delir || seiz ? 3 : 2, t: `Hội chứng cai ${s.nm}`, m: delir ? 'Cai có sảng là cấp cứu: theo dõi sinh hiệu, bù dịch, điện giải, thiamin; cân nhắc nhập viện.' : 'Nguy cơ co giật, sảng: theo dõi sinh hiệu, CIWA-Ar' + (s.c === '13' ? ', giảm liều chậm' : '') + '; ' + (seiz ? 'đã có co giật — cân nhắc nhập viện.' : 'cân nhắc nhập viện nếu nặng.')});
+    });
+  }
   // Nghiện rượu / thuốc lá: hội chứng nghiện F1x.2 (≥ 3/6 trong 12 tháng); sử dụng gây hại F1x.1
   const sudCore = ['sud_crave', 'sud_control', 'sud_withdraw', 'sud_toler', 'sud_neglect', 'sud_harm'], sudN = sudCore.filter(has).length;
   if(sudN){
@@ -2068,8 +2128,28 @@ function psyDx(p, v){
     });
   }
   // Nghiện hành vi
-  if(['gam_2ep', 'gam_cont', 'gam_urge', 'gam_preocc'].some(has)) add('F63.0', 'ICD-10 F63.0', ['gam_2ep', 'gam_cont', 'gam_urge', 'gam_preocc'].filter(has).map(k => lab('gam', k)), need('gam', ['gam_2ep', 'gam_cont', 'gam_urge', 'gam_preocc']), 'Loại trừ đánh bạc trong giai đoạn hưng cảm, rối loạn nhân cách chống đối xã hội.');
-  if(has('game_net')) add('F63.8', 'ICD-10 F63.8', [lab('gam', 'game_net')], [], 'ICD-10 xếp nghiện trò chơi điện tử / internet vào "rối loạn thói quen và xung động khác"; loại trừ hưng cảm, ADHD, trầm cảm đi kèm.');
+  // Rối loạn thói quen và xung động F63 (rà lại 2026-11-16: ICD-10 bản VN tr. 152–154; ICD-11 6C50, 6C51, 6C70, 6C71, 6B25.0)
+  const f63Excl = mood && (has('man_mood') || has('man_a')) ? 'Đang có triệu chứng hưng cảm — hành vi có thể do giai đoạn hưng cảm' : null;
+  const F63 = [
+    ['F63.0', ['gam_2ep', 'gam_cont', 'gam_urge', 'gam_preocc'], 'Đánh bạc bệnh lý. Loại trừ đánh bạc trong giai đoạn hưng cảm, rối loạn nhân cách chống đối xã hội, đánh bạc vì xã hội / nghề nghiệp. ICD-11 6C50: đủ 3 biểu hiện — mất kiểm soát, ưu tiên đánh bạc, tiếp tục dù có hại; thường ≥ 12 tháng; ghi thể chủ yếu trực tuyến / trực tiếp.'],
+    ['F63.1', ['pyr_2', 'pyr_urge', 'pyr_preocc'], 'Gây cháy bệnh lý. Loại trừ đốt có động cơ (tiền bạc, trả thù, chính trị), rối loạn hành vi, nhân cách chống đối xã hội, loạn thần, nhiễm độc rượu, chậm phát triển trí tuệ.'],
+    ['F63.2', ['klep_2', 'klep_urge'], 'Ăn cắp bệnh lý. Loại trừ trộm có động cơ, rối loạn hành vi / nhân cách chống đối xã hội, trộm khi trầm cảm hoặc do bệnh thực tổn (mất trí). Thường lén lút một mình; đồ lấy được hay bỏ đi, cho, cất giấu.'],
+    ['F63.3', ['tri_loss', 'tri_urge', 'tri_excl'], 'Nhổ tóc bệnh lý. Loại trừ rối loạn định hình vận động, nhổ tóc do hoang tưởng / ảo giác, bệnh da. ICD-11 xếp vào nhóm rối loạn hành vi lặp lại tập trung vào cơ thể 6B25.0.']];
+  F63.forEach(([code, ks, note]) => {
+    if(!ks.some(has)) return;
+    const miss = need('gam', ks);
+    if(!has('f63_excl')) miss.push('Chưa xác nhận: ' + lab('gam', 'f63_excl'));
+    if(f63Excl) miss.push(f63Excl);
+    add(code, 'ICD-10 (bản VN) tr. 152–153', ks.filter(has).map(k => lab('gam', k)), miss, note);
+  });
+  const GM = ['gm_ctrl', 'gm_prio', 'gm_cont', 'gm_12m', 'gm_impair'];
+  if(GM.some(has) || has('game_net')){
+    const miss = has('game_net') && !GM.some(has) ? ['Hồ sơ dùng mục cũ — tích lại theo các tiêu chuẩn ICD-11 6C51 để đối chiếu'] : need('gam', GM);
+    if(!has('f63_excl')) miss.push('Chưa xác nhận: ' + lab('gam', 'f63_excl'));
+    if(f63Excl) miss.push(f63Excl);
+    add('F63.8', 'ICD-11 6C51; ICD-10 (bản VN) tr. 153–154', GM.filter(has).map(k => lab('gam', k)).concat(has('game_net') ? [lab('gam', 'game_net')] : []), miss,
+      'ICD-10 không có mục riêng: xếp vào F63.8 "rối loạn thói quen và xung động khác" (hành vi kém thích nghi tái diễn, thất bại trong cưỡng lại xung động, căng thẳng trước và nhẹ nhõm khi thực hiện). Tiêu chuẩn theo ICD-11 6C51; ghi thể chủ yếu trực tuyến / ngoại tuyến. Loại trừ hưng cảm, ADHD, trầm cảm đi kèm.');
+  }
   // Rối loạn hành vi (F91) / thách thức chống đối (F91.3) — ICD-10 bản VN tr. 177–181 (cập nhật 2026-11-07); khoá cũ cd_pattern / cd_aggr… vẫn tính
   const CDO = ['cd1', 'cd2', 'cd3', 'cd4', 'cd5', 'cd6', 'cd7', 'cd8'], CDC = Array.from({length: 15}, (_, i) => 'cd' + (i + 9));
   const cdSerious = ['cd_aggr', 'cd_destr', 'cd_theft', 'cd_rules'].filter(has);
@@ -2331,22 +2411,29 @@ function psyDx(p, v){
       add('F48.0', 'ICD-10 (bản VN) tr. 129–130', met, miss, 'Không chẩn đoán khi có rối loạn khí sắc (F30–F39), hoảng sợ, lo âu lan toả, hoặc khi bệnh cảnh do bệnh thực tổn (F06.6, F07.1, F07.2).');
     }
   }
-  // --- Rối loạn sự thích ứng (ICD-10 WHO F43.2; tài liệu BYT 2020 / LEC4 chỉ dẫn chẩn đoán theo ICD-10) ---
+  // --- Rối loạn sự thích ứng F43.2 (ICD-10 bản VN tr. 120–121, tiêu chuẩn nghiên cứu A–C; LEC4 chỉ dẫn chẩn đoán theo ICD-10; ICD-11 6B43) ---
+  // Rà lại 2026-11-16: B — không đủ tiêu chuẩn một rối loạn riêng (thêm lo âu lan toả F41.1 đủ, triệu chứng loạn thần); C — "6 tháng" tính từ khi ngừng stress / hậu quả;
+  // thêm thể F43.28 (adj_other); sự kiện thảm hoạ → nghĩ PTSD / stress cấp
   const adjStress = sx.has('adj_stressor') || excl.has('stress');
-  const aDep = sx.has('adj_dep'), aAnx = sx.has('adj_anx'), aEmo = sx.has('adj_emo'), aBeh = sx.has('adj_behav');
-  if(adjStress && (aDep || aAnx || aEmo || aBeh)){
+  const aDep = sx.has('adj_dep'), aAnx = sx.has('adj_anx'), aEmo = sx.has('adj_emo'), aBeh = sx.has('adj_behav'), aOth = sx.has('adj_other');
+  if(adjStress && (aDep || aAnx || aEmo || aBeh || aOth)){
     const emo = aDep || aAnx || aEmo;
-    const code = aBeh && emo ? 'F43.25' : aBeh ? 'F43.24' : aDep && aAnx ? 'F43.22' : aDep && !aEmo ? (wk != null && wk > 4 ? 'F43.21' : 'F43.20') : 'F43.23';
-    const met = ['Có sự kiện / biến đổi lớn gây stress'].concat(sx.has('adj_onset') ? ['Khởi phát trong vòng 1 tháng sau sự kiện'] : [], sx.has('adj_impair') ? ['Đau khổ chủ quan, cản trở hoạt động xã hội / công việc'] : [],
-      [aDep && 'trầm cảm', aAnx && 'lo âu', aEmo && 'cảm xúc khác', aBeh && 'hành vi'].filter(Boolean).length ? ['Ưu thế: ' + [aDep && 'trầm cảm', aAnx && 'lo âu', aEmo && 'cảm xúc khác', aBeh && 'hành vi'].filter(Boolean).join(', ')] : []);
+    const code = aBeh && emo ? 'F43.25' : aBeh ? 'F43.24' : aDep && aAnx ? 'F43.22' : aDep && !aEmo ? (wk != null && wk > 4 ? 'F43.21' : 'F43.20') : (aAnx || aEmo) ? 'F43.23' : 'F43.28';
+    const prev = [aDep && 'trầm cảm', aAnx && 'lo âu', aEmo && 'cảm xúc khác', aBeh && 'hành vi', aOth && 'triệu chứng biệt định khác'].filter(Boolean);
+    const met = ['A. Có sự kiện / biến đổi lớn gây stress (không phải thảm hoạ)'].concat(sx.has('adj_onset') ? ['A. Khởi phát trong vòng 1 tháng sau sự kiện'] : [], sx.has('adj_impair') ? ['Đau khổ chủ quan, cản trở hoạt động xã hội / công việc'] : [],
+      prev.length ? ['Ưu thế: ' + prev.join(', ')] : []);
     const miss = [];
-    if(!sx.has('adj_onset')) miss.push('Cần khởi phát trong vòng 1 tháng sau sự kiện stress');
-    if(!sx.has('adj_impair')) miss.push('Cần có đau khổ chủ quan / cản trở hoạt động xã hội, công việc');
-    if(depOk) miss.push('Đã đủ tiêu chuẩn giai đoạn trầm cảm (F32) — ICD-10 ưu tiên chẩn đoán trầm cảm');
+    if(!sx.has('adj_onset')) miss.push('Chưa có: A. Khởi phát trong vòng 1 tháng sau sự kiện stress');
+    if(!sx.has('adj_impair')) miss.push('Chưa có: đau khổ chủ quan / cản trở hoạt động xã hội, công việc (ICD-10 mô tả lâm sàng; ICD-11 bắt buộc)');
+    if(depOk) miss.push('B. Đã đủ tiêu chuẩn giai đoạn trầm cảm (F32) — chẩn đoán trầm cảm, không chẩn đoán F43.2');
+    if(gadFull) miss.push('B. Đã đủ tiêu chuẩn lo âu lan toả (F41.1) — chẩn đoán F41.1, không chẩn đoán F43.2');
+    if(['psy_delus', 'psy_halluc'].some(k => sx.has(k))) miss.push('B. Có hoang tưởng / ảo giác — không thuộc rối loạn sự thích ứng');
+    if(sx.has('ptsd_event')) miss.push('Sự kiện mang tính thảm hoạ / đe doạ đặc biệt — xem xét stress cấp (F43.0) hoặc PTSD (F43.1) trước');
     if(code === 'F43.21' && wk > 104) miss.push(durTxt + ' — phản ứng trầm cảm kéo dài không quá 2 năm');
-    else if(code !== 'F43.21' && wk != null && wk > 26) miss.push(durTxt + ' — thường không quá 6 tháng (trừ phản ứng trầm cảm kéo dài) → xem lại chẩn đoán');
-    const note = code === 'F43.20' ? 'Phản ứng trầm cảm ngắn: không quá 1 tháng.' : code === 'F43.21' ? 'Phản ứng trầm cảm kéo dài: không quá 2 năm.' : 'Thường bắt đầu trong vòng 1 tháng sau sự kiện và không quá 6 tháng. Không đủ tiêu chuẩn một rối loạn cảm xúc / lo âu / hành vi riêng biệt.';
-    add(code, 'ICD-10 (bản VN)', met, miss, note + ' Trắc nghiệm hỗ trợ (LEC4): ADNM-20, PSS-10, DASS-21.');
+    else if(code !== 'F43.21' && wk != null && wk > 26) miss.push(durTxt + ' — C. Triệu chứng không kéo dài quá 6 tháng sau khi ngừng stress hoặc hết hậu quả của nó: nếu stress / hậu quả đã chấm dứt > 6 tháng → xem lại chẩn đoán');
+    const note = code === 'F43.20' ? 'Phản ứng trầm cảm ngắn: trầm cảm nhẹ nhất thời, không quá 1 tháng.' : code === 'F43.21' ? 'Phản ứng trầm cảm kéo dài: trầm cảm nhẹ do tiếp xúc kéo dài với stress, không quá 2 năm.'
+      : code === 'F43.22' ? 'Trầm cảm và lo âu nổi trội nhưng không cao hơn mức của F41.2 / F41.3.' : 'Không đủ tiêu chuẩn một rối loạn cảm xúc / lo âu / hành vi riêng biệt (B).';
+    add(code, 'ICD-10 (bản VN) tr. 120–121', met, miss, note + ' Có thể chẩn đoán tạm thời khi chưa đủ thời gian theo dõi (C). Trắc nghiệm hỗ trợ (LEC4): ADNM-20, PSS-10, DASS-21.');
   } else if(adjStress && !mood && !anxSx.length) todo.push('Có sự kiện gây stress: đánh giá biểu hiện ưu thế (trầm cảm / lo âu / cảm xúc khác / hành vi) ở mục "Rối loạn sự thích ứng" để định hướng F43.2.');
   // --- Cảnh báo, việc cần làm ---
   if(sx.has('dep_suicide')) alerts.push({lv: 3, t: 'Có ý tưởng / hành vi tự sát', m: 'Đánh giá nguy cơ tự sát ngay trong buổi khám (C-SSRS); cân nhắc nhập viện hoặc chuyển chuyên khoa tâm thần, không để bệnh nhân một mình, báo người nhà.'});

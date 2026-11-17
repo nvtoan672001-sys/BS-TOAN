@@ -58,3 +58,4 @@ Bác sĩ thêm làm thư mục nguồn (chưa dùng cho phần nào của app):
 - `Béo phì - tiền ĐTĐ và bệnh đồng mắc.docx`, `Gan nhiễm mỡ.docx` — tài liệu của bác sĩ.
 
 Đã dùng (2026-11-14) cho bước 5 dinh dưỡng – vận động: BYT 2022 (QĐ 2892/QĐ-BYT, chuyển sang chữ bằng Word) — Bảng 4.1, 4.2, 6.1, 6.2, 6.3, mục 6.1.1, 6.2.1, 6.2.2; `2_Tư vấn_Hoat dong the luc.pdf` (cường độ theo nhịp tim, 5A/5R). Nguồn web đối chiếu: WHO 2020 Guidelines on physical activity and sedentary behaviour; 2024 Adult Compendium of Physical Activities (pacompendium.com); AHA/ACC/TOS 2013 (1.200–1.500 / 1.500–1.800 kcal, thâm hụt 500–750 kcal); KDIGO 2024 CKD (đạm 0,8 g/kg G3–G5).
+- IRLSSG 2014 — Allen RP và cs., *Restless legs syndrome/Willis–Ekbom disease diagnostic criteria: updated IRLSSG consensus criteria*, Sleep Med 2014;15(8):860–873 (PubMed 25023924): tiêu chuẩn hội chứng chân không yên G25.8 (2026-11-16).

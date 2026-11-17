@@ -1008,6 +1008,11 @@ def main():
             assert pg.evaluate(ADJ, {'sx': base + ['adj_emo', 'adj_behav'], 'weeks': 6}) == [['F43.25', True]]
             assert pg.evaluate(ADJ, {'sx': ['adj_stressor', 'adj_anx'], 'weeks': 6}) == [['F43.23', False]], 'thiếu khởi phát / suy giảm -> Chưa đủ'
             assert pg.evaluate(ADJ, {'sx': ['adj_anx'], 'weeks': 6}) == [], 'không có sự kiện stress -> không gợi ý F43.2'
+            # rà lại F43.2 (2026-11-16): F43.28; loạn thần, sự kiện thảm hoạ, lo âu lan toả đủ → Chưa đủ
+            assert pg.evaluate(ADJ, {'sx': base + ['adj_other'], 'weeks': 6}) == [['F43.28', True]]
+            assert pg.evaluate(ADJ, {'sx': base + ['adj_dep', 'psy_halluc'], 'weeks': 3}) == [['F43.20', False]]
+            assert pg.evaluate(ADJ, {'sx': base + ['adj_anx', 'ptsd_event'], 'weeks': 3}) == [['F43.23', False]]
+            assert pg.evaluate(ADJ, {'sx': base + ['adj_anx', 'gad_a', 'gad_1', 'gad_15', 'gad_16', 'gad_21', 'gad_excl'], 'weeks': 30}) == [['F43.23', False]]
             # lo âu khác + ăn uống: gợi ý mã đúng, đủ / chưa đủ
             SG = "(o) => { const v = curV(); v.mental = Object.assign({sx: [], hist: [], excl: []}, o); return psyDx(curP(), v).sugs.map(s => [s.code, s.ok]); }"
             assert ['F41.0', True] in pg.evaluate(SG, {'sx': ['pan_attacks', 'pan_sx', 'pan_excl'], 'weeks': 6})
@@ -1080,7 +1085,7 @@ def main():
             assert ['F51.0', True] in pg.evaluate(SG, {'sx': ['ins_compl', 'ins_freq', 'slp_impair', 'slp_excl'], 'weeks': 6})
             assert ['F10.2', True] in pg.evaluate(SG, {'sx': ['sud_alc', 'sud_crave', 'sud_control', 'sud_withdraw', 'sud_12m'], 'weeks': 20})
             assert ['F17.1', False] in pg.evaluate(SG, {'sx': ['sud_tob', 'sud_harm'], 'weeks': 20})
-            assert ['F63.0', True] in pg.evaluate(SG, {'sx': ['gam_2ep', 'gam_cont', 'gam_urge', 'gam_preocc'], 'weeks': 60})
+            assert ['F63.0', True] in pg.evaluate(SG, {'sx': ['f63_excl', 'gam_2ep', 'gam_cont', 'gam_urge', 'gam_preocc'], 'weeks': 60})
             assert ['F91.3', False] in pg.evaluate(SG, {'sx': ['cd_odd', 'cd_pattern'], 'weeks': 30}), 'khoá cũ: F91.3 nay cần C, loại trừ'
             # F91, F63.8 theo ICD-10 bản VN tr. 177–181, ICD-11 6C73 (2026-11-07)
             _age = pg.evaluate("() => { const p = curP(), o = [p.dob, p.birthYear]; p.dob = ''; p.birthYear = Number(todayISO().slice(0, 4)) - 12; return o; }")
@@ -1110,7 +1115,7 @@ def main():
             # Trắc nghiệm tâm lý: sàng lọc trước, chẩn đoán / mức độ sau (bác sĩ đặt 2026-11-12)
             r = pg.evaluate("""() => { const ks = LABS.filter(l => l[0] === 'Trắc nghiệm tâm lý').map(l => l[1]);
               return [ks.length === new Set(ks).size, ks[0], ks.indexOf('bdi') > ks.indexOf('scs_f'), ks.indexOf('mmse') < ks.indexOf('bdi'), ks.length]; }""")
-            assert r == [True, 'phq2', True, True, 70], r
+            assert r == [True, 'phq2', True, True, 71], r   # +Fagerström 2026-11-16
             # Bảng chống chỉ định thuốc tâm thần + tiền sử tim mạch (bác sĩ đặt 2026-11-12)
             r = pg.evaluate("""() => { const p = curP(), v = curV(), c0 = p.conds, m0 = p.meds, rx0 = v.rx, o0 = v.orders, n0 = p.condNote;
               const K = id => drugBlockReasons(p, v, drugById(id)).filter(x => /^chống chỉ định/.test(x)).join('|');
@@ -1406,7 +1411,7 @@ def main():
                 P('', ['dep_mood', 'ins_compl']), P('', ['dep_mood', 'gad_3']), P('Cáu gắt, hưng phấn'), P('', ['man_mood', 'gad_3']), P('', ['man_mood']), P('Có ý tưởng tự sát'), P('Không có ý tưởng tự sát'), P('', ['dep_suicide'])];
               v.hpi = h0; v.mental = JSON.parse(m0); return r; }""")
             assert r == ['hamd,dass_d,dass_a,dass_s,hcl32,psqi', 'madrs,dass_d,dass_a,dass_s,hcl32,psqi', 'hamd,dass_d,dass_a,dass_s,hcl32,zung_a', '',
-              'madrs,dass_d,dass_a,dass_s,hcl32,psqi', 'hamd,dass_d,dass_a,dass_s,hcl32,zung_a', 'dass_d,dass_a,dass_s,hcl32,psqi,ymrs', 'dass_d,dass_a,dass_s,hcl32,psqi,ymrs', '', 'cssrs', '', 'cssrs'], r
+              'madrs,dass_d,dass_a,dass_s,hcl32,psqi,ess,isi', 'hamd,dass_d,dass_a,dass_s,hcl32,zung_a', 'dass_d,dass_a,dass_s,hcl32,psqi,ymrs', 'dass_d,dass_a,dass_s,hcl32,psqi,ymrs', '', 'cssrs', '', 'cssrs'], r
             r = pg.evaluate("""() => { const p = curP(), v = curV(), h0 = v.hpi, m0 = JSON.stringify(v.mental || {}), o0 = v.orders, a0 = v.psyAutoKeys;
               const K = () => v.orders.map(o => o.key).filter(k => ['hamd', 'madrs', 'dass_d', 'dass_a', 'dass_s', 'hcl32', 'psqi', 'zung_a', 'cssrs'].includes(k)).length;
               v.orders = []; v.psyAutoKeys = []; v.mental = {sx: [], hist: [], excl: []};
@@ -1719,8 +1724,70 @@ def main():
             # Khám tâm thần xếp theo thứ tự ICD (bác sĩ đặt 2026-11-16)
             r = pg.evaluate('''() => { const p = curP(), v = curV(), o0 = S.mOpen; S.mOpen = {...(S.mOpen || {}), [v.id]: true};
               const h = mentalCard(p, v); S.mOpen = o0; return [...h.matchAll(/data-g="([a-z_0-9]+)"/g)].map(m => m[1]); }''')
-            assert r[:6] == ['dem', 'amn', 'del', 'mci', 'sud', 'c_man'] and r.index('c_man') < r.index('c_dep') < r.index('c_psy') < r.index('phob') < r.index('ed') < r.index('id') < r.index('kid2'), r
+            assert r[:7] == ['dem', 'amn', 'del', 'mci', 'sud', 'wd', 'c_man'] and r.index('c_man') < r.index('c_dep') < r.index('c_psy') < r.index('phob') < r.index('ed') < r.index('id') < r.index('kid2'), r
             assert len(r) == len(set(r)) and r[-1] == 'kid2', r
+            # Tự chọn trắc nghiệm khi tích ô nhóm F43 (bác sĩ đặt 2026-11-16)
+            r = pg.evaluate('''() => { const v = curV(), h0 = v.hpi, m0 = JSON.stringify(v.mental || {});
+              const P = (hpi, sx) => { v.hpi = hpi; v.mental = {sx: sx || [], hist: [], excl: []}; return psyAutoPlan(v).keys.join(','); };
+              const r = [P('', ['adj_stressor']), P('', ['ptsd_event']), P('', ['gad_15'])];
+              v.hpi = h0; v.mental = JSON.parse(m0); return r; }''')
+            assert r[0] == r[1] == 'pss,pcptsd5,adnm20,dass_d,dass_a,dass_s' and 'pcptsd5' not in r[2], r
+            # Hội chứng chân không yên G25.8 (IRLSSG 2014; bổ sung 2026-11-16)
+            r = pg.evaluate('''() => { const p = curP(), v = curV(), m0 = JSON.stringify(v.mental || {});
+              const S1 = sx => { v.mental = {sx, hist: [], excl: [], weeks: 20, impair: ''}; const s = psyDx(p, v).sugs.find(x => x.code === 'G25.8'); return s ? [s.ok, s.miss.length] : null; };
+              const r = [S1(['rls_urge', 'rls_rest', 'rls_move', 'rls_night', 'rls_excl', 'rls_freq']), S1(['rls_urge', 'rls_night']), S1(['ins_compl'])];
+              v.mental = JSON.parse(m0); return r; }''')
+            assert r == [[True, 0], [False, 3], None], r
+            # Tự chọn trắc nghiệm khi tích ô nhóm giấc ngủ (bác sĩ đặt 2026-11-16)
+            r = pg.evaluate('''() => { const v = curV(), h0 = v.hpi, m0 = JSON.stringify(v.mental || {});
+              const P = (hpi, sx) => { v.hpi = hpi; v.mental = {sx: sx || [], hist: [], excl: []}; return psyAutoPlan(v).keys.join(','); };
+              const r = [P('', ['ins_compl']), P('', ['rls_urge']), P('', ['adj_dep'])];
+              v.hpi = h0; v.mental = JSON.parse(m0); return r; }''')
+            assert r[0] == r[1] == 'dass_d,dass_a,dass_s,ess,psqi,isi' and 'ess' not in r[2], r
+            # Hội chứng cai F1x.3 / F1x.4 (ICD-10 bản VN tr. 77–81; 2026-11-16)
+            r = pg.evaluate('''() => { const p = curP(), v = curV(), m0 = JSON.stringify(v.mental || {});
+              const W = sx => { v.mental = {sx, hist: [], excl: [], weeks: 1, impair: ''}; return psyDx(p, v).sugs.filter(s => /^F1\d\.[34]/.test(s.code)).map(s => [s.code, s.ok]); };
+              const r = [W(['wd_alc', 'wd_g1', 'wd_g3', 'wa_1', 'wa_2', 'wa_4']), W(['wd_alc', 'wd_g1', 'wd_g3', 'wa_1', 'wa_2']), W(['wd_alc', 'wd_g1', 'wd_g3', 'wa_1', 'wa_2', 'wa_10']),
+                W(['wd_alc', 'wd_g1', 'wd_g3', 'wa_1', 'wa_2', 'wa_4', 'wd_delir', 'del_cons', 'del_cog', 'del_psymo', 'del_sleep']), W(['wd_tob', 'wd_g1', 'wd_g3', 'wt_1', 'wt_6']),
+                W(['wd_coc', 'wd_g1', 'wd_g3', 'wk_1', 'wk_3']), W(['wd_coc', 'wd_g1', 'wd_g3', 'wk_mood', 'wk_1', 'wk_3']), W(['wo_1', 'wo_2', 'wo_3', 'wd_g1', 'wd_g3'])];
+              v.mental = JSON.parse(m0); return r; }''')
+            assert r == [[['F10.30', True]], [['F10.30', False]], [['F10.31', True]], [['F10.40', True]], [['F17.30', True]], [['F14.30', False]], [['F14.30', True]], [['F11.30', True]]], r
+            assert pg.evaluate("() => ['F10.31', 'F11.40', 'F13.41', 'F17.30', 'F19.3'].every(c => ICD.some(x => x[0] === c))")
+            # Thang Fagerström; tự chọn trắc nghiệm khi tích ô nhóm nghiện (bác sĩ đặt 2026-11-16)
+            r = pg.evaluate('''() => { const v = curV(), h0 = v.hpi, m0 = JSON.stringify(v.mental || {});
+              const P = sx => { v.hpi = ''; v.mental = {sx, hist: [], excl: []}; return psyAutoPlan(v).keys.join(','); };
+              const r = [P(['sud_tob']), P(['sud_crave']), P(['adj_dep'])];
+              v.hpi = h0; v.mental = JSON.parse(m0); return [r, LABS.some(l => l[1] === 'fager'), scaleResult('fager', 6)]; }''')
+            assert r[0][0] == r[0][1] == 'ciwa,dass_d,dass_a,dass_s,audit,fager' and 'fager' not in r[0][2] and r[1], r
+            # CIWA-Ar: ngưỡng và lựa chọn đánh giá (bác sĩ đặt 2026-11-16)
+            assert pg.evaluate("() => [0, 8, 9, 19, 20, 67].map(x => scaleResult('ciwa', x).t).join('|') + '#' + FLAG_OPTS.ciwa.join('|') + '#' + (SCALE_LINKS.ciwa || []).length") == 'Bình thường|Bình thường|Nhẹ → trung bình|Nhẹ → trung bình|Nặng|Nặng#Bình thường|Nhẹ → trung bình|Nặng#1'
+            # Fagerström: ngưỡng và lựa chọn đánh giá (bác sĩ đặt 2026-11-16)
+            assert pg.evaluate("() => [1, 2, 3, 4, 5, 7, 8, 10].map(x => scaleResult('fager', x).t).join('|') + '#' + FLAG_OPTS.fager.length") == 'Lệ thuộc thấp|Lệ thuộc thấp|Lệ thuộc thấp → trung bình|Lệ thuộc thấp → trung bình|Lệ thuộc trung bình|Lệ thuộc trung bình|Lệ thuộc nặng|Lệ thuộc nặng#4'
+            # AUDIT: ngưỡng theo giới / tuổi, 4 lựa chọn đánh giá (bác sĩ đặt 2026-11-16)
+            r = pg.evaluate('''() => { const v = {date: '2026-11-16'}, M = {sex: 'Nam', birthYear: 1980}, F = {sex: 'Nữ', birthYear: 1980}, O = {sex: 'Nam', birthYear: 1950};
+              const R = (p, xs) => xs.map(x => scaleResult('audit', x, p, v).t.split(' ')[0]).join(','); return [R(M, [4, 5, 14, 15, 19, 20]), R(F, [3, 4, 12, 13, 19, 20]), R(O, [3, 4]), FLAG_OPTS.audit.length]; }''')
+            assert r == ['I,II,II,III,III,IV', 'I,II,II,III,III,IV', 'I,II', 4], r
+            # Rối loạn thói quen và xung động F63 (ICD-10 bản VN tr. 152–154; ICD-11; 2026-11-16)
+            r = pg.evaluate('''() => { const p = curP(), v = curV(), m0 = JSON.stringify(v.mental || {});
+              const G = sx => { v.mental = {sx, hist: [], excl: [], weeks: 60, impair: ''}; return psyDx(p, v).sugs.filter(s => /^F63\.[0-38]/.test(s.code) && s.src.indexOf('6C73') < 0).map(s => [s.code, s.ok]); };
+              const r = [G(['f63_excl', 'gam_2ep', 'gam_cont', 'gam_urge', 'gam_preocc']), G(['gam_2ep', 'gam_cont', 'gam_urge', 'gam_preocc']), G(['f63_excl', 'pyr_2', 'pyr_urge', 'pyr_preocc']),
+                G(['f63_excl', 'klep_2', 'klep_urge']), G(['f63_excl', 'tri_loss', 'tri_urge']), G(['f63_excl', 'gm_ctrl', 'gm_prio', 'gm_cont', 'gm_12m', 'gm_impair']), G(['game_net'])];
+              v.mental = JSON.parse(m0); return r; }''')
+            assert r == [[['F63.0', True]], [['F63.0', False]], [['F63.1', True]], [['F63.2', True]], [['F63.3', False]], [['F63.8', True]], [['F63.8', False]]], r
+            # Naltrexon 25 mg (bác sĩ đặt 2026-11-17)
+            r = pg.evaluate('''() => { const p = curP(), v = curV(), c0 = p.conds, n0 = p.condNote, o0 = v.orders, vs0 = p.visits, d = drugById('naltrex25');
+              p.visits = [v]; const B = () => drugBlockReasons(p, v, d).some(t => /^naltrexon:/.test(t));
+              p.conds = []; p.condNote = ''; v.orders = []; const r = [B()];
+              p.conds = ['liver']; r.push(B()); p.conds = []; p.condNote = 'Xơ gan do rượu'; r.push(B()); p.condNote = 'Rối loạn tiền đình'; r.push(B()); p.condNote = '';
+              v.orders = [{id: 'o1', key: 'alt', value: 90, ref: '< 40'}]; r.push(B()); v.orders = [{id: 'o2', key: 'ast', value: 70, ref: '< 40'}]; r.push(B());
+              p.conds = c0; p.condNote = n0; v.orders = o0; p.visits = vs0; return [r, d.howOpts[0], d.dnote, d.dose.join(','), !!S.drugs.find(x => x.id === 'naltrex25')]; }''')
+            assert r == [[False, True, True, True, True, False], 'Ngày uống 1 viên sau ăn sáng', 'Duy trì 50mg/ngày.', '1,0,0,0', True], r
+            # Vareniclin 0,5 mg (bác sĩ đặt 2026-11-17)
+            r = pg.evaluate('''() => { const p = curP(), v = curV(), c0 = p.conds, n0 = p.condNote, d = drugById('varen05');
+              const B = () => drugBlockReasons(p, v, d).some(t => /^vareniclin:/.test(t));
+              p.conds = []; p.condNote = ''; const r = [B()]; p.conds = ['epilepsy']; r.push(B()); p.conds = []; p.condNote = 'Động kinh từ nhỏ'; r.push(B()); p.condNote = 'Không động kinh'; r.push(B());
+              p.conds = c0; p.condNote = n0; return [r, /3 ngày đầu/.test(d.howOpts[0]), d.dnote, !!S.drugs.find(x => x.id === 'varen05')]; }''')
+            assert r == [[False, True, True, False], True, '(ClCr < 30) tối đa 0,5 mg × 2 lần/ngày.', True], r
             # Khám lâm sàng theo cơ quan (bác sĩ đặt 2026-11-12)
             r = pg.evaluate("""() => { const v = curV(), s0 = S.view.step, e0 = JSON.stringify(v.examSys || {}); v.examSys = {};
               go({name: 'visit', pid: S.view.pid, vid: v.id, step: 1}); const sel = document.querySelector('select.howpick[data-for="v.examSys.cv"]');

@@ -99,7 +99,7 @@ const LIVE = {
   rxqty: el => { const l = curV().rx.find(x => x.id === el.dataset.id); if(!l) return ''; const d = drugById(l.drugId), q = rxQty(l); return `<b>${fmtN(q.give)}</b> ${esc(d ? d.u : '')}`; },
   rxcost: el => { const l = curV().rx.find(x => x.id === el.dataset.id); return l ? money(rxCost(l)) : ''; },
   rxtotal: () => { const v = curV(); const t = (v.rx || []).reduce((a, l) => a + rxCost(l), 0); return `Tổng tiền thuốc (giá mẫu): <b>${money(t)}</b>`; },
-  scale: el => { const o = curV().orders.find(x => x.id === el.dataset.id); if(!o) return ''; const r = scaleResult(o.key, o.value); return r ? chip(r.t, ['ok', 'r1', 'r2', 'r3'][r.lv]) : '<span class="small muted">Nhập tổng điểm để có kết luận.</span>'; },
+  scale: el => { const o = curV().orders.find(x => x.id === el.dataset.id); if(!o) return ''; const r = scaleResult(o.key, o.value, curP(), curV()); return r ? chip(r.t, ['ok', 'r1', 'r2', 'r3'][r.lv]) : '<span class="small muted">Nhập tổng điểm để có kết luận.</span>'; },
   cvrisk: () => { const p = curP(), v = curV(), r = cvRisk(p, v);
     const lvl = r.level ? chip('VNHA 2026: nguy cơ ' + r.level.toLowerCase(), {Thấp: 'ok', 'Trung bình': 'r1', Cao: 'r3'}[r.level]) : `<span class="small muted">${r.bp == null ? 'Nhập huyết áp để phân tầng.' : 'HA < 130/80: bảng kiểm VNHA 2026 áp dụng từ tiền THA trở lên.'}</span>`;
     const sc = r.score != null ? chip(`SCORE2-AP: ${r.score}% (${r.band}) nguy cơ tim mạch 10 năm`, r.score < 5 ? 'ok' : r.score < 10 ? 'r1' : r.score < 20 ? 'r2' : 'r3') : '';
@@ -560,7 +560,7 @@ function mentalCard(p, v){
   };
   // Thứ tự hiển thị theo mã ICD-10 (bác sĩ đặt 2026-11-16): F00–F06 → F10/F17 → F30–F33 (+ loạn thần kèm) → F40–F48 → F50–F52 → F63 → F70–F79 → F80–F84 → F90–F98.
   // Chỉ đổi thứ tự hiển thị; MENTAL_SX (data.js) giữ nguyên. Nhóm mới chưa có trong danh sách thì xếp cuối.
-  const ICD_ORDER = ['dem', 'amn', 'del', 'mci', 'sud', 'man_a', 'man_b', 'mix', 'dep_core', 'dep_common', 'dep_som', 'psy',
+  const ICD_ORDER = ['dem', 'amn', 'del', 'mci', 'sud', 'wd', 'man_a', 'man_b', 'mix', 'dep_core', 'dep_common', 'dep_som', 'psy',
     'phob', 'panic', 'anx', 'ocd', 'ptsd', 'adj', 'diss', 'som', 'neur', 'ed', 'scoff', 'slp', 'sexdx', 'sex', 'gam',
     'id', 'dev', 'asd', 'adhd', 'cond', 'kemo', 'tic', 'kid', 'kid2'];
   const ordIx = g => { const i = ICD_ORDER.indexOf(g.g); return i < 0 ? 999 : i; };
@@ -757,7 +757,7 @@ function sheetHTML(p, v){
   if(o.reason && v.reason) h += sec('Lý do đến khám', pre(v.reason));
   if(o.dx && (v.dx.main || v.dx.secondary || v.dx.icd2)){ const code = String(v.dx.icd || '').split(' ')[0]; h += sec('Chẩn đoán', `<div><b>${esc(v.dx.main)}</b>${code ? ` (${esc(code)})` : ''}</div>${v.dx.secondary || v.dx.icd2 ? `<div>Chẩn đoán phụ: ${esc(v.dx.secondary || '')}${String(v.dx.icd2 || '').split(' ')[0] ? ` (${esc(String(v.dx.icd2).split(' ')[0])})` : ''}</div>` : ''}<div>Hướng xử trí: ${{outpatient: 'Điều trị ngoại trú', admit: 'Nhập viện', refer: 'Chuyển tuyến'}[v.dx.disp] || ''}</div>`); }
   const labs = v.orders.filter(x => x.value != null && String(x.value).trim() !== '');
-  if(o.labs && labs.length){ h += sec('Kết quả cận lâm sàng', `<table><tr><th>Xét nghiệm / thăm dò</th><th>Kết quả</th><th>Đơn vị</th><th>Tham chiếu</th></tr>${labs.map(x => { const e = x.key === 'creat' ? egfrFromOrder(p, v, x) : null; const fl = FLAG_OPTS[x.key] ? (x.flag ? ' (' + esc(x.flag) + ')' : '') : ({BT: '', Cao: ' ↑', Thấp: ' ↓', BTh: ' (bất thường)'}[x.flag] || ''); return x.type === 't' ? `<tr><td>${esc(x.name)}</td><td colspan="3" class="pre">${esc(x.value)}</td></tr>` : `<tr><td>${esc(x.name)}</td><td><b>${typeof x.value === 'number' ? fmtN(x.value, 2) : esc(x.value)}${fl}</b>${(r => r ? ' — ' + esc(r.t) : '')(scaleResult(x.key, x.value))}</td><td>${esc(x.unit || '')}</td><td>${esc(x.ref || '')}</td></tr>` + (e != null ? `<tr><td>Mức lọc cầu thận (eGFR, CKD-EPI 2021)</td><td><b>${fmtN(e)}</b> — ${ckdStage(e)}, ${EGFR_LABEL[ckdStage(e)]}</td><td>mL/phút/1,73m²</td><td>≥ 90</td></tr>` : ''); }).join('')}</table>`); }
+  if(o.labs && labs.length){ h += sec('Kết quả cận lâm sàng', `<table><tr><th>Xét nghiệm / thăm dò</th><th>Kết quả</th><th>Đơn vị</th><th>Tham chiếu</th></tr>${labs.map(x => { const e = x.key === 'creat' ? egfrFromOrder(p, v, x) : null; const fl = FLAG_OPTS[x.key] ? (x.flag ? ' (' + esc(x.flag) + ')' : '') : ({BT: '', Cao: ' ↑', Thấp: ' ↓', BTh: ' (bất thường)'}[x.flag] || ''); return x.type === 't' ? `<tr><td>${esc(x.name)}</td><td colspan="3" class="pre">${esc(x.value)}</td></tr>` : `<tr><td>${esc(x.name)}</td><td><b>${typeof x.value === 'number' ? fmtN(x.value, 2) : esc(x.value)}${fl}</b>${(r => r ? ' — ' + esc(r.t) : '')(scaleResult(x.key, x.value, p, v))}</td><td>${esc(x.unit || '')}</td><td>${esc(x.ref || '')}</td></tr>` + (e != null ? `<tr><td>Mức lọc cầu thận (eGFR, CKD-EPI 2021)</td><td><b>${fmtN(e)}</b> — ${ckdStage(e)}, ${EGFR_LABEL[ckdStage(e)]}</td><td>mL/phút/1,73m²</td><td>≥ 90</td></tr>` : ''); }).join('')}</table>`); }
   const rx = v.rx.map(l => ({l, d: drugById(l.drugId)})).filter(x => x.d);
   if(o.rx && rx.length){
     const tot = rx.reduce((a, x) => a + rxCost(x.l), 0);
@@ -1199,7 +1199,7 @@ const SEED_ADDED = ['gavis10',
   // Risperdal 1 mg — 2026-11-07
   'risperdal1',
   // alprazolam 0,25 mg thay 0,5 mg — 2026-11-09
-  'alpra025n', 'alpra025f', 'prozac10', 'bupro150', 'seduxen5', 'buspi5', 'stresam50', 'eszopi2', 'doxep3', 'diphen25', 'moda200', 'flib100', 'milna25'];
+  'alpra025n', 'alpra025f', 'prozac10', 'bupro150', 'seduxen5', 'buspi5', 'stresam50', 'eszopi2', 'doxep3', 'diphen25', 'moda200', 'flib100', 'milna25', 'naltrex25', 'varen05'];
 async function addNewSeedDrugs(){
   const done = S.settings.seedAdded || [], todo = SEED_ADDED.filter(id => !done.includes(id));
   if(!todo.length) return;
